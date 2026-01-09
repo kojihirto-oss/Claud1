@@ -42,7 +42,7 @@
 ---
 
 ## Repo Navigation
-- decisions/ : ADR（意思決定ログ）
-- glossary/ : 用語の唯一定義
-- sources/ : 根拠（原文・ログ・スクショ）
-- checks/ : 検証手順（Verify）
+- [decisions/](../decisions/) : ADR（意思決定ログ）
+- [glossary/](../glossary/) : 用語の唯一定義
+- [sources/](../sources/) : 根拠（原文・ログ・スクショ）
+- [checks/](../checks/) : 検証手順（Verify）
