@@ -1,0 +1,2055 @@
+﻿コンテンツへとスキップする
+チャット履歴
+あなた:
+vcg_vibe_2026_ai統合運用マスタードキュメント（antigravity_ide／cursor不使用／claude_code＋gpt＋google_one_pro＋z.md
+ファイル
+大規模な開発をバイブコーディングで個人がやる際に直感的に高精度の開発またはトップクラスの精度のものを開発できるようにするために考察と研究をしています。
+この内容を基に再考察してます。
+次の指示でデータを大量に渡すのでそれを基に考察と研究をしてほしい。
+
+
+ChatGPT:
+思考時間: 36s
+了解。次に渡してくれる大量データを、あなたの「Core4固定＋SSOT＋SBF/PAVR＋ガードレール」運用（Antigravity中心、Cursor不使用）を前提に、事故らず直感的に“トップクラス精度”へ寄せるための再考察・研究に使います。
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+ 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+送ってほしいデータ（優先順位）
+A. いまの“現実”が分かるもの（最重要）
+1. 直近のVerify結果一式（成功/失敗どちらも）
+* CIログ、テストログ、lint、ビルドログ、失敗スタックトレース
+* 「どの受入基準に落ちたか」が追える形（SPECの該当行が理想）
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+2. 現行SPEC.md（またはテンプレ）
+* 目的/非目的/制約/受入基準/Verify手順/リスク/ロールバックが入ってる版
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+3. 直近パッチ差分（patchset）
+* Git diff、または変更ファイル一覧＋要点（最小差分が守れているか見る）
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+B. 大規模化で迷子になる原因を特定するもの
+4) フォルダツリー（上位3〜5階層でOK）＋「SSOTの置き場所」
+* どれが真実か（SSOT）と、証跡（VAULT/EVIDENCE/RELEASE）の位置関係
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+5. VIBEKANBANの現状（チケット例 3〜5本でOK）
+* INBOX→TRIAGE→SPEC→BUILD→VERIFY→REPAIR→… のどこで詰まるか
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+C. 事故りやすさを潰すもの
+6) ガードレール運用の実態
+* READ-ONLY→PATCHSET→VERIFY、削除禁止/退避ルール、dry-run二段階の“今のやり方”
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+________________
+
+
+貼り方（そのままコピペでOK）
+* 1メッセージは 「CHUNK n/N」 で区切ってください（例：### CHUNK 1/6）。
+* ログは長くてOK。生ログ優先（要約は不要。こちらで要約→修理方針に落とします）
+* vcg_vibe_2026_ai統合運用マスタードキュメント（…
+* もしファイルが多いなら、ZIP添付でもOK（フォルダツリー＋Verifyログ＋SPEC＋差分が入っていれば十分）。
+________________
+
+
+そのデータから返すアウトプット（やること）
+あなたの運用SSOT（SBF/PAVR・Core4役割分担・ガードレール）に照らして、次を**“精度最大化の研究結果”として**出します。
+* 失敗パターンの分類（大規模バイブコーディングで精度が落ちる根本原因を特定）
+* SPECの凍結品質スコア（曖昧さ・検証不能・スコープ漏れ・合否判定不全の検出）
+* Verify→Repair収束性の改善案（最短でGreenへ戻すループ設計）
+* 直感的に運用できる強制ガードレール案（Antigravity中心で壊れない手順に落とす）
+* “トップ精度”用の最小プロンプト＆入力パッケージ規格（毎回迷わない型）
+________________
+
+
+準備できたら、まずは (1) SPEC.md + (2) 直近Verifyログ（Red）+ (3) 直近diff を CHUNK 1/… から貼ってください。
+情報源
+あなた:
+chat-New Chat (21).txt
+ドキュメント
+vcg_vibe_2026_review_and_improvements.md
+ファイル
+vcg_vibe_2026_s_rank_guide.md
+ファイル
+vcg_vibe_2026_ai統合運用マスタードキュメント（antigravity_ide／cursor不使用／claude_code＋gpt＋google_one_pro＋z.md
+ファイル
+無題のドキュメント (1).txt
+ドキュメント
+この追加内容を基に再考察研究を行ってください。
+ChatGPT:
+思考時間: 2m 9s
+以下は、あなたが追加した内容（マスタードキュメント＋厳格レビュー＋Sランク指針＋補助メモ）を前提に、「個人×大規模×バイブコーディング」で直感的にトップクラス精度へ寄せるための再考察・研究結果です。
+（結論→設計原理→運用テンプレ→優先度パッチ、の順でまとめます）
+________________
+
+
+0) 結論：トップクラス精度に“必須”な追加はこの3本柱
+A. 逐次フローを捨てて「C-PAVR（並列PAVR）」へ移行
+現状はSBF/PAVR/SSOTが強い一方で、**工程が基本“逐次”**で、待ち時間・認知負荷・コンテキスト切替（IDE外CLI運用）が精度劣化を誘発します。
+chat-New Chat (21)
+
+→ AntigravityのManager View（Agent Manager）を“管制塔”として並列運用をルール化するのがP0です。
+vcg_vibe_2026_review_and_improv…
+
+（Google公式のAntigravity codelabでも“Agent Manager view/Editor view”の切替が明記されています。）
+B. VERIFYを「固定ゲート（共通）＋チケット固有ゲート」に固定化
+“Verify”が概念止まりだと、失敗ログ→修理が属人的になり、収束が遅くなります。
+あなたの追加メモにある通り、G1〜G5の固定ゲートを先に明文化して“順番固定”にするのが最重要です。
+無題のドキュメント (1)
+C. MCP/自動実行の「信頼境界（Trust Boundary）」を仕様として書く
+MCPは2026の標準接続手段になりつつありますが
+無題のドキュメント (1)
+、同時にプロンプト注入・権限逸脱・情報漏えいの攻撃面が増えます。
+Antigravity系IDEの“自動コマンド実行”リスクは現実に問題化しているため、**「安全設計の文章化＋強制ガードレール＋監査ログ」**がトップ精度運用の前提条件になります。
+________________
+
+
+1) 再考察：なぜ精度が頭打ちになるか（個人×大規模の“失敗の核”）
+追加文書群が示している失敗原因は、まとめるとこの4つです：
+1. IDE中心と言いながら、実働がIDE外に散って“コンテキスト切替税”が発生（Claude CodeをCLIとして外出し、監査/調査も別窓）
+2. chat-New Chat (21)
+3. 凍結SPECは正しいが、探索（Explore）不足のまま凍結すると後工程の修理地獄（だから「Explore→Plan→Code→Commit」が必要）
+4. vcg_vibe_2026_review_and_improv…
+5. Verifyが“ルール”ではなく“雰囲気”になると、反復しても学習されず再発（固定ゲート＋証跡がない）
+6. 無題のドキュメント (1)
+7. 大規模（50+フォルダ）では“最小コンテキスト”だけだと足りない
+Repo Map（責務境界）、影響範囲、衝突防止、統合手順が必要 
+8. 無題のドキュメント (1)
+________________
+
+
+2) 2026トップ精度の設計原理：S+運用アーキテクチャ（VCG/VIBE v2）
+あなたのCore4思想（Claude/GPT/Gemini/GLMの役割固定）自体は強いです。
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+
+ただし“勝ち筋”は Core4＋衛星ではなく、**「管制塔（Antigravity）＋並列隊列＋固定ゲート」**に寄せた形です。
+vcg_vibe_2026_review_and_improv…
+2.1 C-PAVR（並列PAVR）の型
+   * P(Prepare)：Repo Map／禁止領域／固定ゲート／MCP境界
+   * A(Author)：Explore→Planで凍結SPEC（受入基準つき）
+   * V(Verify)：G1→G5固定ゲート＋チケット固有ゲート
+   * R(Repair)：失敗分類→最短修理→再Verify（回数でエスカレーション）
+   * vcg_vibe_2026_review_and_improv…
+   * これを 並列で回す（TRIAGE×TRIAGE、VERIFY×BUILD等）
+   * vcg_vibe_2026_review_and_improv…
+________________
+
+
+3) “直感的に回る”ための運用テンプレ（ハンドオフ＝勝手に迷わない仕組み）
+3.1 工程間ファイル規約（これが無いと並列は崩壊する）
+レビューが指摘している通り、工程の入出力が曖昧だと破綻します。
+vcg_vibe_2026_review_and_improv…
+
+最小でもこの“受け渡し表”をSSOTに固定してください（そのまま採用レベル）：
+vcg_vibe_2026_review_and_improv…
+   * INBOX: ticket_{id}.md
+   * TRIAGE: triage_{id}.md
+   * SPEC: SPEC_{id}.md（受入基準＝Verify可能な形）
+   * BUILD: patch_{id}.diff
+   * VERIFY: verify_{id}.json（Green/Red判定）
+   * REPAIR: repair_{id}.diff
+   * EVIDENCE: evidence_{id}.md
+   * RELEASE: manifest_{id}.json
+3.2 並列の上限は「3〜4」で固定（個人の認知限界対策）
+“最大8並列”は可能でも
+vcg_vibe_2026_review_and_improv…
+、個人運用の安定解は 3〜4エージェント上限が推奨されています。
+vcg_vibe_2026_review_and_improv…
+
+8並列は「TRIAGE専用・調査だけ」など、衝突しない仕事に限定するのが現実解です。
+________________
+
+
+4) VERIFYの固定ゲート化（G1〜G5）＋チケット固有ゲート
+あなたの追加メモのこの表は、トップ精度運用の“背骨”です。
+無題のドキュメント (1)
+
+SSOTにこのまま入れて、順番固定・省略不可にしてください。
+   * G1 Build/Install：再現性入口
+   * G2 Lint/Format/Type：低コスト品質底上げ
+   * G3 Unit/Integration：受入基準の自動判定
+   * G4 Security/Static：事故を機械で止める（Semgrep/Bandit等）
+   * G5 Artifact：sha256、件数、重複率、FTSなど証跡整合
+さらに、無題ドキュメント側に GitHub Actionsで“Verify Gate”を実装する雛形が既にあります（DSPy/semgrep等まで入っている）。
+無題のドキュメント (1)
+
+→ これを「固定ゲートの機械化」へ直結させるのが最短ルートです。
+________________
+
+
+5) MCP/自動実行：Trust Boundary を“文章＋設定＋運用”で三重ロック
+5.1 なぜ必須か
+   * MCPはGemini CLIなどでツール/外部資源を繋ぐ標準として説明されています。
+   * 一方で、IDEエージェントが自動でターミナル実行できる設計は、注入攻撃・機密ファイル漏えいを起こし得る、という指摘が出ています。
+5.2 仕様に書くべき“最低ライン”
+追加メモが言う通り、Trust Boundaryが無いと運用が大きいほど危険です。
+無題のドキュメント (1)
+
+SSOTに以下を固定（要点だけ）：
+   * Allowlist：使って良いMCPサーバ／コマンド種別／許可パス
+   * Secrets分離：.env/鍵/個人情報は「AIが読めない」運用（最低でも“出力禁止”を強制）
+   * 破壊系コマンド禁止：rm系・drop系・全域リライト禁止（違反即停止）
+   * vcg_vibe_2026_review_and_improv…
+   * 監査ログ：MCP呼び出し・ファイル読み書き・実行コマンドを必ず保存（VAULTへ）
+   * “自動実行”は原則OFF：手動承認→パッチ適用→Verify、に寄せる（速度はサンドボックスで取り返す）
+   * chat-New Chat (21)
+________________
+
+
+6) ツール/モデルの使い分け（2026実装寄り）
+6.1 Antigravity：Editor ViewとManager Viewを“役割分離”
+レビュー案の運用モード定義（Editor/Manager/Browser Subagent）は、そのままSSOTに取り込む価値があります。
+vcg_vibe_2026_review_and_improv…
+
+公式codelabでもEditor view/Agent Manager viewの記述があり、概念整合します。
+6.2 Jules：非同期PR型の“隔離ビルダー”として使う発想
+Julesは「リポジトリ/ブランチ選択→プロンプト→作業」という非同期エージェントとして説明されています。
+さらにPRベースで安全側に倒す設計や“critic”のような品質対策が言及されています。
+→ 個人の大規模開発では、Julesを“隔離された作業者（PR提出）”に固定すると、Trust Boundary的にも相性が良いです。
+6.3 Z.ai(GLM)：安い手足＋「Preserved Thinking」検証枠
+マスター内の「高頻度反復（整形/要約/ログ解析）」という役割は合理的です。
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+
+GLM-4.7はPreserved Thinking等を含む思考モードが整理されています。
+→ ただし “設計/実装の主戦力”に上げるかは、Verify通過率で決める（レビューのエスカレーション規約を採用）
+vcg_vibe_2026_review_and_improv…
+________________
+
+
+7) 仕上げ：P0/P1/P2の“実装パッチ”を確定（迷いゼロ順）
+レビューのロードマップはかなり妥当なので
+vcg_vibe_2026_review_and_improv…
+、ここでは**「トップ精度に直結する順」に並べ替えて確定します。
+P0（今日入れる：精度の背骨）
+   1. Manager View並列運用ルール（独立WS、Artifact確認、マージ前Verify）
+   2. vcg_vibe_2026_review_and_improv…
+   3. VERIFY固定ゲート（G1〜G5）をSSOTへ固定
+   4. 無題のドキュメント (1)
+   5. Trust Boundary章（MCP安全設計）をSSOTへ追加
+   6. 無題のドキュメント (1)
+   7. 工程間ハンドオフ規約（ファイル規約表）を固定
+   8. vcg_vibe_2026_review_and_improv…
+P1（1週間：収束速度を上げる）
+   5. Explore→Plan→Code→Commitを“強制手順”に（承認ポイントを入れる）
+   6. vcg_vibe_2026_review_and_improv…
+   7. 並列戦略（3〜4上限、TRIAGE多並列/BUILDは分離）
+   8. vcg_vibe_2026_review_and_improv…
+   9. Repo Map／影響範囲／衝突防止（ロック/分割/統合手順）
+   10. 無題のドキュメント (1)
+P2（2週間：学習する運用へ）
+   8. 週次レトロ＋プロンプト改善サイクル
+   9. vcg_vibe_2026_review_and_improv…
+   10. バックアップ/リカバリ（ブランチスナップショット、VAULT保全）
+   11. vcg_vibe_2026_review_and_improv…
+   12. フェイルオーバー順序の明文化（Claude→Antigravity内蔵→GLM→Local）
+   13. vcg_vibe_2026_review_and_improv…
+________________
+
+
+参考：直近の関連動向（安全性・CLI・非同期エージェント）
+
+TechRadar
+Google's AI-powered Antigravity IDE already has some worrying security issues - here's what was found
+2025/12/02
+
+
+The Verge
+Google is bringing Gemini CLI to developers' terminals
+2025/06/25
+
+
+IT Pro
+Google's new Jules coding agent is free to use for anyone - and it just got a big update to prevent bad code output
+2025/08/21
+情報源
+あなた:
+AI統合運用マスタードキュメント改善提案.txt
+ドキュメント
+この内容も追加して考察してください。
+ChatGPT:
+思考時間: 10m 23s
+以下、「追加いただいた内容（改善提案リスト／S評価ガイド／厳格レビュー）」も統合した上で、個人で大規模バイブコーディングを“直感的に高精度（トップ級）”へ引き上げるための、必要十分な強化点だけを整理します。
+________________
+
+
+1) いまの土台は強い。ただし“2026の勝ち筋”が抜けている
+あなたの設計（Core4・SSOT・ガードレール）自体はB+として堅実です。問題は「2026の高精度化は、逐次実行では頭打ち」な点です。S評価側の定義は、マルチエージェント協調＋自己修復＋予測的品質保証で、ここに移行しないと「大規模×個人」で精度が伸びません。 
+vcg_vibe_2026_s_rank_guide
+________________
+
+
+2) 最優先の追加：Antigravityを“IDE”ではなく“並列運用基盤”として使う
+厳格レビューで一番重い指摘はこれです。AntigravityをEditor（同期）としてしか扱っていない＝並列が死ぬ。
+追加すべきは Manager View（Agent Manager）を前提にした運用モードです（最大8並列・ワークスペース分離・Artifact監視・マージ前VERIFY必須）。 
+vcg_vibe_2026_review_and_improv…
+ 
+vcg_vibe_2026_review_and_improv…
+
+Google側も Antigravity を “agentic development platform” として位置づけています。 
+ここで「直感的」になる理由
+   * 人間は「チケット投入」だけ
+   * 進捗は “Artifact（タスクリスト／計画／スクショ）” で視覚化
+   * 並列で “調査→実装→検証” が同時に進む
+（逐次だと、手戻りのたびにコンテキストが壊れて精度が落ちます）
+________________
+
+
+3) Claude Codeは “Explore→Plan→Code→Commit” を強制（いきなり実装禁止）
+レビューが言っている通り、「BUILDでいきなりコード」を許すと大規模で破綻しがちです。
+Claude Code運用は 4段階固定にして、Spec凍結と噛み合わせます。 
+vcg_vibe_2026_review_and_improv…
+
+Anthropic側のベストプラクティスも、同種の段階設計・手順化を推しています。 
+あなたのマスタードキュメントに追記する“強制ルール”
+      * EXPLORE（コード禁止）→ 影響範囲と依存を列挙
+      * PLAN（計画のみ）→ ファイル単位の作業順序を確定（凍結）
+      * CODE（差分だけ）→ 計画から逸脱したら停止
+      * COMMIT（最小単位）→ VERIFYがGreenならマージ、RedならREPAIR
+________________
+
+
+4) S評価への最短ルート：Core4を「手動切替」から「Conductorで配役」に変える
+S評価ガイドが明確に言っています：
+現状は Core4 を “人間が手動で切り替え”＝これが精度と速度の天井。 
+vcg_vibe_2026_s_rank_guide
+追加すべき中核：Conductor Agent（配役＋統合＋判定）
+      * チケットを タスク分解し、RESEARCH/ARCHITECT/CODER/REVIEWER に割当
+      * 途中成果を統合し、VERIFY前に “矛盾チェック” をかける 
+      * vcg_vibe_2026_s_rank_guide
+これをやると、あなたのCore4思想（適材適所）が「運用として実装」されます。
+________________
+
+
+5) 「Verifyを機械判定に寄せる」＝トップ精度の本丸
+大規模で“直感的”にするには、最終判断が人間の主観だと破綻します。
+提案されている通り、SPEC側に 機械判定可能なJSONスキーマを必須化し、CIが0/1で判定する構造が強いです。 
+無題のドキュメント (1)
+やること（要点だけ）
+      * SPEC.mdに ACCEPTANCE(JSON) を必須
+      * verify.ymlがスキーマを読み、合否を100%コードで判定
+      * LLMは「判定結果のレビュー＋リスク指摘」まで（合否は触らせない）
+________________
+
+
+6) セキュリティは「任意」から「Green条件」に格上げ（2026は必須）
+レビュー案では、Semgrep等が任意扱いになっている点が危険とされています。 
+vcg_vibe_2026_review_and_improv…
+
+ここは設計哲学として VERIFY工程にセキュリティゲートを埋め込み、Green条件に固定してください（静的解析、依存関係監査、シークレット検出、Prompt Injection防御の最小セット）。 
+vcg_vibe_2026_review_and_improv…
+※レビュー内の「45%」のような統計値は出典が本文内で一次情報に落ちていないので、数値は根拠付きに差し替えるか「仮説」と明記が安全です。 
+vcg_vibe_2026_review_and_improv…
+________________
+
+
+7) MCPは“便利機能”ではなく「信頼境界（Trust Boundary）」として扱う
+あなたの追加資料でも「MCPを神経系に」と書かれています。 
+chat-New Chat (21)
+
+MCPは「LLMが外部ツールに触れる入口」なので、ここに最小権限・許可リスト・監査ログを置くのが2026型です。MCPの仕様（一次情報）も確認して、運用規約を文章ではなく“設定＋テスト”で固定してください。
+________________
+
+
+8) 追加された「改善提案.txt」の扱い：ソース品質のルールを入れないと逆に精度が落ちる
+改善提案.txt は、参考リンクに Reddit / Medium / Wikipedia が混じっています。 
+AI統合運用マスタードキュメント改善提案
+
+これは“アイデア集”としてはOKですが、運用ルールの根拠にすると精度が落ちます。
+提案：Evidence Ladder（証拠の階段）をマスタードキュメントに追加
+      * Tier0: 公式仕様・公式Docs・一次ソース（Google/Anthropic/MCPなど）
+      * Tier1: 大手技術メディア/カンファ発表（補助）
+      * Tier2: 個人ブログ/YouTube（参考）
+      * Tier3: Reddit（発想のみ。採用はTier0/1で裏取り必須）
+（改善提案.txt自身が、公式リンクも含んでいるので“Tier0へ寄せる”のはすぐできます） 
+AI統合運用マスタードキュメント改善提案
+________________
+
+
+9) S評価の「5つの革新」を、マスタードキュメントの章としてそのまま統合する
+S評価ガイドは、既存ドキュメントへ足す章まで指定しています。これを採用するのが最短です。 
+vcg_vibe_2026_s_rank_guide
+S評価に必要な5つ（要点）
+      1. マルチエージェントオーケストレーション（Conductor） 
+      2. vcg_vibe_2026_s_rank_guide
+      3. コスト最適化（PLAN/EXECUTE/VALIDATEでモデル階層化） 
+      4. vcg_vibe_2026_s_rank_guide
+      5. 自己修復ループ（Red分類→軽微は自動修復／重大は停止） 
+      6. vcg_vibe_2026_s_rank_guide
+      7. 予測的品質保証（事前リスク分析・類似バグRAGなど） 
+      8. vcg_vibe_2026_s_rank_guide
+      9. 観測可能性（トレース・メトリクス・アラート） 
+      10. vcg_vibe_2026_s_rank_guide
+________________
+
+
+10) 仕上げ：あなたの運用フローを “C-PAVR（Concurrent）” にアップグレード
+追加資料でも「PAVR→C-PAVR（並列）」が筋として出ています。 
+chat-New Chat (21)
+
+最終的に目指す姿はこれです：
+      * 人間：チケット投入／最終承認／例外対応
+      * Conductor：分解→配役→統合→Gate移送
+      * Antigravity Manager View：並列実行＋Artifact監視
+      * CI/VERIFY：機械判定（Acceptance JSON）
+      * VAULT：証跡（プロンプト・ログ・差分・判定根拠）を自動保存 
+      * vcg_vibe_2026_s_rank_guide
+________________
+
+
+いまのドキュメントに「この順で」追記すると、一気にトップ級に寄る
+      1. Antigravity運用モード（Editor/Manager/Browser Subagent） 
+      2. vcg_vibe_2026_review_and_improv…
+      3. Claude Code 4段階（Explore→Plan→Code→Commit） 
+      4. vcg_vibe_2026_review_and_improv…
+      5. Conductor Agent（Core4の自動配役） 
+      6. vcg_vibe_2026_s_rank_guide
+      7. Acceptance JSON + CI判定（0/1でGreen） 
+      8. 無題のドキュメント (1)
+      9. VERIFYにセキュリティゲート固定（Green条件） 
+      10. vcg_vibe_2026_review_and_improv…
+      11. 観測可能性（トレース/メトリクス/アラート） 
+      12. vcg_vibe_2026_s_rank_guide
+      13. Evidence Ladder（ソース品質ルール） 
+      14. AI統合運用マスタードキュメント改善提案
+これで、あなたの「直感的＝迷いゼロ」運用が “並列×機械判定×証跡” で実現します。
+________________
+
+
+情報源
+あなた:
+これまでのすべての内容を踏まえて# VCG/VIBE 2026 AI統合運用マスタードキュメントを更新してください。
+文は長くなっていいのでできるだけ多くの情報を記載してください。
+ChatGPT:
+思考時間: 2m 50s
+更新版の 「VCG/VIBE 2026 AI統合運用マスタードキュメント（v2026-01-09）」 を反映して作成しました。
+今回の統合では、追加いただいた内容を前提に B+→A→S の到達条件を明確化し、特に Conductor Agent／C-PAVR（並列運用）／Self-Healing Loop／予測的QA／観測可能性（Tracing+Dashboard）／Context Engineering（意図の階層化） を中核として、既存構成を“直感的に回せる形”に再設計しています。
+参考：Antigravity関連の最近の動向
+
+The Verge
+Google Antigravity is an 'agent-first' coding tool built for Gemini 3
+2025/11/19
+
+TechRadar
+Google's Antigravity AI deleted a developer's drive and then apologized
+2025/12/04
+ Google launches Antigravity, an AI-first coding platform built on Gemini 3 
+
+The Times of India
+Google launches Antigravity, an AI-first coding platform built on Gemini 3
+2025/11/19
+情報源
+あなた:
+Vcg/vibe 2026 Ai統合運用マスタードキュメント（更新版 V2026-01-09）
+ランク定義なしでと実装ロードマップとかなしで現段階で最高峰の運用マスタードキュメントを記載してほしい。
+実装できていない内容は一番最後にその旨を付け加えて。
+ChatGPT:
+思考時間: 23s
+指定どおり、ランク定義／実装ロードマップを完全に削除し、現段階での「最高峰の運用マスタードキュメント」へ再編集しました。
+また、実装できていない（または自動化未完了になりやすい）項目は、ドキュメント最下部に「末尾注記」として まとめて明記しました。
+あなた:
+Vcg/vibe 2026 Ai統合運用マスタードキュメント（更新版 V2026-01-09）
+## 0.1 いま課金しているAI（あなたの前提セット）
+
+
+- **Claude Code Plus（Anthropic）**
+- **ChatGPT Plus（OpenAI）**
+- **Google One Pro（Google / Gemini側の特典を含む想定）**
+- **Z.ai Lite（GLM Coding Plan）**
+
+
+## 0.2 使用ツールは必ず記載して
+ChatGPT:
+思考時間: 30s
+反映しました。
+      * あなたが提示したとおり 「### 0.1 いま課金しているAI（前提セット）」 を追加
+      * 「### 0.2 使用ツール（必ず記載）」 を追加（IDE/CLI/CI/テスト/Lint/セキュリティ/MCP/証跡/ナレッジ/OCRまで含めて固定）
+      * 既存の 0.1/0.2 は番号衝突を避けるため 0.3/0.4 に繰り下げました（内容は維持）
+このまま「使用ツール」欄をSSOTとして更新し続ければ、運用が増えても迷子にならずに回せます。
+あなた:
+無題のドキュメント (2).txt
+ドキュメント
+バイブコーディングによる大規模開発の考察.txt
+ドキュメント
+VCG_VIBE 2026 AI統合運用マスタードキュメント 調査・考察および改善提案レポート.md
+ファイル
+この内容を踏まえて
+最新版のマスタードキュメントを作成してください。
+ChatGPT:
+思考時間: 9m 30s
+Vcg/vibe 2026 Ai統合運用マスタードキュメント（更新版 V2026-01-09）
+VCG/VIBE 2026 AI統合運用マスタードキュメント（最高峰・運用版）
+版: 2026-01-09（JST）
+運用思想: 精度は「モデル」ではなく「運用」で作る（仕様凍結→最小パッチ→機械Verify→証跡固定→反復）
+重要: Cursorは使わない。IDEハブは Google Antigravity を中心に回す。
+________________
+
+
+0. このドキュメントの目的（何を“固定”するか）
+個人が50フォルダ超・長期・大規模な開発を「バイブコーディング」で回しても 迷いゼロ／事故ゼロ／品質が落ちない 状態にするための、運用の“憲法”を固定する。
+このドキュメントが固定するもの：
+      * 仕事の型：SBF（Spec→Build→Fix）＋ VR（Verify→Repair ループ）
+      * 真実の置き場：SSOT（Status）／VAULT（証跡）／RELEASE（不変成果物）
+      * 安全柵：READ-ONLY→PATCHSET→VERIFY を破れない仕組みにする
+      * AIの役割分担：4つの課金AIを「能力」ではなく「責務」で固定
+      * 観測と改善：RUNLOG/TRACE/メトリクスで“運用を科学”にする
+目標：未来の自分・別AI・別環境に移しても、同じ品質に収束する。
+________________
+
+
+0.1 いま課金しているAI（あなたの前提セット）
+      * Claude Code Plus（Anthropic）
+      * ChatGPT Plus（OpenAI）
+      * Google One Pro（Google / Gemini側の特典を含む想定）
+      * Z.ai Lite（GLM Coding Plan）
+________________
+
+
+0.2 使用ツール／LLM（運用で使うものの一覧：必須）
+IDE / エージェント実行ハブ
+      * Google Antigravity（IDE／Mission Control／エージェント運用）
+      * Claude Code（CLI）：実装・修理・局所リファクタの主役
+      * OpenAI Codex（Web / CLI / IDE拡張）：監査・レビュー・小改修の並列支援
+      * Gemini（Gemini App / Gemini CLI）：調査・設計補助・検索／（可能なら）Jules連携
+      * Z.ai（GLM）：安価な反復（ログ要約・単純修正・テスト生成・テンプレ生成）
+実行基盤（再現性の心臓）
+      * Git / GitHub（もしくは同等のリモート）
+      * CI（GitHub Actions等）※ローカルVerifyと一致させる
+      * Docker（または devcontainer / WSL）※「同じコマンドで同じ結果」を担保
+品質・安全（Verifyに統合する“必須部品”）
+      * Lint/Format（ruff/black, eslint/prettier等）
+      * Test（unit/integration/e2e）
+      * 静的解析（Semgrep, CodeQL 等）
+      * 依存関係・脆弱性（Trivy等のスキャナ、Dependabot等）
+      * Secrets検出（gitleaks等）
+      * SBOM生成（CycloneDX/SPDX系の出力ツール：syft等）
+      * 署名／改ざん検知（manifest/sha256、コミット署名は任意だが強い）
+収集・検索・知識化
+      * ripgrep / fd / jq / yq（横断検索と構造化処理）
+      * MCP（Model Context Protocol）サーバ（ファイル／Git／DB／Web Reader等）
+      * RAG（ローカル or クラウド）※「永続KB」の本流
+________________
+
+
+1. 最高峰運用の絶対原則（ここは破ると事故る）
+1.1 仕様凍結（Spec Freeze）
+      * Specが凍結されるまでBuildしない
+      * 曖昧さ・矛盾・用語ゆれは「実装で埋めない」。必ずSpecへ戻す。
+1.2 最小パッチ（Smallest Patchset）
+      * 1回の変更は 局所・小さく・検証可能 に分割する
+      * 「大改修＝死」ではないが、大改修は“分割”が必須
+1.3 機械判定（Verify is Judge）
+      * “レビューでOK”は禁止。機械のGreenが合格条件
+      * ただし Green でも Done ではない → DoDで最終合格にする
+1.4 証跡固定（Evidence / Release）
+      * 「動いた」は信用しない。ログ・ハッシュ・環境・結果 を残す
+      * RELEASEは 不変（immutable）。改変は禁止。新しいRELEASEを作る。
+1.5 破壊操作禁止（Delete禁止／退避）
+      * 破壊操作は原則禁止。やるなら HumanGate（2段階承認）
+      * 削除ではなく 退避（_TRASH / ARCHIVE）
+________________
+
+
+2. 共通語彙（用語を固定して迷いを消す）
+      * Core4：4つの課金AIを役割で固定する運用設計
+      * VIBEKANBAN：仕事の入口からReleaseまでの状態機械
+      * SBF：Spec → Build → Fix（1本の仕事を最後まで通す型）
+      * VRループ：Verify → Repair → Verify → …（収束させる反復）
+      * SSOT：唯一の真実（Status／仕様／採択の根拠）
+      * VAULT：証跡（ログ・レポート・トレース・入力/出力ハッシュ）
+      * RELEASE：不変成果物（再現可能で配布可能なパッケージ）
+      * PATCHSET：差分集合（コミット/パッチ/PR）
+      * DoD（Definition of Done）：VerifyがGreenでも「Doneではない」事故を防ぐ最終条件
+      * ADR：意思決定ログ（なぜそうしたかを未来に残す）
+      * Permission Tier：AIに渡す権限レベル（ReadOnly / PatchOnly / ExecLimited / HumanGate）
+      * Invariant（不変条件）：壊したら即Red（例：件数一致、sha256一致、スキーマ一致）
+      * RUNLOG.jsonl：実行履歴（コマンド・入力/出力・環境・承認の記録）
+      * TRACE：推論・判断・変更の因果（「なぜそれをしたか」を追えるログ）
+________________
+
+
+3. フォルダ／レーン設計（SSOT/VAULT/RELEASE を物理で守る）
+3.1 推奨ルート構造（最小の必須）
+PROJECT_ROOT/
+ SSOT/
+   STATUS.md
+   POLICY.md              # この憲法（要点版でも可）
+   ADR/
+ VIBEKANBAN/
+   000_INBOX/
+   100_SPEC/
+   200_BUILD/
+   300_VERIFY/
+   400_REPAIR/
+   900_RELEASE/
+ VAULT/
+   RUNLOG.jsonl
+   VERIFY/
+   EVIDENCE/
+   TRACE/
+ RELEASE/
+   RELEASE_YYYYMMDD_HHMMSS/
+     manifest.jsonl
+     sha256.csv
+     sbom/                # 生成できるなら
+ WORK/                    # 作業コピー（worktree推奨）
+ _TRASH/                  # 退避（削除しない）
+3.2 レーン分離（永続KBの思想に合わせる）
+      * ai_ready/：テキスト・コード・仕様・ログ（本流RAG）
+      * pdf_ocr_ready/：raw_pdf / ocr_text / manifest.jsonl（PDFは別レーン）
+      * generated_releases/：不変Releaseのみ
+原則：WORKで作業し、VAULT/RELEASEは“触れない”。触るならHumanGate。
+________________
+
+
+4. Core4（課金AIの役割固定：精度を出す“配役”）
+4.1 Claude Code Plus（実装エンジン）
+責務：Build / Repair（コードを書き、テストを通し、差分を作る）
+禁止：仕様の勝手な補完、全域変更、証跡の捏造
+出力：PATCHSET（差分）＋実行ログ（RUNLOGへ）＋変更理由（TRACEへ）
+4.2 ChatGPT Plus（監査官・仕様凍結・文章化）
+責務：Specの矛盾検出／受入基準の強化／レビュー観点の追加／説明文生成
+強い使い方：
+      * Spec Freezeの前に「矛盾・抜け・リスク」を検査させる
+      * Verify結果（ログ）から「原因分類→修正方針」を作る
+4.3 Google One Pro（調査官・外部情報・設計補助）
+責務：調査・比較・最新動向の収集、設計の代替案提示
+Gemini CLI / Jules が使えるなら：非同期での大規模修正・ドキュメント生成・依存更新などを委任
+4.4 Z.ai Lite（安い手足・反復・テンプレ生成）
+責務：ログ要約、単純修正、テスト雛形、テンプレ草案、失敗の分類
+位置づけ：安価に回数を稼ぐ「前処理」／最終判断はGPT/人間
+________________
+
+
+5. Antigravity運用（IDEを“Mission Control”として使う）
+Antigravityは「エディタ＋補完」ではなく、エージェントを管理する制御塔として使う。
+5.1 Antigravityの必須運用ルール
+      * 作業はWORK（コピー/ worktree）でのみ行う
+      * VAULT / RELEASE / SSOT は物理的ReadOnly（OS権限で守る）
+      * Antigravity内の操作も、原則は PATCHSET生成→Verify の順
+      * WebブラウズやMCP接続は「権限ティア」で制御（後述）
+5.2 “Turbo原則OFF”
+      * 大規模変更・一括置換・自動修正の乱発は精度を落とす
+      * 速度より 確実な小パッチ＋頻繁Verify を優先する
+________________
+
+
+6. VIBEKANBAN（状態機械：迷いゼロの導線）
+6.1 状態（最小）
+      * INBOX：着想・課題・バグ・改善点（未整形でOK）
+      * TRIAGE：目的/範囲/リスク/完了条件を最小化
+      * SPEC：仕様凍結（受入基準・不変条件・テスト方針まで）
+      * BUILD：最小パッチを作る
+      * VERIFY：機械判定（Fast/Full）
+      * REPAIR：失敗原因を分類し、収束させる
+      * EVIDENCE：証跡パック生成
+      * RELEASE：不変成果物化（manifest/sha256/SBOM）
+6.2 チケットの“固定フォーマット”（例）
+      * 目的（Why）
+      * 変更範囲（Where）
+      * 受入基準（Acceptance）
+      * 不変条件（Invariants）
+      * リスク（Risk）
+      * 権限ティア（Permission Tier）
+      * Verify手順（Fast/Full）
+      * 出力物（Artifacts：Spec/ADR/Report/Release）
+________________
+
+
+7. Spec（仕様凍結）— 個人の精度を爆上げする核心
+7.1 Specに必ず入れるもの（最低限）
+      * 背景／目的（Why）
+      * スコープ（In/Out）
+      * 成功条件（Acceptance：機械判定できる形）
+      * 不変条件（Invariant：壊したら即Red）
+      * 変更戦略（Small Patchset方針）
+      * Verify計画（Fast/Fullで何を見るか）
+      * ロールバック／影響（データやAPIなら必須）
+      * 参考資料（根拠リンク／ログ／既存仕様）
+7.2 Spec Freezeの“承認”
+      * 人間が最後に読む（5分で読める長さに要約版を併設）
+      * 高リスクは「翌日再読」など“時間フィルタ”を挟む（思い込み除去）
+________________
+
+
+8. Context Engineering（大量開発で“迷子”を殺す）
+8.1 Context Pack（必須：毎チケット自動生成）
+目的：AIに渡す入力を最小化し、誤解・幻覚・暴走を防ぐ。
+CONTEXT_PACK/ に入れる推奨：
+      * SPEC.md（凍結版）
+      * 対象ディレクトリのツリー（浅く）
+      * 変更対象ファイルの抜粋（必要最小→全文はRAGで）
+      * 直近のVERIFY_REPORT.md（失敗の根拠）
+      * ADR（関連する意思決定）
+      * 依存関係情報（lockfileやバージョン）
+8.2 Context Trust Tagging（信用度タグ）
+各Contextファイル先頭にヘッダを付ける（例）：
+trust_tier: 2        # 0=噂/未検証, 1=参考, 2=採択, 3=証跡付き確定
+source: VAULT|SSOT|WEB|HUMAN
+last_verified: 2026-01-09
+ルール例：
+      * trust_tier>=2 だけが Spec/修正方針の根拠になれる
+      * Web情報は tier1 から始め、検証して tier2 に上げる
+8.3 Context Rot Prevention（劣化防止）
+      * 長期スレッドの“前提”は腐る → SpecとADRへ固定して更新
+      * 古いContextはアーカイブへ退避、検索可能性だけ残す
+________________
+
+
+9. Permission Tier（AI権限設計：気合いを禁止して仕組みにする）
+9.1 権限レベル（推奨）
+      * ReadOnly：読むだけ（解析・提案・レビュー）
+      * PatchOnly：差分作成OK、実行は不可（PR/patch生成）
+      * ExecLimited：許可コマンドのみ実行（tests/lint/buildなど）
+      * HumanGate：破壊操作・全域変更・リリース確定など（人の承認必須）
+9.2 Allowlist（許可コマンド）を固定
+      * pytest, npm test, pnpm lint, ruff, mypy, docker compose up など
+      * rm -rf, git push --force, curl | sh などは禁止（HumanGateのみ）
+________________
+
+
+10. Verify Gate（機械判定の設計：Fast/Fullで回す）
+10.1 Verifyを2段で固定する（例）
+      * Fast Verify：最短で壊れを検出（lint + unit + 型/静的解析の一部）
+      * Full Verify：CI相当の全検査（integration/e2e + security + SBOM + 再現実行）
+10.2 Verifyの必須カテゴリ
+      * 正しさ：tests
+      * 一貫性：format/lint/type
+      * 安全：secrets/依存脆弱性/静的解析
+      * 供給網：SBOM / provenance（可能なら）
+      * 再現性：クリーン環境で同じ結果（Docker/CI）
+10.3 Verifyレポート（必須成果物）
+VAULT/VERIFY/VERIFY_REPORT.md に：
+      * 実行コマンド（正確に）
+      * 成否
+      * 失敗ログ抜粋（重要部）
+      * 参照ログへのパス
+      * 主要メトリクス（任意）
+________________
+
+
+11. Repair（VRループ）— 失敗を“分類”して収束させる
+11.1 失敗分類（例）
+      * Spec系：前提が違う／受入基準が曖昧 → GPTへ戻す
+      * 依存/環境系：バージョン衝突／OS差 → Docker/lock/CIで固定
+      * 実装系：局所バグ → Claudeで最小修正
+      * テスト系：テスト不足／壊れたテスト → テストを直し、意図をSpecへ
+11.2 ループ制限（暴走防止）
+      * 同じ失敗が 3ループ を超えたら：
+      * Z.aiでログ要約 → GPTで根本原因 → Claudeで修正、に切り替える
+      * それでも収束しない場合は HumanGate（設計変更/分割/範囲縮小）
+________________
+
+
+12. Evidence / Release（永続・再現・移植の要）
+12.1 Evidence Pack（VAULTに残す）
+      * RUNLOG.jsonl（全実行履歴）
+      * VERIFY_REPORT.md（Fast/Full結果）
+      * TRACE（判断の根拠・変更理由）
+      * 生成物ログ（ビルド出力、テストレポート）
+      * 重要ファイルのハッシュ（sha256）
+12.2 Release条件（DoDの中核）
+      * Full VerifyがGreen
+      * manifest/sha256 が生成され、再現実行で一致
+      * （可能なら）SBOMが生成される
+      * 変更のADRが残る（設計判断がある場合）
+________________
+
+
+13. セキュア開発（SSDF/SBOM/ProvenanceをVerifyに統合）
+個人でも“上位組織級”にする最小の追加パーツ：
+      * Git/CI強制（ブランチ保護、必須チェック、レビュー必須）
+      * SBOM/Provenance（最低でもSBOMをRelease条件へ）
+      * SSDF観点（設計段階から脅威・依存・検証を織り込む）
+      * DORA等の計測（改善を経験則から脱却）
+※これらは“理想論”ではなく、事故率と手戻りを減らすための運用部品。
+________________
+
+
+14. 観測可能性（Trace / Dashboard / メトリクス）
+14.1 RUNLOG（jsonl）— 後で全部説明できる状態
+最低限入れる項目：
+      * ts / actor（human|claude|gpt|gemini|glm）
+      * command（実行コマンド）
+      * input_hash / output_hash
+      * env（docker image / python/node version）
+      * approval（HumanGateの承認記録）
+      * link（VERIFY_REPORT/TRACEへの参照）
+14.2 Daily Summary（任意だが強い）
+      * 1日のチケット数／Green率
+      * 失敗トップ3と原因分類
+      * 手戻り時間（推定でOK）
+      * 次に改善すべきVerify項目
+________________
+
+
+15. プロンプト運用（“指示の量”ではなく“契約”で回す）
+15.1 Claude Codeへの最小指示テンプレ
+      * 目的（1行）
+      * 参照（CONTEXT_PACKのパス）
+      * 権限ティア（ExecLimitedなど）
+      * 作るもの（PATCHSETのみ／実行ログはRUNLOGへ）
+      * 禁止事項（仕様変更禁止、全域変更禁止、削除禁止）
+15.2 GPTへの監査テンプレ
+      * Spec矛盾検出（チェックリスト形式）
+      * Verifyログから原因分類→修正方針
+      * Release判定（DoD満たしているか）
+________________
+
+
+16. 失敗モード集（大規模個人開発で“必ず起きる”罠）
+      * Spec未凍結のまま実装：手戻り地獄 → Freezeを強制
+      * 一括変更：差分レビュー不能 → 小パッチへ分割
+      * Verifyが遅すぎる：回せない → Fast/Full二段化
+      * コンテキスト肥大：誤解・幻覚 → Context Pack最小化＋Trust Tag
+      * 証跡が残らない：再現不能 → RUNLOG/VERIFY_REPORT必須化
+      * 権限が広すぎる：事故る → Permission Tier + Allowlist
+      * “動いたからOK”：後で死ぬ → DoDで最終判定
+________________
+
+
+17. 初回セットアップの“必須チェック”（ロードマップではなく前提条件）
+      * SSOT/VAULT/RELEASEのフォルダ固定（テンプレ配置）
+      * WORK運用（worktree/コピー）を固定
+      * Verify（Fast/Full）のコマンドを固定
+      * RUNLOG/VERIFY_REPORT/TRACEの出力先固定
+      * Git保護（可能な範囲で Ruleset / 必須チェック）
+      * MCP接続（ファイル/Git/DB/Web Readerなど、必要最低限）
+________________
+
+
+19. 個人スケールの並列化（50+フォルダを“破綻せず”に回す）
+19.1 True Parallel をやらない（個人は破綻しやすい）
+個人が同時に10タスクを走らせると、最終的に Spec崩壊／コンテキスト衝突／Verify地獄 になりやすい。
+代わりに、運用上は「見た目並列」を作る：
+      * 計画（Plan）は並列：調査・分割・依存関係整理は並列OK（Gemini/GPT/GLM）
+      * 実装（Patchset）は直列：パッチは1〜2本ずつ（Claude中心）
+      * Verifyは自動で回す：CI/ローカルで勝手に回る（人間は結果を見るだけ）
+19.2 Rapid Serial（高速直列）のルール
+      * 1パッチ = 1目的 = 1Verify
+      * 失敗したら即Repair、成功したら即Evidence
+      * “大改修”は 分割してRapid Serial に落とす（最小化）
+19.3 大規模変更の分割ガイド
+      * 変更を「境界（Boundary）」で切る：フォルダ／モジュール／API境界
+      * “横断”が必要なら、まず 影響範囲を列挙するSpec を作り凍結
+      * 2段階にする：
+      1. 互換レイヤ追加（旧も動く）
+      2. 移行＋旧削除（HumanGate）
+________________
+
+
+20. コスト／トークン運用（高精度を“継続”させる）
+20.1 予算はチケット単位で持つ
+      * チケットに Token/費用の上限 を設定（例：調査=低、Spec凍結=中、実装=中、全域変更=高）
+      * 予算超過が見えたら「分割」か「仕様を縮める」
+20.2 高コストモデルは“儀式”として使う
+      * 仕様凍結（矛盾検出）や、重大リスクの設計監査だけに使う
+      * 日常の反復はGLMや軽量モデルへ落とす（ログ要約・テスト草案など）
+20.3 コスト監視（最低限）
+      * RUNLOGに model / tokens_est / cost_est を入れる（推定でOK）
+      * 週次で「高コストの原因」をレビューし、運用を改善する
+________________
+
+
+21. テンプレ集（運用に“固定で置く”抜粋）
+21.1 VIBEKANBAN チケット雛形（TICKET.md）
+# Title
+
+
+## Why（目的）
+## Scope（In / Out）
+## Acceptance（受入基準：機械で判定できる形）
+## Invariants（壊したら即Red）
+## Risk（低/中/高 + 理由）
+## Permission Tier（ReadOnly/PatchOnly/ExecLimited/HumanGate）
+## Verify（Fast / Full：コマンドも書く）
+## Outputs（Spec/ADR/Report/Releaseなど）
+## Links（関連チケット/PR/ログ）
+21.2 SPEC.md（凍結仕様）最小テンプレ
+# SPEC: <feature>
+
+
+## Summary（1段落）
+## User Stories / Use cases
+## Non-goals
+## Interfaces（API/CLI/UI）
+## Data & Migration（必要なら）
+## Acceptance（MUST/SHOULD）
+## Invariants（計測可能な形で）
+## Verify Plan（Fast/Full）
+## Rollback Plan
+## Risks & Mitigations
+## References（根拠リンク）
+21.3 ADR（意思決定ログ）
+# ADR-YYYYMMDD-<topic>
+
+
+## Context
+## Decision
+## Options Considered
+## Consequences
+## Links（Spec/PR/Verify/Evidence）
+21.4 VERIFY_REPORT.md（Fast/Fullの結果）
+# VERIFY REPORT: <ticket>
+
+
+## Fast Verify
+- command:
+- result: PASS/FAIL
+- key logs:
+
+
+## Full Verify
+- command:
+- result: PASS/FAIL
+- key logs:
+
+
+## Security / Supply chain（任意→将来的に必須へ）
+- secrets scan:
+- vuln scan:
+- SBOM:
+
+
+## Notes（原因分類/次アクション）
+21.5 RUNLOG.jsonl（1行=1実行）
+例（JSONL）：
+{"ts":"2026-01-09T13:00:00+09:00","actor":"claude","tier":"ExecLimited","cmd":"pytest -q","cwd":"WORK/repo","input_hash":"...","output_hash":"...","result":"FAIL","links":{"verify":"VAULT/VERIFY/...","trace":"VAULT/TRACE/..."}}
+________________
+
+
+22. エスカレーション規則（“誰に戻すか”を曖昧にしない）
+      * 仕様の曖昧さ／矛盾 → GPTへ戻す（Spec修正→再凍結）
+      * 失敗が3ループ超 → 失敗分類を挟む（GLM要約→GPT原因→Claude修理）
+      * 破壊的操作（削除・全域置換・API破壊・データ不可逆） → HumanGate
+      * 調査が必要（外部仕様・比較・最新） → Geminiへ
+________________
+
+
+付記
+このドキュメントは「運用の憲法」。細部（コマンドや具体ツール）は環境差が出るため、SSOT/POLICY.md に“あなたの実コマンド”を固定していくこと。
+________________
+
+
+18. 未実装・未整備（このドキュメントに含めたが、現段階で“まだ入っていない”可能性が高いもの）
+※ここは「やることリスト」ではなく、“最高峰運用の構成要件”のうち、未導入になりがちな項目の明示。
+      * Gitの強制（Ruleset/Protected branch/必須CI/レビュー必須）の完全導入
+      * Verifyのセキュリティ統合（Semgrep/CodeQL/Trivy/gitleaks等の常時実行）
+      * SBOM生成をRelease条件として自動化（CycloneDX/SPDX）
+      * provenance（改ざん耐性／署名／再現性の自動証明）の強化
+      * RUNLOG.jsonl の完全自動記録（全コマンド・全AI実行の統合ログ）
+      * TRACE（判断根拠ログ）の自動生成（変更理由の一貫記録）
+      * Context Packの自動生成パイプライン（差分・ログ・参照を自動収集）
+      * Trust Tagging運用（tier昇格/降格のルールとツール）
+      * Daily Dashboard（DORA等の計測を含む）自動生成
+      * Antigravityの権限ティア／AllowlistをIDE側で物理的に強制
+      * 永続KB（ai_ready/pdf_ocr_ready）を検索・参照するRAG統合の完全運用
+思考時間: 1m 40s
+Canvasに 「VCG/VIBE 2026 AI統合運用マスタードキュメント（最高峰・運用版）」 を“最新版”として作成・反映しました。
+あなたの既存方針の強みである 「仕様凍結→最小パッチ→機械Verify→証跡固定（EVIDENCE/RELEASE）」 を中核に据えつつ、トップレベル運用に必要な“穴”として指摘されていた Git/CI強制・権限（Permission/Allowlist）・SBOM/SSDF・DORA計測 を、憲法レベル（破れない設計）で統合しています。
+無題のドキュメント (2)
+今回の最新版で入れた「固定化ポイント」は以下です（重要な差分だけ）：
+      * 追加すべき最小語彙（DoD/ADR/Permission Tier/Invariant） を共通語彙として固定し、長期劣化と事故を抑える設計にしました。
+      * 無題のドキュメント (2)
+      * Verifyを2層（Fast/Full） に固定して、「回る速さ」と「組織級の網羅」を両立させています。
+      * 無題のドキュメント (2)
+      * SSOTに 固定で必須の4ファイル（SPEC.md / CONTEXT_PACK / VERIFY_REPORT.md / RUNLOG.jsonl）を明文化し、「誰がやっても同じ品質に収束」する骨格にしました。
+      * 無題のドキュメント (2)
+      * Core4の役割分担に加えて、エスカレーション規則（曖昧さ→GPT、3ループ超→原因分類、破壊操作→HumanGate）を明文化して“モデル都合で揺れる”問題を潰しています。
+      * 無題のドキュメント (2)
+      * Antigravity前提のリスク（エージェントが計画・実行・検証できる設計）に合わせて、サンドボックス＋権限ティアの強制を必須扱いにしています。
+      * 無題のドキュメント (2)
+また「2026の最新前提」に合わせて、外部仕様・エコシステム側の“確からしい土台”も反映しています（用語や接続方式がブレないように）：
+      * MCP（Model Context Protocol）は仕様として公開されているため、ツール接続の標準線として採用しています。
+      * Gemini CLI はMCPと組み合わせた利用が公式ドキュメント上で言及されているため、調査・設計補助のレーンに組み込みました。
+      * OpenAI Codex（CLI/IDE統合含む）は公式に提供されているため、監査・レビュー・小改修の並列支援として位置づけています。
+      * SSDFやSBOMは公的/標準側の枠組みがあるので、Verify/Release条件に統合する方向でドキュメント側を固定しています。
+必要なら、このマスタードキュメントをあなたの SSOT（POLICY.md） として置く前提で、「あなたの実コマンド（Fast/Full Verifyの中身、Allowlist、OS権限の具体）」 まで“環境に合わせて確定版”に落とす手順だけ、次に一気に書き起こせます。
+情報源
+あなた:
+無題のドキュメント (3).txt
+ドキュメント
+chat-New Chat (22).txt
+ドキュメント
+この内容を踏まえて 最新版のマスタードキュメントを作成してください。
+これが最終盤になるので徹底的に調べて
+最高のVCG/VIBE 2026 AI統合運用マスタードキュメントを作成してください。
+ChatGPT:
+思考時間: 5m 33s
+VCG/VIBE 2026 AI統合運用マスタードキュメント（最新版 / 2026-01-09）
+目的：個人が50+フォルダ級の大規模開発を、迷いなく・事故なく・トップクラス精度で完走するための「運用SSOT（Single Source of Truth）」を1本化する。
+狙いは「自分が書く」ではなく AIリソース（調査・設計・実装・検証・修理・証跡化）を運用設計で統率すること。 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+________________
+
+
+0. 前提（課金AI・必須ツール・禁止事項）
+0.1 いま課金しているAI（固定）
+      * Claude Code Plus（Anthropic）
+      * ChatGPT Plus（OpenAI）
+      * Google One Pro（= Google AI Pro相当の特典を含む想定）
+      * Z.ai Lite（GLM Coding Plan）
+0.2 使用ツール（必ず記載：本運用の“身体”）
+      * IDEハブ：Google Antigravity（あなたの主IDE・中心） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 
+※Google AI Proには「Google Antigravity（agentic development platform）の高いレート制限」等が含まれる旨が明記されています。 
+      * 実装：Claude Code（CLI/Agent）（主戦力） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 
+※Claude Codeは「低レベルで柔軟・スクリプト可能なエージェント型CLI」としてベストプラクティスが公開されています。 
+      * 監査/合否判定：ChatGPT Plus（GPT）（Spec凍結・監査・最終判定） 
+      * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 調査・外部根拠：Gemini（Google One Pro）（Deep Search/NotebookLM等を含む想定） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      *  
+      * 安い手足：Z.ai（GLM）（整形・要約・ログ処理・前処理・Context Pack生成） 
+      * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * OpenAI衛星：Codex（Codex CLI / Codex Web等） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 
+※Codex CLIは端末上でリポジトリを読み・編集し・コマンド実行でき、ChatGPT Plusに含まれると明記。 
+      * Google衛星：Jules / Gemini Code Assist / Gemini CLI（必要時）
+※Google AI Proの含有として「Jules（タスク/並列上限増）」「Gemini Code Assist & Gemini CLI（リクエスト上限増）」が明記。 
+      * MCP（Model Context Protocol）：AIの“外部ツール接続”標準 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 
+※MCPはLLMアプリと外部データ/ツールを繋ぐオープンプロトコルとして仕様が公開。 
+      * 自動化/CI：GitHub Actions（Verifyの機械判定） 
+      * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * 実行環境：Git / Docker（可能なら）
+      * 検索：ripgrep（rg）
+      * （任意）ローカルLLM：Ollama / LM Studio / vLLM（秘匿・高速・コスト削減） 
+      * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+      * （任意）静的解析：Semgrep / Bandit 等 
+      * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+0.3 禁止事項（事故ゼロのための非交渉ルール）
+         * Cursorは使わない（方針固定）
+         * 全域リライト／破壊操作／勝手な自動実行は禁止（例外は後述の「承認つき例外ルート」のみ） 
+         * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+         * 「気合い」禁止：権限・環境で物理的に不可能化する（Allowlist/ReadOnly/サンドボックス） 
+         * 無題のドキュメント (2)
+________________
+
+
+1. コア思想（“精度はモデルではなく運用で作る”）
+1.1 精度の定義
+ここでいう精度は「それっぽいコード」ではなく、次を同時達成すること：
+         * 仕様の解釈が正しい
+         * Verifyで機械的に合否が出る
+         * 修理が最小差分で収束する
+         * 証跡（なぜ/どう検証したか）が残り、再利用できる
+1.2 運用の中心は「SSOT→Verify→Evidence→Immutable Release」
+         * SSOT（唯一の真実）に集約し、Verifyを通った根拠をEvidenceとして残し、Releaseを不変化する、という流れを毎チケットで再現する。 
+         * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+________________
+
+
+2. Core4（役割固定）と“出力契約”（迷いを消す）
+2.1 Core4の固定役割（原則）
+         * Claude（実装・修理）
+         * GPT（設計凍結・監査・文章化・最終判定）
+         * Gemini（調査・周辺知識・Google連携・エージェント群）
+         * GLM/Z.ai（安い手足：整形・要約・抽出・前処理） 
+         * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+2.2 “出力契約”＝AI同士が噛み合う最小フォーマット
+この運用が強い理由は、AIに「自由作文」させず、必ずファイルで引き継ぐ点にある。以降はすべて「ファイル納品」。
+引き継ぎファイル（標準セット）
+         * TRIAGE.md（調査結果＋根拠リンク＋論点）
+         * RISK_REGISTER.md（最大5件：脅威/リスク/対策/残余） 
+         * 無題のドキュメント (2)
+         * SPEC.md（PRD/DESIGN/ACCEPTANCE統合の凍結仕様） 
+         * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+         * CONTEXT_PACK.md（最小で強い入力束：FILELIST/DIFF/制約/過去証跡）
+         * PATCHSET.diff（最小差分）
+         * VERIFY_REPORT.md（CI結果＋合否＋再発防止）
+         * EVIDENCE.md（何を/なぜ/どう検証/学び）
+         * RELEASE_NOTE.md（不変リリース説明）
+________________
+
+
+3. VIBEKANBAN（チケット駆動の唯一の運用台帳）
+3.1 ライフサイクル（固定）
+INBOX→TRIAGE→SPEC→BUILD→VERIFY→REPAIR→EVIDENCE→RELEASE 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+ 
+無題のドキュメント (2)
+3.2 各ステージの「必須アウトプット」（これだけ見れば迷いゼロ）
+INBOX（受け皿）
+         * 目的：アイデア/要求/バグ/改善を未加工で入れる
+         * 出力：TICKET.md（一行要約・背景・期待）
+TRIAGE（調査と論点の確定：Gemini主担当）
+         * 目的：仕様にする前に、根拠を揃えて“決める”
+         * 必須：
+         * 参照URL（公式/一次情報優先）
+         * 既存コード影響範囲
+         * 代替案（最低2案）
+         * Risk Register（最大5件） 
+         * 無題のドキュメント (2)
+SPEC（凍結仕様：GPT主担当）
+         * 目的：曖昧語を排除し、Verifyで合否判定できる形に落とす
+         * SPEC.mdに必須（あなたの既存テンプレを強化して固定）：
+目的/非目的/制約/受入基準/Verify手順/リスク/ロールバック 
+         * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+         * ルール：SPECは「意図を凍結」。実装方法は最小差分優先。
+BUILD（実装：Claude Code主担当）
+            * 入力：SPEC.md + 最小関連ファイル + 制約
+            * 出力：最小パッチ差分 / 影響範囲 / 追加・更新テスト / ロールバック 
+            * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+            * 禁止：全域リライト、破壊操作、無承認の自動実行 
+            * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+VERIFY（機械判定：CI + GPT）
+            * 目的：“良さそう”を排除し、機械で合否
+            * あなたの強化案（採用）：
+            * Fast Verify（1〜3分）：lint/test/sast
+            * Full Verify：CI全部＋SBOM＋再現実行 
+            * 無題のドキュメント (2)
+            * GPTの仕事：ログを読み、SPEC受入基準に照らして合否＋最短修理方針＋再発防止 
+            * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+REPAIR（収束：Claude Code）
+            * 入力：SPEC + 失敗ログ要約 + 現在の差分
+            * 目的：最小修正でGreenへ→再Verifyで証明 
+            * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+EVIDENCE（証跡化：GPT + Z.ai）
+            * 目的：次回から“考えずに再利用”できる状態にする
+            * 必須4点：何を変えたか／なぜ変えたか／どう検証したか／学び・再発防止 
+            * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+RELEASE（不変化）
+            * 目的：後で壊れない“完成物”として封印（immutable）
+________________
+
+
+4. ガードレール（事故を仕組みで潰す：気合い禁止）
+4.1 物理的強制（必須3点）
+            1. Permission Allowlistを機械化
+Claude Codeには危険な運用（YOLO等）が存在するため、運用側で許可設計を固定する。 
+            2. 無題のドキュメント (2)
+            3. 作業領域をコピー/worktreeに限定し、VAULT/ と RELEASE/ をOS/FS権限でReadOnly化 
+            4. 無題のドキュメント (2)
+            5. Antigravity前提の追加ガード：エディタ/ターミナル/ブラウザ横断で計画・実行・検証ができる設計＝権限とサンドボックスが必須 
+無題のドキュメント (2)
+            6.  
+4.2 例外ルート（“どうしても破壊操作が必要”なとき）
+               * 例外は「ルール破り」ではなく「別ルート」
+               * 必須条件：
+               * SPEC.mdにロールバック手順が明記されている 
+               * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+               * サンドボックス（Docker/複製worktree）でのみ実行
+               * 実行は承認つき（人間がon-the-loop）
+________________
+
+
+5. コンテキスト工学（入力で勝つ：個人のボトルネックを消す）
+5.1 “最小で強い”を自動化する（人力は破綻する）
+               * 現状思想（最小主義・参照固定・ログ要約→修理）は正しいが、「最小」が人力だと個人ボトルネック化する 
+               * 無題のドキュメント (2)
+               * 採用ルール：毎チケット、必ず CONTEXT_PACK.md を生成してからBUILDに入る
+               * 生成担当は GLM/Z.ai固定（安く速く）
+               * Claudeは Packだけ読んで実装へ 
+               * 無題のドキュメント (2)
+5.2 CONTEXT_PACKの標準中身（固定）
+               * SPEC.md（凍結仕様）
+               * FILELIST.md（変更対象と読むべきファイルの最小集合）
+               * DIFF.md（現状差分/予定差分）
+               * FAIL_SUMMARY.md（失敗ログ要約：VerifyがRedのとき）
+               * EVIDENCE_LINKS.md（過去の類似チケット/ADR/VERIFY_REPORT）
+________________
+
+
+6. RAG/ナレッジ基盤（“重いRAG”でなく、運用に溶けるRAG）
+6.1 原則：RAGは「SSOT/VAULTだけ」を見せる
+               * 実用案：SSOT-Only MCP RAG Server（SSOT/VAULTのみ索引、_TRASH無視） 
+               * chat-New Chat (22)
+               * 理由：運用思想（真実の固定・事故ゼロ）と完全一致
+6.2 “コンテキスト事前生成”が個人運用に最適
+               * リアルタイムRAGは運用コストが重い。代わりに、チケット開始時に Z.aiでContext Packを自動生成し、そこだけ読ませる。 
+               * chat-New Chat (22)
+6.3 “失敗RAG”（Repairの収束速度を上げる）
+               * VAULT/VERIFY/ や VAULT/TRACE/ を別索引にして、Verify失敗時に「過去に同じエラーがあったか？」を引く 
+               * chat-New Chat (22)
+6.4 “スナップショットRAG”（リリース単位で更新）
+               * 索引更新は RELEASE時のみ（中途半端なSSOTを見て事故るのを防ぐ） 
+               * chat-New Chat (22)
+6.5 “rg検索×AI要約”のハイブリッド（軽くて強い）
+               * rg -t md -t jsonl "keyword" SSOT/ VAULT/ の結果をそのままContextとして渡す（ベクタのドリフト無し、決定的） 
+               * chat-New Chat (22)
+________________
+
+
+7. VERIFY（品質を“機能”から“運用＋供給網＋安全”へ拡張）
+7.1 VERIFYは「二層」＋「仕様準拠判定」
+               * Fast Verify / Full Verifyの二層化（あなたの強化案を正式採用） 
+               * 無題のドキュメント (2)
+               * GPTはテストログをSPEC受入基準に照合して合否判定する 
+               * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+7.2 VERIFYに統合すべき追加観点（2026標準）
+               * SAST/依存脆弱性/シークレット漏洩（Semgrep/Bandit等） 
+               * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+               * SBOM（Full Verify側） 
+               * 無題のドキュメント (2)
+               * 再現実行（同じ手順で再現する：証跡の核） 
+               * 無題のドキュメント (2)
+________________
+
+
+8. コスト管理（“感覚”を排除して指標で回す）
+8.1 Cost Ledger（チケット単位で残す）
+               * 時間/トークン/失敗回数を残す（改善は指標で回す） 
+               * 無題のドキュメント (2)
+               * 目標は「重い推論は本当に必要な局面だけ」
+8.2 “安い手足”の固定運用
+               * Z.ai/ローカルLLM：整形・要約・抽出・Context Pack生成（高頻度）
+               * GPT/Claude：合否判定・設計矛盾検出・最重要の実装判断だけ（低頻度）
+________________
+
+
+9. 並列（コンカレンシー）前提の運用（直感的＝同時進行が勝手に噛み合う）
+あなたの現行は「線形パイプライン」が強い一方、2026の実務では 同時並行の監査と調査 が精度を押し上げる、という指摘が入っています。 
+chat-New Chat (21)
+9.1 並列の基本形（“同時に回すが、書き込みは一箇所”）
+               * Claude：実装（Patchを作る）
+               * GPT：同時に監査（仕様矛盾・危険変更・抜けテスト）
+               * Gemini：同時に根拠確認（公式仕様・API・バージョン差）
+               * Z.ai：同時にPack整形（FILELIST/DIFF/FAIL_SUMMARY）
+重要：書き込み先は常に「チケットの作業領域」だけ。SSOT/VAULT/RELEASEはReadOnly。
+________________
+
+
+10. OpenAI/Anthropic/Googleの“標準化ファイル”を運用に取り込む
+10.1 Codexの AGENTS.md（OpenAI）
+               * Codexは ~/.codex/AGENTS.md（全体規約）と、リポジトリ直下 AGENTS.md（プロジェクト規約）を読み込ませて作業合意を永続化できる。 
+→ VCG/VIBEではこれを「運用ルールの二重化（グローバル＋リポジトリ）」として採用。
+10.2 Claude Code側の “プロジェクト規約ファイル”運用
+                  * Claude Codeは低レベルで柔軟＝プロジェクト規約がないと暴れる
+→ リポジトリ直下に CLAUDE.md（または同等） を置き、禁止事項・実行許可・出力契約（PATCHSET/VERIFY/EVIDENCE）を固定する（ベストプラクティス思想に一致）。 
+※あなたの改善案でも「Allowlist固定」が最重要として挙げられている 
+                  * 無題のドキュメント (2)
+10.3 MCP（共通の神経系）
+                     * MCPは「LLMアプリと外部ツール/データを繋ぐ標準」 
+→ VCG/VIBEでは「SSOT/VAULTだけ読めるMCPサーバ」を中核にする（事故ゼロと相性が良い） 
+                     * chat-New Chat (22)
+________________
+
+
+11. テンプレ（これだけで毎回同じ精度が出る：コピペ運用）
+方針：テンプレは“長くていい”。個人運用は「考える部分」を減らした方が強い。
+11.1 SPEC.md（凍結仕様）
+# SPEC: <チケット名> ## 目的 ## 非目的（やらないこと） ## 制約（技術/互換/性能/セキュリティ） ## 受入基準（Verifyで合否が出る形） - [ ] ... - [ ] ... ## Verify手順（コマンド/CI/期待結果） ## リスク（最大5件）と対策 ## ロールバック手順
+（必須要件として明記済み） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+11.2 BUILD.md（Claudeへの入力プロトコル）
+入力: - SPEC.md - CONTEXT_PACK.md 出力: - 最小パッチ差分（理由つき） - 影響範囲 - 追加/更新テスト - ロールバック手順（更新が必要なら追記） 禁止: - 全域リライト - 破壊操作 - 無承認の自動実行
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+11.3 VERIFY_PROMPT.md（GPT判定）
+このテスト結果とログを読み、SPEC.mdの受入基準に照らして合否判定して。 失敗がある場合は： - 最短の修理方針 - 再発防止の観点 を箇条書きで出して。
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+11.4 EVIDENCE.md（証跡）
+# EVIDENCE: <チケット名> ## 何を変えたか ## なぜ変えたか ## どう検証したか（Verify結果へのリンク） ## 学び・再発防止
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+11.5 CONTEXT_PACK.md（Z.ai生成：固定フォーマット）
+# CONTEXT_PACK: <チケット名> ## SPEC要約（1画面） ## FILELIST（読む/変える最小集合） ## DIFF（現状差分 or 予定差分） ## 制約（絶対に破るな） ## 既知の落とし穴（過去VERIFY/障害） ## FAIL_SUMMARY（Verify Redのときだけ）
+（自動生成の必須化：採用） 
+無題のドキュメント (2)
+________________
+
+
+12. “最高峰”にするための追加強化（ただし運用思想は維持）
+ここからは「あなたの文書群で追加候補として挙がっているが、今の運用に自然に溶ける形」に再設計して組み込む。
+12.1 Conductor（オーケストレーション：概念は採用、名前は自由）
+                        * 目的：チケットの状態から「次に誰が何をするか」を自動提案し、並列を破綻させない
+                        * 追加候補として Conductor / Plan-and-Execute / 自己修復 / 観測が列挙されている 
+                        * vcg_vibe_2026_s_rank_guide
+                        * ただし本書では「ランク」ではなく、常に同じ規約（出力契約）で動く運用部品として扱う
+12.2 自己修復ループ（REPAIRの自動化率を上げる）
+                        * “VerifyがRed→人間待ち”を減らす
+                        * 追加候補として自己修復ループが明記 
+                        * vcg_vibe_2026_s_rank_guide
+                        * 実装方針（運用としての要点）：
+                        * Redのたびに FAIL_SUMMARY を生成（Z.ai）
+                        * 修理案を2案出す（Claude）
+                        * GPTが「最短でGreen」案を選ぶ（監査）
+                        * ただし実行はサンドボックス＋承認つき
+12.3 観測可能性（Observability）
+                        * “ログがある”だけでは弱い → チケット単位で追える必要がある
+                        * 追加候補としてダッシュボード/アラート/週次レポートが列挙 
+                        * vcg_vibe_2026_s_rank_guide
+                        * 最小セット：
+                        * RUNLOG.jsonl（操作・コマンド・結果）
+                        * VERIFY_REPORT.md
+                        * COST_LEDGER.md（時間/トークン/失敗回数） 
+                        * 無題のドキュメント (2)
+________________
+
+
+13. 最終チェックリスト（毎回これだけ守れば“トップクラス精度”に寄る）
+13.1 チケット開始前
+                        *  SSOT/VAULT/RELEASEはReadOnlyになっている
+                        *  作業はコピー/worktreeで行う 
+                        * 無題のドキュメント (2)
+                        *  Allowlistが有効（危険コマンドは通らない） 
+                        * 無題のドキュメント (2)
+13.2 SPEC凍結時
+                        *  受入基準がVerifyで判定できる（曖昧語なし） 
+                        * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                        *  ロールバック手順がある 
+                        * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                        *  Risk Register（最大5件） 
+                        * 無題のドキュメント (2)
+13.3 BUILD時
+                        *  CONTEXT_PACKのみで実装できる状態になっている 
+                        * 無題のドキュメント (2)
+                        *  最小差分（全域リライトしない） 
+                        * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+13.4 VERIFY時
+                        *  Fast Verify → Full Verifyの順で、合否は機械判定 
+                        * 無題のドキュメント (2)
+                        *  GPTがSPEC受入基準で合否判定 
+                        * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+13.5 RELEASE時
+                        *  EVIDENCEが4点セットで残っている 
+                        * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                        *  RELEASEは不変（後から直さない）
+________________
+
+
+14. 実装できていない（または未導入になりやすい）項目 ※最後に明記
+以下は、あなたの追加資料で「追加候補」として明示されているか、強化案として挙がっている一方で、現状の運用から見て“未導入/未自動化”になりやすい項目です（導入済みならスキップ）：
+                        * Conductor Agent（自動オーケストレーション） 
+                        * vcg_vibe_2026_s_rank_guide
+                        * 自己修復ループの自動化（REPAIRの自走率アップ） 
+                        * vcg_vibe_2026_s_rank_guide
+                        * 段階検証の完全組込み（Fast/Fullはあるが、より細かなゲート分割） 
+                        * 無題のドキュメント (2)
+                        * 類似バグRAG（Failure RAG）の実装・運用定着 
+                        * chat-New Chat (22)
+                        * 観測可能性（ダッシュボード/アラート/週次レポート自動生成） 
+                        * vcg_vibe_2026_s_rank_guide
+                        * Cost Ledgerの自動集計（チケット単位の指標運用） 
+                        * 無題のドキュメント (2)
+                        * MCPで“SSOT/VAULT限定”アクセスを強制するローカルサーバ（方針は固いが実装は別途） 
+chat-New Chat (22)
+                        *  
+                        * CodexのAGENTS.md（グローバル＋repo規約）を運用規約として統合 
+________________
+
+
+必要なら、この最新版ドキュメントを「あなたの実フォルダ構成（SSOT/VAULT/RELEASE/WORKの実パス、現在のCI、既存スクリプト）」に合わせて**“コピペして即運用できる”形に正規化（ファイル名・テンプレ一式の統一、禁止コマンドAllowlist案、AGENTS.md/CLAUDE.md雛形まで）**して出します。
+情報源
+あなた:
+個人が50+フォルダ級の大規模開発を、迷いなく・事故なく・トップクラス精度でバイブコーディングを使って開発やコーディングをするための総合運用ドキュメント。
+これが本当に実用的で理想的、最適な運用になっているかを調査考察してください。
+ChatGPT:
+思考時間: 12m 4s
+ https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/editor-open-agent-manager.original.png 
+
+ https://imagedelivery.betterstackcdn.com/xZXo0QFi-1_4Zimer-T0XQ/ec5bc7f2-400e-4ef8-e163-edb6780f6600/orig 
+
+ https://imgopt.infoq.com/fit-in/3000x4000/filters%3Aquality%2885%29/filters%3Ano_upscale%28%29/news/2025/04/amazon-q-cli-claude-code/en/resources/1Screenshot%20from%202025-04-19%2020-03-02-1745089490537.png 
+
+ https://res.cloudinary.com/zenn/image/upload/s--S2dIZgna--/c_fit%2Cg_north_west%2Cl_text%3Anotosansjp-medium.otf_55%3AClaude%2520Code%2520CLI%25E3%2582%2592%25E4%25BD%25BF%25E3%2581%2584%25E3%2581%2593%25E3%2581%25AA%25E3%2581%2599%25EF%25BC%2581%25E5%259F%25BA%25E6%259C%25AC%25E3%2580%259C%25E4%25BE%25BF%25E5%2588%25A9%25E3%2582%25B3%25E3%2583%259E%25E3%2583%25B3%25E3%2583%2589%25E7%25B4%25B9%25E4%25BB%258B%25E7%25B7%25A8%2Cw_1010%2Cx_90%2Cy_100/g_south_west%2Cl_text%3Anotosansjp-medium.otf_37%3ABojji%2Cx_203%2Cy_121/g_south_west%2Ch_90%2Cl_fetch%3AaHR0cHM6Ly9zdG9yYWdlLmdvb2dsZWFwaXMuY29tL3plbm4tdXNlci11cGxvYWQvYXZhdGFyLzI3MWQ2NzI4ZTEuanBlZw%3D%3D%2Cr_max%2Cw_90%2Cx_87%2Cy_95/v1627283836/default/og-base-w1200-v2.png 
+
+結論：設計思想は「実用的で理想に近い」／ただし“最適(事故ゼロ級)”にする最後の壁は「強制力」
+あなたの現行運用（Core4固定＋VIBEKANBAN＋SBF/PAVR＋SSOT/VAULT/EVIDENCE）は、個人が50+フォルダ級を迷わず回すための骨格としてかなり強いです（目的＝AI資源を運用で統率、役割分担、チケット一気通貫、破壊操作を渡さない方針が揃っている）。 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+ 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+ただし、「理想的」に見える運用ほど事故る原因は1つで、だいたい
+原則が“文章”のまま → 実行環境/権限/CIで“物理的に破れない”形に落ちていない
+ここです。あなた自身の改善メモでも同じ指摘が出ています。 
+無題のドキュメント (2)
+ 
+無題のドキュメント (1)
+________________
+
+
+1) 現行ドキュメントが「実用的」だと言える強み（勝ち筋）
+A. “迷いゼロ”のための共通語彙とレールがある
+                           * Core4の役割分担（Claude=実装/修理、GPT=凍結/監査、Gemini=調査、GLM=安い手足）が明確で、判断コストが下がる 
+                           * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                           * VIBEKANBANが INBOX→…→RELEASE で一気通貫 
+                           * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                           * SBF/PAVRで「完走」と「収束」が定義されている 
+                           * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+B. 事故を減らす“原則”が正しい（特にここ）
+                           * 仕様凍結が合否基準（AI解釈の増殖を止める） 
+                           * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                           * READ-ONLY→PATCHSET→VERIFY（破壊操作を渡さず、最小差分で機械判定へ） 
+                           * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                           * 削除しない。退避する（dry-run→人間承認→実行） 
+vcg_vibe_2026_ai統合運用マスタードキュメント（…
+                           * 
+これらは「個人で大規模を事故なく回す」設計として王道です。 
+                           * 無題のドキュメント (1)
+________________
+
+
+2) 「このままだと最適になり切らない」P0（事故・迷い・精度劣化）の発生源
+以下は、50+フォルダ級で現実に起きやすい“詰まりポイント”です。あなたの監査メモでもP0として挙がっている内容と整合します。 
+無題のドキュメント (1)
+P0-1. VERIFYがブレる（＝“なんとなく動く”に落ちる）
+思想としてVerify重視でも、**「何をもってGreenか」**がチケットごとに揺れると、規模が上がった瞬間に品質が崩れます。 
+無題のドキュメント (1)
+
+最適運用の条件はこれ：
+                              * **固定ゲート（毎回必ず走る）＋チケット固有ゲート（SPEC由来）**の二層 
+                              * 無題のドキュメント (1)
+                              * LLMは“判定”ではなく“説明/原因推定”に寄せる（判定は機械）
+P0-2. 「ガードレールが文章」だと、エージェントIDE時代は壊れる
+Antigravityのようなエージェントがエディタ/ターミナル/ブラウザを横断する設計だと、権限が強いぶん、運用側で強制しないと事故ります。 
+無題のドキュメント (2)
+
+実際、Antigravity自体も「マルチエージェント」「Agent Manager」「成果物はArtifactsとしてレビュー」が前提の設計で、プレビュー提供も含め運用制御が重要です。
+あなたのメモでも結論は同じで、**“気合いだと破られるので物理的に不可能にする”**が必須になっています。 
+無題のドキュメント (2)
+P0-3. 50+フォルダでは「コンテキスト最小」が人力だと破綻する
+「必要最小」は正しいけど、規模が上がるほど **“最小化作業そのもの”**がボトルネックになります。
+必要なのは Repo Map / 影響範囲の定型出力 / 並列時の衝突防止（ロック/分割/統合手順）です。 
+無題のドキュメント (1)
+ 
+無題のドキュメント (2)
+P0-4. Secrets/MCP/外部ツールが一番危ない（事故は“コード”より“漏えい/誤操作”で起きる）
+あなたの改善案にある通り、「Secretsは絶対にモデルへ渡さない」を“人間の注意”に依存すると破るのが現実です。 
+無題のドキュメント (2)
+
+さらにMCPは便利な分、許可リスト（Allowlist）と監査ログの設定ファイル化が必須という指摘も妥当です。 
+無題のドキュメント (2)
+
+MCP自体も「ツール接続の標準」であり、接続先の権限設計が中核になります。
+________________
+
+
+3) 「本当に最適」にするための最終チェック（＝最小の追記で事故率が激減するポイント）
+ここから先は“ロードマップ”ではなく、**最終盤の品質条件（入れてないと最適と言えない条件）**として書きます。
+3.1 強制力の三点セット（これが揃って初めて“事故なく”と言える）
+                              1. 権限Allowlistを機械化（コマンド/パス/ネットワーク）
+                              * 例：Claude Codeは許可ツールを絞る/危険なスキップ系があるので、運用側で固定する発想が必須 
+                              * 無題のドキュメント (2)
+                              * Gemini CLIでも「危険な権限スキップ」系のフラグが存在するため、同様に“禁止の明文化”が必要
+                              2. VAULT/RELEASEを物理ReadOnly（OS/FSで）
+                              * 文章の「READ-ONLY→PATCHSET」を、権限で守る 
+                              * 無題のドキュメント (2)
+                              3. Secrets遮断を技術で強制（pre-commit/CI）
+                              * gitleaks等で検出し、混入時はコミット不可にする発想は妥当 
+                              * 無題のドキュメント (2)
+                              * gitleaks自体はOSSとして広く使われるスキャナ
+3.2 Verifyを「機能＋セキュリティ＋供給網」まで統合する（最適の条件）
+“動く”だけだと、個人開発でも最終的に事故るのは 依存関係と供給網です。
+                              * NIST SSDFはSDLCへ統合できる実践として提示されているので、Verifyに内包するのが自然です。
+                              * SLSA（供給網の改ざん耐性）や、OpenSSF Scorecard（リポジトリ健全性チェック）もVerifyに入れると「後で死ぬ」率が下がります。
+3.3 “並列エージェント”の事故防止が未定義だと、大規模で必ず衝突する
+あなたの運用は「チケット一気通貫」が強みですが、並列を許すなら“単一書き込み権”の仕組みが必須です。
+（これは「優れた思想」より「事故らない物理法則」の話） 
+無題のドキュメント (1)
+
+Antigravityはマルチエージェント運用を前提にしているため、なおさらロック/レビュー/Artifacts境界が重要になります。
+________________
+
+
+4) あなたのドキュメントが“最適”か？判定基準での回答
+✅ 理想的か（設計思想）
+YES（かなり上位）
+                              * 凍結→最小差分→機械判定→証跡→不変リリースという並びは、個人の大規模開発で最も再現性が高い型です。 
+                              * vcg_vibe_2026_ai統合運用マスタードキュメント（…
+✅ 実用的か（毎日回して疲弊しないか）
+条件付きYES
+                              * 「Verifyの固定化」「権限の機械化」「Context Packの自動化」が揃えば、実用性が跳ねます。逆にここが人力だと、50+フォルダでは運用者（あなた）が詰まります。 
+無題のドキュメント (1)
+                              *  
+                              * 無題のドキュメント (2)
+✅ 最適か（迷いなく・事故なく・トップクラス精度）
+まだ“最適”とは言い切れない
+理由は1つで、原則の強制（権限/CI/FS）が未完成だと“破れる未来”が来るからです。 
+無題のドキュメント (2)
+
+ここを固めた瞬間、あなたの設計は「理想」から「最適」に上がります。
+________________
+
+
+5) 最後に：現段階で「未実装/未整備」と見なすべき点（※あなたの要求どおり末尾に明記）
+ドキュメント/改善メモを見る限り、次は**“書いてあるが、強制の仕組みまで落ちていない可能性が高い”**です。
+                                 * Verifyゲートの固定化（固定ゲート＋チケット固有ゲートの二層が“毎回同じレール”として実行される状態） 
+                                 * 無題のドキュメント (1)
+                                 * 権限Allowlistの機械化（コマンド/パス/ネットワーク/破壊操作禁止を設定ファイル＋実行環境で強制） 
+無題のドキュメント (2)
+                                 *  
+                                 * 無題のドキュメント (2)
+                                 * VAULT/RELEASEの物理ReadOnly化（運用ルールではなくOS/FS権限で固定） 
+                                 * 無題のドキュメント (2)
+                                 * Secrets遮断の技術強制（pre-commit/CIで止まる） 
+                                 * 無題のドキュメント (2)
+                                 * 並列エージェント衝突防止（単一書き込み権/ロック/統合手順） 
+                                 * 無題のドキュメント (1)
+必要なら、次の返信で「あなたの現行マスタードキュメントにそのまま貼って完成できる追記セクション（“強制力”だけを最小行数で）」を、文体と用語を合わせて丸ごと出します。
+情報源
+あなた:
+AGENTS.md
+ファイル
+CLAUDE.md
+ファイル
+CONTEXT_PACK.md
+ファイル
+DONE.md
+ファイル
+TICKET_L.md
+ファイル
+TICKET_M.md
+ファイル
+TICKET_S.md
+ファイル
+vibekanban.ps1
+ファイル
+VCG_VIBE_2026_LITE_実用運用ガイド.md
+ファイル
+無題のドキュメント (4).txt
+ドキュメント
+VCG/VIBE 2026 バイブコーディング運用ドキュメント 調査考察報告
+📋 調査概要
+本ドキュメントは「個人が50+フォルダ級の大規模開発を迷いなく・事故なく・トップクラス精度で完走する」ための運用フレームワークです。SSOT（唯一の真実）→ Verify → Evidence → Release という一貫した思想に基づいており、Claude・GPT・Gemini・Z.aiからなるCore4エージェントの役割分担を中心に設計されています。
+
+
+🎯 理論的妥当性：✅ 強い
+マルチエージェント設計
+
+
+複数LLMの役割分担（実装・監査・調査・手足）は、Anthropic研究で実証された「90.2%性能向上」と同じ理論背景を持つ
+​
+
+
+各エージェントの出力を形式化されたファイル（SPEC/CONTEXT_PACK/EVIDENCE等）で引き継ぐことで、プロンプトドリフトを防ぐ設計は学術的に妥当
+
+
+SSOT（信頼できる唯一の情報源）原則
+
+
+企業データ管理で「情報一元化による信頼性向上」が実証されている
+​
+
+
+分散するドキュメント・実装・テスト・証跡を一つの「信頼できる源」に集約する思想は、大規模開発での矛盾検出に有効
+
+
+Verify二層化（Fast/Full）
+
+
+ISO25010に基づいた品質管理手法と相性が良く、実務標準と一致している
+​
+
+
+💾 実装可能性：△ 部分的に可能
+✅ 可能な部分
+Claude Code + Kiro組み合わせ: 設計書→実装のフロー実績あり
+​
+
+
+Google Antigravity: Agent-First IDE として非同期タスク実行に対応
+​
+
+
+テンプレ固定化: プロンプト最適化によるワークフロー化は個人運用で属人化防止に有効
+​
+
+
+⚠️ 実装に課題がある部分
+MCP（Model Context Protocol）: 「SSOT/VAULT限定アクセス」は方針として明記されているが、実装の具体的な仕組みが記載されていない。MCPはまだ業界実装検証途上で、セキュリティ境界の構築には相応の工数が必要
+​
+
+
+Google One Pro の含有確定性: Antigravity・Jules・Gemini Code Assistが「含まれる想定」となっており、確定情報ではない
+
+
+Conductor Agent等の自動オーケストレーション: 14章で「未導入」と明記されており、複数エージェント並列実行時のコンテキスト汚染制御が自動化されていない
+
+
+🔴 実務的な重大課題：並列化によるコンテキスト汚染リスク
+ドキュメント9章では「Claude実装・GPT監査・Gemini調査・Z.ai整形を同時進行」と記載されていますが、最新の研究では警告が出ています：
+
+
+Anthropic「Claude Research」: オーケストレータ+並列サブエージェント構成で+90.2%性能向上と報告
+
+
+Cognition「Don't Build Multi-Agents」: 「無秩序な並列化は破綻する」と明言
+​
+
+
+Context Rot（コンテキスト腐敗）: 複数エージェントの情報混在で、失敗した試行が仕様層に混入し、ステップが遅れるリスク
+​
+
+
+VIBEに固有の危機：
+
+
+Z.aiが「FILELIST/DIFF/FAIL_SUMMARY」を自動生成するとき、既存のSSOT/VAULTが同期ズレしている可能性
+
+
+複数チケット並行処理時に「どのRELEASEバージョンが現在の真実か」が曖昧化
+
+
+Verify並列実行時のログ混在やREPAIR候補2案の「どちらが正史か」の判定が不透明化
+
+
+📊 実用性の段階的評価
+規模        特徴        実用性        コメント
+1-20チケット        シーケンシャル処理、短期プロジェクト        ⭐⭐⭐⭐        ドキュメント通りの運用で「迷いなく・事故なく」を実現可能
+20-50チケット        部分的な並列処理、中期プロジェクト        ⭐⭐⭐        worktree自動化＋簡易Conductor補強で実用化可能だが、運用負荷増大
+50+チケット並列        完全な同時進行、大規模プロジェクト        ⭐⭐        Conductor Agent・Failure RAG・自動同期チェックが必須。現状では補強なしで破綻リスク高し
+🔧 SSOT維持の「気合い禁止」実装が曖昧
+理想: VAULT/RELEASEはReadOnly、作業はコピー/worktreeのみ
+現実: 個人が複数チケット並行処理するとき、SSOT同期を手動で監視する負荷は実質的に「気合い」になる
+
+
+欠落している実装細部：
+
+
+Allowlist機械化（GitHub Branch Protection等）の具体的スクリプト
+
+
+worktree自動生成・削除の自動化スクリプト
+
+
+権限自動分離の仕組み
+
+
+例外ルート（Docker/複製worktree）の判定基準と実装フロー
+
+
+📈 スケーラビリティの落とし穴
+ドキュメントは「50+フォルダへの対応」を謳いながら、以下の自動化機能が「未導入」リスク項目（14章）として明記されています：
+
+
+Conductor Agent: 複数エージェントの実行順序制御が未自動化
+
+
+自己修復ループ: Verify Red 時の修理案選定が手動判定に依存
+
+
+Failure RAG: 過去の類似エラーからの学習機能が未実装
+
+
+観測可能性ダッシュボード: チケット単位の進捗・メトリクス可視化が手動
+
+
+問題：「これがないと破綻するか？」という閾値が不明確。利用者の判断に委ねられている
+
+
+💰 コスト効率性：部分的に実現可能
+強み：
+
+
+Z.ai（GLM）による「安い手足」の活用思想は正しい
+
+
+階層化（Z.ai整形→Claude実装→GPT監査）により、重い推論を最小化
+
+
+課題：
+
+
+Claude Code Plus + ChatGPT Plus + Google One Pro + Z.ai Lite の複数契約月額コストが相応
+
+
+Cost Ledger（チケット単位のトークン計測）が「構想」止まり。実際のコスト可視化がなく、50フォルダでの「本当のROI」が不透明
+
+
+⚙️ Google Antigravityへの依存が早すぎる
+Antigravityは2025年11月発表の初期段階
+​
+
+
+「主IDE」としての位置付けが、安定性・互換性・拡張性の検証前に先走っている
+
+
+MCPとの統合も確定していない
+
+
+推奨：VS Code + Claude CLI による「IDE非依存の工程設計」に改める必要あり
+
+
+✅ 特に優秀な部分
+VIBEKANBAN（8ステージライフサイクル）: INBOX→TRIAGE→SPEC→BUILD→VERIFY→REPAIR→EVIDENCE→RELEASE は よく設計されている
+
+
+ファイルベース引き継ぎ（標準セット8点）: TRIAGE/RISK_REGISTER/SPEC/CONTEXT_PACK/PATCHSET/VERIFY_REPORT/EVIDENCE/RELEASE_NOTE により、形式化が徹底されている
+
+
+Evidence駆動: 「何を/なぜ/どう検証/学び」を記録することで、同じ過誤の再発防止が可能
+
+
+📌 最終判定：「構想は優秀だが、運用化には重大な補強が必要」
+観点        評価
+思想の一貫性        ⭐⭐⭐⭐⭐
+理論的妥当性        ⭐⭐⭐⭐
+小規模（1-20チケット）での実用性        ⭐⭐⭐⭐
+大規模（50+チケット）での実用性        ⭐⭐
+即導入できるか        ⭐⭐
+🎓 推奨される導入パス
+Phase 0（1-2ヶ月）: 1-10チケットでドキュメント通りに実績化
+
+
+Phase 1（1-2週間）: worktree自動化 + Permission Allowlist 追加実装
+
+
+Phase 2（1-2週間）: 簡易 Conductor（YAML 宣言型）を最小実装
+
+
+Phase 3（2-4週間）: MCP 参照実装を提供・統合
+
+
+Phase 4（1-2週間）: Cost Ledger 自動集計 + 月次レポート自動生成
+
+
+最終推奨: 「50フォルダを一度に実行」ではなく、「20チケット単位の段階的リリース」に分割し、各段階でドキュメントを改善しながら進めることを強く推奨します。
+
+
+ここしっかり確認して。
+
+
+このデータを基に総合運用ドキュメント再度改善してください。
+ChatGPT:
+思考時間: 6m 40s
+VCG/VIBE 2026 バイブコーディング総合運用マスタードキュメント（改訂・最終版 / 2026-01-09 JST）
+本書は「個人が50+フォルダ級の大規模開発を、迷いなく・事故なく・トップクラス精度で完走する」ための、運用＝品質として設計した総合運用ドキュメントです。
+思想（SSOT→Verify→Evidence→Release、気合い禁止、ファイル納品）を維持しつつ、あなたが提示した重大課題（並列化によるコンテキスト汚染、SSOT維持の“気合い”、自動化の未整備、Antigravityの扱い、MCP境界）を 運用ルールで“破綻しない形”に補強します。 
+無題のドキュメント (4)
+________________
+
+
+0) 前提（あなたの課金AI / 必須で記載）
+0.1 いま課金しているAI（Core4固定）
+                                    * Claude Code Plus（Anthropic）：実装・修理の主担当（Build/Repairの手） 
+                                    * 無題のドキュメント (4)
+                                    * ChatGPT Plus（OpenAI）：設計凍結・監査・最終判定（Spec Freeze / Audit / Go-NoGo） 
+                                    * 無題のドキュメント (4)
+                                    * Google One Pro（Gemini側特典を含む想定）：調査・根拠収集（Research / Evidence補強） 
+                                    * 無題のドキュメント (4)
+                                    * Z.ai Lite（GLM Coding Plan）：安い手足（整形、ログ解析、Pack生成、前処理） 
+                                    * 無題のドキュメント (4)
+※ChatGPT Plusには **Codex CLI（ローカルで動くコーディングエージェント）**が含まれる旨が公式に明記されています。 
+※Google One Proの「Gemini側で何が含まれるか」は時期/地域/プラン改定で変動し得るため、運用は“機能が無くても成立する設計”を正とし、あれば増速扱いにします。 
+0.2 使用ツール（必須で全記載：本運用の“装置”）
+IDE/エージェント実行
+                                    * Google Antigravity（主IDE）：Editor View（同期）/ Manager View（非同期・複数エージェント管理） 
+                                    * vcg_vibe_2026_review_and_improv…
+                                    * Claude Code（CLI/アプリ）：Explore→Plan→Code→Commitの4段階運用 
+                                    * vcg_vibe_2026_review_and_improv…
+                                    * ChatGPT（Web）：監査・設計凍結・最終判定、Codex補助 
+                                    * Gemini（Web/アプリ/CLI相当）：調査・根拠収集（一次ソース優先）
+                                    * Z.ai（GLM）：整形、Pack生成、ログ解析、繰り返し作業（ThinkingのON/OFF運用） 
+                                    * vcg_vibe_2026_review_and_improv…
+バージョン管理/分離
+                                    * Git（必須）
+                                    * git worktree / 複製ワークスペース（チケットごとの隔離）
+                                    * ブランチ保護（ローカル/リモートのどちらでも可）
+検索/静的解析/品質ゲート
+                                    * ripgrep (rg)：影響範囲探索（“RAGより先にrg”）
+                                    * テスト：言語に応じて（例：pytest / jest / go test 等）
+                                    * Lint/Format：（例：ruff/black, eslint/prettier 等）
+                                    * SAST：Semgrep（推奨：Verifyに統合） 
+                                    * vcg_vibe_2026_review_and_improv…
+                                    * Secrets：gitleaks（または同等）
+                                    * SBOM/依存監査：Syft/Grype（または同等）
+                                    * コンテナ検査：Trivy（利用時）
+                                    * CI：GitHub Actions等（可能なら）
+運用コマンド
+                                    * vibekanban.ps1：運用の入口（status/new/verify等） 
+                                    * vcg_vibe_2026_review_and_improv…
+                                    * テンプレ群：TICKET / DONE / CONTEXT_PACK / CLAUDE / AGENTS 
+無題のドキュメント (1)
+                                    *  
+                                    * chat-New Chat (22)
+________________
+
+
+1) 結論（あなたの評価文を踏まえた“最重要修正点”）
+あなたの評価の通り、思想は強いが、50+規模では「並列＝破綻」になり得るのが最大リスクです（コンテキスト汚染・正史の混濁・ログ混在）。 
+無題のドキュメント (4)
+
+本書はその対策として、以下を運用の強制ルールとして固定します：
+                                       1. 並列は“工程並列”ではなく“隔離ワークスペース並列”だけ許可
+                                       2. 正史（SSOT）を書き換える権限は常に1本化（Conductor＝最終判定者）
+                                       3. あらゆるLLM出力は会話ではなく“ファイル納品（出力契約）”で引き継ぐ 
+                                       4. 無題のドキュメント (4)
+                                       5. VerifyをGreenの条件として固定（任意にしない）。AI生成コードには脆弱性が混ざりやすいという報告があり、SAST等の機械判定を外すと事故率が上がるため。 
+加えて、近年のマルチエージェントは**“オーケストレータ＋サブエージェント”の統制がある時に強い**（性能改善の報告）一方、無秩序な並列は破綻する、という主張も強いです。よって本運用は「統制された並列のみ」に限定します。 
+________________
+
+
+2) 目的と非目的（迷いゼロ化の根）
+2.1 目的
+                                       * 50+フォルダ級の開発で、人間の判断を最小化し、事故（破壊的操作・仕様ドリフト・回帰）を物理的に起こせないようにする
+                                       * 精度を「モデル性能」ではなく 運用の再現性（SSOT→Verify→Evidence→Release）で作る 
+                                       * 無題のドキュメント (4)
+2.2 非目的（ここをやると破綻する）
+                                       * LLMに“会話のノリ”で実装させない（必ずファイルで引き継ぐ）
+                                       * 4AIを同時に管理して“頑張る”ことを前提にしない（認知負荷で死ぬ） 
+                                       * 無題のドキュメント (4)
+                                       * “全部を自動化できたら理想”を前提にしない（自動化が未整備でも成立する運用にする）
+________________
+
+
+3) コア原則（SSOT・Verify・Evidence・Release）
+3.1 SSOT（Single Source of Truth）
+                                       * いま正しいものは常にSSOTだけ
+                                       * SSOTに置いて良いのは「仕様・決定・現状・正史」だけ
+                                       * 実装作業や試行錯誤は SSOT外（WORK）でのみ行う
+3.2 Verify（二層固定：Fast / Full）
+                                       * Fast Verify：最短で赤を出す（lint + unit最小 + 型/ビルド）
+                                       * Full Verify：リリース可能判定（統合テスト/E2E/セキュリティ/依存監査）
+                                       * Green以外は“未完了”（Doneにしない）
+3.3 Evidence（証跡＝再発防止装置）
+                                       * 何を変えたか、なぜ変えたか、どう検証したか、学びは何かを DONE/EVIDENCEに残す（会話に残さない） 
+                                       * chat-New Chat (22)
+3.4 Release（不変化：正史の固定）
+                                       * Releaseは immutable（不変） として扱う
+                                       * “今の正史”は STATUS（SSOT） が指すReleaseだけ
+________________
+
+
+4) フォルダ/権限設計（「気合い禁止」を物理化）
+50+規模で事故を消すには、思想ではなくOS/権限/運用の物理境界が必要です。 
+無題のドキュメント (4)
+4.1 ルート構造（最小）
+                                       * SSOT/：STATUS、仕様、決定、運用ルール（唯一の真実）
+                                       * WORK/：チケット作業場（worktree/複製）
+                                       * VAULT/：証跡（Verifyログ、Evidence、監査ログ）
+                                       * RELEASE/：不変成果物（タグ/manifest/リリースノート）
+4.2 ReadOnly（SSOT/RELEASE/VAULTの保護）
+                                       * SSOT：原則ReadOnly（Conductorだけ解除可能）
+                                       * RELEASE：常時ReadOnly（追記禁止）
+                                       * VAULT：追記は可、既存の上書き禁止（Append-only運用）
+（例：Windowsの概念例。あなたの環境に合わせて調整）
+# 例：保護（概念） attrib +R SSOT\* /S attrib +R RELEASE\* /S # 例：Conductor作業時だけ一時解除（概念） attrib -R SSOT\STATUS.md
+________________
+
+
+5) 役割分担（Core4固定＋Conductor固定）
+あなたの強みである「迷いを消す役割固定」を、破綻しないように“権限”まで含めて定義します。 
+無題のドキュメント (4)
+5.1 Conductor（最終判定者：常に1つ）
+                                       * Conductor＝ChatGPT Plus（あなたが操作するGPT）
+                                       * 役割：
+                                       * Spec Freeze（仕様凍結）
+                                       * Merge/ReleaseのGo-NoGo
+                                       * 例外ルート（広域変更、依存更新、移行）の承認
+                                       * Conductor以外はSSOTに直接書かない
+5.2 Core4の担当
+                                       * Claude Code Plus：Build/Repair（実装・修理の手）
+                                       * Gemini（Google One Pro）：Research（一次ソース収集、根拠、比較）
+                                       * Z.ai Lite（GLM）：Pack整形、ログ解析、繰り返し作業
+________________
+
+
+6) Antigravity運用（“IDE”ではなく“統制盤”として使う）
+Antigravityは、単なるエディタではなく Manager Viewでの並列管理が本体価値、という指摘を運用に取り込みます。 
+vcg_vibe_2026_review_and_improv…
+
+ただし、並列＝危険なので「隔離×統制×Verify」をセットで強制します。
+6.1 2モード固定
+                                       * Editor View（同期）：単発修正、レビュー、デバッグ
+                                       * Manager View（非同期）：調査タスク/独立チケットを“隔離ワークスペース”で並列管理
+6.2 Manager Viewの並列ルール（破綻防止の要）
+                                       * 並列上限：3〜4（認知負荷の上限を超えない） 
+                                       * vcg_vibe_2026_review_and_improv…
+                                       * ワークスペースを必ず分離（同じ作業場に複数エージェントを入れない）
+                                       * 進捗は会話ではなく **Artifact（ファイル）**で確認（タスクリスト/スクショ/計画）
+                                       * マージ前に必ず Fast Verify→必要ならFull Verify
+近年、エージェントが危険コマンドを実行し得ることが問題化しており、コマンド自動実行は許可リスト制が必須です。 
+________________
+
+
+7) 並列化（最重要：ここを間違えると50+で破綻）
+あなたの指摘（コンテキスト汚染/正史の混濁/ログ混在）を、運用ルールとして潰します。 
+無題のドキュメント (4)
+7.1 禁止：工程並列（同一チケットに4AI同時投入）
+                                       * 同一チケットのBuildを、Claude/GPT/Gemini/Z.aiで同時進行しない
+                                       * 理由：
+                                       * 失敗試行が仕様層に混入しやすい
+                                       * どれが正史かわからなくなる
+                                       * ログ・差分・修理案が混線する
+7.2 許可：隔離ワークスペース並列（チケット単位）
+                                       * 並列は 「チケットAのVerify中に、チケットBをTriageする」 のように、別ワークスペースで流す
+                                       * さらに「正史の更新（SSOT/Release）はConductorのみ」で一本化
+7.3 推奨：疑似並列（認知負荷を下げる）
+あなたの評価文が提案する「疑似並列」を正規手順にします。 
+無題のドキュメント (4)
+                                       * Phase A：Z.ai → Pack生成（前処理）
+                                       * Phase B：Claude → 実装（集中フェーズ）
+                                       * Phase C：GPT → 監査（実装後にまとめて）
+                                       * Phase D：Gemini → 根拠補強（必要時のみ）
+________________
+
+
+8) チケット運用（VIBEKANBAN：状態機械で迷いを消す）
+8.1 状態（INBOX→…→RELEASE）
+                                       * INBOX：要求が来た
+                                       * TRIAGE：影響範囲とリスクが見えた
+                                       * SPEC：受入基準がVerify可能な形で凍結された
+                                       * BUILD：差分が出た
+                                       * VERIFY：機械判定
+                                       * REPAIR：赤を潰す
+                                       * EVIDENCE：学びと証跡を残す
+                                       * RELEASE：不変化
+軽量運用（TICKET + PATCH + DONE）への圧縮は、個人運用のオーバーヘッド問題への現実解としてあなたの資料に明記されています。 
+無題のドキュメント (4)
+8.2 “重さ”別の運用（※ランクではなく運用形態）
+Quick（小修正）
+                                       * ファイル：TICKET_S.md + PATCH.diff + DONE.md
+                                       * 目的：最短でVerify Green、証跡を残す
+Normal（標準）
+                                       * ファイル：TICKET_M.md + CONTEXT_PACK.md + PATCH.diff + VERIFY_REPORT.md + DONE.md
+Major（広域/移行）
+                                       * ファイル：TICKET_L.md + CONTEXT_PACK.md + （必要ならADR） + 段階Verify + ロールバック強化
+                                       * 広域変更は「破壊操作」ではなくMigration Playbookとして扱う（段階移行・互換層・フラグ）
+________________
+
+
+9) ハンドオフ標準（ファイル受け渡し規約＝コンテキスト腐敗対策）
+工程間の受け渡しが曖昧だと、50+では混線します。よって 保存先とファイル名規約を固定します。 
+vcg_vibe_2026_review_and_improv…
+                                       * すべて VAULT/tickets/<ticket_id>/ に集約（チケット単位で完結）
+                                       * 主要ファイル（例）
+                                       * TICKET.md（要求・目的・受入基準）
+                                       * SPEC.md（凍結仕様）
+                                       * CONTEXT_PACK.md（最小入力束）
+                                       * PATCHSET.diff（最小差分）
+                                       * VERIFY_REPORT.md（結果）
+                                       * DONE.md（証跡・学び・リリースノート）
+________________
+
+
+10) Claude Code運用（Explore→Plan→Code→Commit を強制）
+「いきなりコードを書かせない」を手順として固定します。 
+vcg_vibe_2026_review_and_improv…
+10.1 STEP 1: EXPLORE（コード禁止）
+                                       * 入力：SPEC.md + 必要ファイル最小
+                                       * 出力：影響範囲、変更箇所、依存関係
+10.2 STEP 2: PLAN（計画凍結）
+                                       * 出力：PLAN.md（ファイル別手順、リスク、テスト方針）
+                                       * Conductorが承認したら凍結（以後Plan逸脱は例外扱い）
+10.3 STEP 3: CODE（差分最小＋TDD寄り）
+                                       * 出力：PATCHSET.diff（最小）、テスト追加、実行手順
+10.4 STEP 4: COMMIT（証跡と一体）
+                                       * コミットと同時に DONE.md（何を/なぜ/どう検証/学び）を更新 
+                                       * chat-New Chat (22)
+________________
+
+
+11) CONTEXT_PACK（“最小で強い入力束”を固定）
+RAGに頼りすぎると、50+では境界が曖昧になります。事前生成のPackを正にします。 
+無題のドキュメント (4)
+CONTEXT_PACK.md（テンプレ準拠）に必ず含める：
+                                       * 目的 / 受入基準（Verifyで判定できる形）
+                                       * 変更対象ファイルの一覧（FILELIST）
+                                       * 既知の落とし穴（罠）
+                                       * 失敗ログ要約（FAIL_SUMMARY：Repair時の入力）
+                                       * 禁止事項（全域リライト禁止、危険コマンド禁止 など）
+________________
+
+
+12) Verify（品質ゲートを“任意”から“必須”へ）
+2026年は「AI生成コードに脆弱性が混ざる」ことが現実問題として報告されており、セキュリティスキャンは外すと事故率が上がります。 
+よって Verify に統合し、Green条件にします。 
+vcg_vibe_2026_review_and_improv…
+12.1 Fast Verify（例）
+                                       * format/lint
+                                       * unit最小
+                                       * build/typecheck
+12.2 Full Verify（例）
+                                       * integration / e2e（Browser Subagentがあるならここに統合） 
+                                       * vcg_vibe_2026_review_and_improv…
+                                       * Semgrep等のSAST（必須）
+                                       * secrets scan
+                                       * 依存監査（SBOM/脆弱性）
+________________
+
+
+13) Evidence / Done（“次回も勝てる形”で残す）
+DONE.mdは最重要です（再発防止の知識ベースになる）。テンプレ項目：
+                                       * 変更概要（What）
+                                       * 変更理由（Why）
+                                       * 検証（How verified：コマンド/結果）
+                                       * リスクと対策
+                                       * 学び（次回の改善）
+                                       * ロールバック
+（テンプレは既に用意済み） 
+chat-New Chat (22)
+________________
+
+
+14) MCP / AGENTS.md / CLAUDE.md（2026標準の“安全な統合”）
+14.1 AGENTS.md（エージェント向けREADME）
+AGENTS.mdはオープン標準として整備され、運用に組み込む価値があります（プロジェクト規約の固定）。 
+→ あなたの AGENTS.md は「セットアップ・テスト・規約」を固定する“入口”として機能させる。
+14.2 CLAUDE.md（Claude向けの行動憲法）
+Claude Codeが守るべき「禁止操作」「出力契約（差分/最小変更）」をCLAUDE.mdで固定。
+14.3 MCP（Model Context Protocol）
+MCPは、エージェントが外部ツール/データに接続するためのオープン標準として整備が進み、セキュリティ（認可など）の公式ガイドも提供されています。 
+また、MCPはLinux Foundation配下の標準化の動きも報じられており、今後の“接続の共通規格”として無視できません。 
+ただし：MCPは便利な分、攻撃面が増えるので本運用では原則を固定します。
+                                       * SSOT/VAULTのみをReadOnlyで提供
+                                       * 認証・許可リスト・監査ログ必須
+                                       * “書き込みツール”は原則禁止（必要なら例外ルートでConductor承認）
+________________
+
+
+15) 事故ゼロのための“停止線”（Stop the line）
+以下のどれか1つでも起きたら、作業を止めてConductor判断に戻す（続けると破綻が拡大する）：
+                                       * Specが凍結されていないのに実装が進んでいる
+                                       * worktreeが分離されていないのに並列を始めた
+                                       * Verify RedのままDONEにしようとしている
+                                       * “どのReleaseが正史か”をSTATUSが指していない
+                                       * ログ/差分/証跡がチケットフォルダに収束していない
+________________
+
+
+16) 今日から回る最小ループ（運用の実行形）
+                                       1. INBOX：TICKET作成（Quick/Normal/Majorのどれで回すか決める）
+                                       2. TRIAGE：rgで影響範囲、Geminiで根拠、Z.aiで整理
+                                       3. SPEC FREEZE：Conductorが受入基準を確定
+                                       4. PACK：CONTEXT_PACK生成（Z.ai）
+                                       5. BUILD：Claude（Explore→Plan→Code→Commit）
+                                       6. VERIFY：Fast→必要ならFull
+                                       7. DONE/EVIDENCE：学びと証跡
+                                       8. RELEASE：不変化、STATUS更新（Conductorのみ）
+________________
+
+
+末尾：現段階で「未実装 / 未確定」または“あると理想だが、現状必須ではない”項目
+（あなたの資料で「未導入」「実装の具体が曖昧」と指摘されている点を整理）
+                                       1. SSOT/VAULT限定のMCPサーバ実装（認証・監査ログ込み）：方針は強いが、具体実装が未整備 
+                                       2. 無題のドキュメント (4)
+                                       3. Conductor Agentの自動オーケストレーション：現状は人間が司令塔（正史一貫性のため、当面これで可） 
+                                       4. 無題のドキュメント (4)
+                                       5. Failure RAG（過去失敗からの自動学習）：効果は大だが未実装 
+                                       6. 無題のドキュメント (4)
+                                       7. Cost Ledgerの自動集計：構想止まりだと継続しにくい 
+                                       8. 無題のドキュメント (4)
+                                       9. worktree生成/削除・雛形生成・Verifyルーティングの“ワンコマンド化”の完全版：vibekanbanは存在するが、pack/done等の完全自動化は拡張余地 
+無題のドキュメント (4)
+                                       10.  
+                                       11. vcg_vibe_2026_review_and_improv…
+                                       12. Antigravityの“含まれる特典”の確定（Google One Pro側）：変動リスクがあるため、無くても成立する運用を正とする 
+________________
+
+
+関連する最新動向（安全・標準化・エージェント運用）
+ Google's Agentic AI wipes user's entire HDD without permission in catastrophic failure - cache wipe turns into mass deletion event as agent apologizes: "I am absolutely devastated to hear this. I cannot express how sorry I am" 
+
+Tom's Hardware
+Google's Agentic AI wipes user's entire HDD without permission in catastrophic failure - cache wipe turns into mass deletion event as agent apologizes: "I am absolutely devastated to hear this. I cannot express how sorry I am"
+2025/12/03
+ AI companies want a new internet - and they think they've found the key 
+
+The Verge
+AI companies want a new internet - and they think they've found the key
+29 日前
+ OpenAI, Anthropic, and Block Are Teaming Up to Make AI Agents Play Nice 
+
+WIRED
+OpenAI, Anthropic, and Block Are Teaming Up to Make AI Agents Play Nice
+30 日前
+ Anthropic says MCP will stay 'open, neutral, and community-driven' after donating project to Linux Foundation 
+
+IT Pro
+Anthropic says MCP will stay 'open, neutral, and community-driven' after donating project to Linux Foundation
+29 日前
+ OpenAI co-founds the Agentic AI Foundation under ... 
+
+OpenAI
+OpenAI co-founds the Agentic AI Foundation under ...
+情報源
+ChatGPT の回答は必ずしも正しいとは限りません。重要な情報は確認するようにしてください。cookie の設定を参照してください。

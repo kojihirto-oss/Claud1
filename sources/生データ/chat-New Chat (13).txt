@@ -1,0 +1,257 @@
+### USER
+目的：50フォルダ以上の大規模リポジトリで「新規開発＋既存改修」をAIと一緒に進める。バイブコーディングでも精度（影響範囲漏れ・設計ブレ・実装漏れ）を最小化したい。技術スタックは複数混在。
+
+あなたの役割：シニアテックリード兼QAとして振る舞って。
+
+やってほしいこと
+
+大規模開発で精度が落ちる原因を先に整理し、対策方針を提示して。
+
+「最小の手順」で回せるワークフローを、フェーズ（把握→設計→分割→実装→検証→統合）ごとに提案して。
+
+各フェーズで私がAIに投げる指示の短いテンプレ（コピペ用）を出して。
+
+50+フォルダ前提で、必ず入れるべきチェックリストを出して（影響範囲、依存、設定、テスト、移行、ドキュメント）。
+
+「迷走しないタスク分割のやり方」と「1イテレーションの基本ループ（例：30〜60分単位）」を提示して。
+
+最後に、私に最初に確認すべき質問を最大7個だけ聞いて。
+
+制約
+
+プロンプトや手順は複雑にしすぎない（“運用できる”こと優先）
+
+不明点は推測せず、確認質問にして
+
+### ASSISTANT
+<details type="reasoning" done="true" duration="22" view="" last_tool_call_name="">
+> 1.  **Analyze the User's Request:**
+>     *   **Goal:** Conduct "New Development + Existing Refactoring" in a large-scale repository (50+ folders) with AI assistance ("Vibe Coding"), minimizing accuracy errors (missed impact, design drift, implementation gaps).
+>     *   **Tech Stack:** Mixed (multiple technologies).
+>     *   **My Role:** Senior Tech Lead + QA.
+>     *   **Deliverables:**
+>         1.  Reasons for accuracy loss in large-scale dev + Countermeasures.
+>         2.  "Minimal steps" workflow (Grasp -> Design -> Split -> Implement -> Verify -> Integrate).
+>         3.  Short prompt templates for each phase (copy-pasteable).
+>         4.  Checklist for 50+ folder repos (Impact, Dependencies, Configs, Tests, Migration, Docs).
+>         5.  Method to prevent "wandering" task division + "1 Iteration Loop" (30-60 min).
+>         6.  7 initial confirmation questions.
+>     *   **Constraint:** Keep prompts/steps simple ("operational" priority), no guessing on ambiguities (ask questions).
+> 
+> 2.  **Deconstruct "Accuracy Loss in Large-Scale Dev with AI":**
+>     *   *Why does AI fail on big repos?* Context window limits, forgetting earlier instructions, lack of structural understanding, hallucinations based on partial code.
+>     *   *Why do humans fail in this context?* Cognitive overload, assuming AI knows the whole stack, skipping documentation, testing too late.
+>     *   *Countermeasures:* Focus on "Context Management," "Incremental verification," and "Strict constraints."
+> 
+> 3.  **Develop the Workflow (Minimal Steps):**
+>     *   Need a cycle that feeds the next step with verified outputs.
+>     *   *Grasp:* High-level map.
+>     *   *Design:* Specs + Interfaces.
+>     *   *Split:* Atomic tasks.
+>     *   *Implement:* Code changes.
+>     *   *Verify:* Unit/Static analysis.
+>     *   *Integrate:* Merge/Regression.
+>     *   *Key:* Don't try to code the whole thing at once.
+> 
+> 4.  **Draft Prompt Templates:**
+>     *   Must be concise. "Context + Instruction + Constraint."
+>     *   *Phase 1 (Grasp):* "Analyze structure."
+>     *   *Phase 2 (Design):* "Design based on spec."
+>     *   *Phase 3 (Split):* "Break down."
+>     *   *Phase 4 (Implement):* "Write code for X."
+>     *   *Phase 5 (Verify):* "Review this code."
+>     *   *Phase 6 (Integrate):* "Check for conflicts."
+> 
+> 5.  **Create the Checklist (50+ Folder Context):**
+>     *   *Impact:* If I change `core/`, does `frontend/` break?
+>     *   *Dependencies:* Version conflicts (npm vs. pip vs. cargo).
+>     *   *Config:* `.env`, `.config`, hardcoded paths.
+>     *   *Tests:* Unit vs. Integration. Do legacy tests exist?
+>     *   *Migration:* DB schemas, breaking changes.
+>     *   *Docs:* README, API docs.
+> 
+> 6.  **Define "Task Division" and "Iteration Loop":**
+>     *   *Division:* Use the "Onion" or "Leaf" approach. Identify the smallest unit of value (or smallest unit of change).
+>     *   *Loop:* Select -> Contextualize -> Instruct -> Verify -> Commit. 30-60 mins means small chunks.
+>     *   *Rule:* One logical change per loop. No "fix everything."
+> 
+> 7.  **Formulate the 7 Questions:**
+>     *   Need to know the boundaries before starting.
+>     *   1. Languages/Frameworks?
+>     *   2. Entry point?
+>     *   3. Testing strategy/tools?
+>     *   4. Priority (New vs. Refactor)?
+>     *   5. CI/CD setup?
+>     *   6. Access to docs/specs?
+>     *   7. Specific error history (known ghosts)?
+> 
+> 8.  **Review and Refine (Self-Correction):**
+>     *   *Critique:* The user wants "Vibe Coding" but with accuracy. This is a contradiction in terms if not managed. I need to frame "Vibe Coding" as "High-frequency interaction with guardrails" rather than "Free-for-all."
+>     *   *Critique:* 50+ folders is a *lot* for standard LLM context windows (even with 128k/200k).
+>     *   *Solution:* Emphasize the "Context Injection" strategy—only feeding relevant files.
+>     *   *Tone:* Senior Tech Lead. Direct, practical, authoritative but helpful.
+> 
+> 9.  **Final Polish (Japanese):**
+>     *   Ensure terminology is appropriate (Tech Lead/QA persona).
+>     *   Structure with clear headers and bullet points.
+> 
+> **(Drafting the response - Mental Outline)**
+> *   **Intro:** Acknowledge the difficulty. Mixed stack + 50 folders is high entropy.
+> *   **Part 1: Root Causes & Countermeasures:** Focus on "Context Fragility" and "Design Drift."
+> *   **Part 2: Workflow:** Linear but iterative.
+> *   **Part 3: Prompts:** Keep them strict.
+> *   **Part 4: Checklist:** The safety net.
+> *   **Part 5: Task/Loop:** The engine room.
+> *   **Part 6: Questions:** The starting line.
+> 
+> *(Self-Correction during drafting)*: For the "50+ folders" aspect, I should explicitly mention the need for a "Map" or "Index" first, otherwise AI gets lost. I will add that to the "Grasp" phase.
+> 
+> 10. **Final Output Generation:** (Proceed to generate the Japanese response based on these points.)
+</details>
+よし、シニアテックリード兼QAとして、その大規模リポジトリとAIの「使い方」を設計する。
+
+50フォルダ超え、かつ技術スタック混在の環境でバイブコーディング（対話型開発）をすると、AIは「楽観的な方向へ妄想」を始める。これを防ぎ、高品質を保つための**「運用可能な最小限のガードレール」**を提案する。
+
+---
+
+### 1. 大規模開発で精度が落ちる原因と対策方針
+
+AIを活用した大規模開発で陥りがちな失敗パターンと、その対策を先に固定化する。
+
+| 失敗原因（なぜ起きるか） | 対策方針（どう防ぐか） |
+| :--- | :--- |
+| **コンテキストの忘却**<br>50フォルダ全てを一度に認識できず、以前の会話内容を忘れて整合性が取れなくなる。 | **「スコープ固定」と「差分更新」**<br>一度全体像を把握させたら、作業中は「関係するフォルダ/ファイルのみ」をAIの記憶領域（コンテキスト）に吊るす。 |
+| **設計のドリフト**<br>部分的な実装指示を繰り返すうちに、当初の設計方針が少しずつズレる。 | **「設計の聖域化」**<br>設計書（または設計定義プロンプト）を「System」や「Reference」として毎回参照させ、変更を厳格に管理する。 |
+| **依存関係の見落とし**<br>他フォルダにある共通ライブラリや設定を変更せず、破壊的変更を入れてしまう。 | **「グレップ先行主義」**<br>実装前に必ず「使用箇所検索（grep）」を行い、影響範囲を可視化させてからコードを書かせる。 |
+| **ハルシネーション（虚偽）**<br>存在しない関数や設定をAIが勝手に作り込み、実行エラーになる。 | **「実証主義」**<br>AIに「コードを書く」前に「現状のファイルを読み込んで確認する」ステップを絶対に挟む。 |
+
+---
+
+### 2. 「最小の手順」で回すワークフロー
+
+複雑化させないため、各フェーズは単方向（後戻り最小）で進める。
+
+#### **Phase 1: 把握**
+*   **目的:** リポジトリの地形図を作る。
+*   **行動:** ディレクトリ構造と主要な設定ファイルをAIに読み込ませ、技術スタックの割り当てマップを作成させる。
+
+#### **Phase 2: 設計**
+*   **目的:** 変更対象とその境界線を引く。
+*   **行動:** 機能要件に基づき、どのフォルダのどのファイルを変更するか「変更計画」を作らせる。実装はさせない。
+
+#### **Phase 3: 分割**
+*   **目的:** 実装単位を30〜60分で終わるサイズに砕く。
+*   **行動:** 設計計画をタスクリスト化し、依存関係の順番に並べ替える。
+
+#### **Phase 4: 実装**
+*   **目的:** コードを書く。ここからはバイブコーディング。
+*   **行動:** 1タスクずつ指示を出す。関連する現行コードを必ず参照させる。
+
+#### **Phase 5: 検証**
+*   **目的:** その場でバグを潰す。
+*   **行動:** 作成したコードに対して、静的解析（Linter）や既存テストの実行、または自己レビューを指示する。
+
+#### **Phase 6: 統合**
+*   **目的:** 全体への悪影響をチェック。
+*   **行動:** 変更点が他フォルダへの影響（importエラーやAPI不一致）を与えていないか最終確認させる。
+
+---
+
+### 3. AIへの指示テンプレ（コピペ用）
+
+プロンプトは「役割」「コンテキスト」「制約」の3要素で簡潔に。
+
+#### **Phase 1: 把握**
+> ```
+> 役割：シニアアーキテクトとして振る舞って。
+> タスク：以下のディレクトリ構造と設定ファイル（package.json, pom.xml, requirements.txt等）を分析し、
+> 1. プロジェクト全体の技術スタック
+> 2. 主要なモジュールごとの役割
+> を箇条書きでまとめてください。
+> ```
+
+#### **Phase 2: 設計**
+> ```
+> 役割：システムエンジニアとして。
+> コンテキスト：[要件の概要] を実現するための設計を行います。
+> タスク：先ほどのマップに基づき、変更が必要なファイルとフォルダのリスト、および大まかなコードの構成案を提示してください。
+> 制約：現状、コードの記述は不要。変更計画のみを出力すること。
+> ```
+
+#### **Phase 3: 分割**
+> ```
+> 役割：プロジェクトマネージャーとして。
+> タスク：上記の設計計画を、実装・検証が30分以内で完了するサイズのタスクに分割してください。
+> 制約：依存関係がある場合は順序を明記すること。
+> ```
+
+#### **Phase 4: 実装**
+> ```
+> 役割：シニアエンジニアとして。
+> コンテキスト：以下のファイルを参照しながら実装します。
+> [関連ファイルのパスやコードを貼り付け]
+> タスク：[具体的なタスク名] の機能を実装してください。
+> 制約：既存の設計方針やコーディング規範（命名規則など）は厳守すること。
+> ```
+
+#### **Phase 5: 検証**
+> ```
+> 役割：QAエンジニアとして。
+> タスク：実装したコードをレビューしてください。
+> チェック項目：
+> 1. 既存コードとの整合性はあるか？
+> 2. 論理的なバグやエッジケースはないか？
+> 3. 未使用の変数やimportはないか？
+> ```
+
+---
+
+### 4. 50+フォルダ前提の必須チェックリスト
+
+実装完了後や統合前に、AI（または自分）に確認させる項目。
+
+*   **影響範囲:**
+    *   [ ] 変更した関数/クラスを参照している他フォルダのファイルは全て特定したか？
+    *   [ ] 共通ライブラリ/utilsの変更による波及影響は確認したか？
+*   **依存関係:**
+    *   [ ] 新たに追加したパッケージは、既存のバージョンと競合しないか？
+    *   [ ] 循環参照が発生していないか？
+*   **設定:**
+    *   [ ] 環境変数（.env）やConfigファイルの更新は必要か？
+    *   [ ] DBスキーマ変更が必要な場合、マイグレーションファイルは作成したか？
+*   **テスト:**
+    *   [ ] 既存のユニットテストは通過するか？
+    *   [ ] 新規機能のテストコードは最低限書いたか？（例：正常系と異常系1つずつ）
+*   **移行:**
+    *   [ ] データ形式の変更（APIレスポンスなど）により、フロントエンド側の修正が必要か？
+*   **ドキュメント:**
+    *   [ ] READMEやAPI仕様書の更新が必要な箇所はないか？
+
+---
+
+### 5. 迷走しないタスク分割と1イテレーション
+
+**迷走しないタスク分割のルール**
+*   **「1ファイル、1機能」原則:** 基本的に1つのイテレーションで1つのファイルを修正するように分割する。複数ファイルまたがる場合は「インターフェースの定義」と「実装」に分ける。
+*   **I/Oを含めない:** データベース接続や外部API叩く部分は「モック化（仮実装）」と「本実装」に分ける。まずはモックでロジックを固める。
+
+**1イテレーション（30〜60分）の基本ループ**
+1.  **Select (5分):** タスクリストから1つ選び、**関連する現在のソースコード**をAIに読み込ませる。
+2.  **Instruct (5分):** テンプレを使って実装指示。
+3.  **Code (15分):** AIがコードを出力。人間は読むだけ（書かない）。
+4.  **Verify (10分):** AIに自己レビューさせ、手元でLinterや簡易テストを走らせる。
+5.  **Commit (5分):** 問題なければ即座にGitコミット。履歴を残してAIの記憶をリセットし、次へ。
+
+---
+
+### 6. 最初に確認すべき質問（7個）
+
+不明点は推測せず、以下を答えてください。これにより方針を確定させます。
+
+1.  **言語・スタック:** 主な言語（Java, Python, TS等）と主要なフレームワークは何ですか？（混在比率も）
+2.  **エントリーポイント:** アプリケーションの起動ポイントや主要な設定ファイルが存在するフォルダパスはどこですか？
+3.  **テスト状況:** 既存のテストコードはどの程度存在しますか？（0、少し、十分）
+4.  **ドキュメント:** アーキテクチャや設計を示すドキュメント（ADRや設計書）は存在しますか？
+5.  **優先順位:** 新規開発と既存改修の割合はどちらが高く、どちらを優先しますか？
+6.  **CI/CD:** 自動テストやLintチェックを走らせるパイプラインは既に稼働していますか？
+7.  **最大のリスク:** 現在、技術的負債やバグで最も気になっている箇所はありますか？

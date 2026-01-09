@@ -1,0 +1,409 @@
+VIBE One Screen OS / OneBox（VCG）プロジェクトデータ統合テキスト（統合版）
+
+生成日時: 2026-01-09 (JST)
+対象: 「VIBE One Screen OS（WPF）」のビルド/起動/修正/運用を最短で再現するために、提供された “25ファイル版 v6” の内容を1つに統合したもの。
+
+注意（重要）
+- もともとのナレッジは「25ファイルに凝縮」されており、巨大な全文（UI全XAML・全C#・全スクリプト）も一部は長大です。
+- 本統合テキストでは、(1) 全体像/手順/根因/修正方針/運用/テスト/チェックリスト/UltraSync計画・報告を “漏れなく” 1本化し、(2) 主要コード・パッチは必要十分な範囲で全文/抜粋として含め、(3) 元ファイルの参照関係と「どこに全文があるか」を必ず明示します。
+- UI/XAMLやスクリプトの“全文”は非常に長く、チャット表示の制約で省略が起きやすいため、この統合TXTファイル自体に出来る限り含めつつ、長大部分は「元ファイル（この統合元）」を参照する設計にしています。
+
+================================================================================
+0. まず結論（現状サマリー）
+================================================================================
+1) 混乱ポイント: PowerShellにXAMLを貼って実行すると「<」エラーになる
+- XAMLはPowerShellで実行しない。WPFプロジェクトの .xaml ファイルへ書き、dotnet build/publish が BAMLへコンパイルし、実行時に InitializeComponent() が読み込む。
+- 実行主体は WPFアプリ（OneScreenOSApp.exe）。
+
+2) 既知の起動クラッシュ（XamlParseException）は “TargetType不一致” が根因
+- ToggleButton が Button 用 Style（ButtonSecondary）を参照していた。
+- ButtonSecondary の TargetType が Button のため、ToggleButton に適用されると起動時に XamlParseException でクラッシュ。
+- 恒久修正: App.xaml に ToggleButton 用の ToggleSecondary（TargetType=ToggleButton）を追加し、MainWindow.xaml の該当 ToggleButton に適用。
+
+3) 現在の主問題（重大）: C# コンパイルエラー大量（148件）
+- InitializeComponent が見つからない
+- XAML で定義したはずの x:Name（TxtStatusBar 等）が見つからない
+→ 典型的に「XAMLのMarkupCompileが走っていない/失敗していて MainWindow.g.cs が生成されない」状態。
+
+4) 最短で直して動かす（超要点）
+- build_publish ログの “最初のXAMLコンパイルエラー” を特定して潰す
+- obj/bin を完全クリーンして再ビルドし、XAML Page/クラス名整合を復旧
+- ToggleSecondary パッチ（TargetType不一致対策）を維持
+- build_publish.ps1 で publish 成功→起動→selftest で DONE（強い検証）まで通す
+
+================================================================================
+1. プロジェクト概要（OneBox構成 / ルート / 目的）
+================================================================================
+目的
+- VIBE One Screen OS（WPF）を “OneBox” 構成で運用し、ビルド→起動→自己診断→運用スクリプト実行→ログ集約までを一気通貫で回す。
+
+OneBox ルート（ユーザー環境）
+- C:\Users\koji2\Desktop\VCG\01_作業（加工中）
+
+OneBox 主要フォルダ
+- APP\OneScreenOSApp\      : WPFアプリ本体（.NET / XAML / code-behind）
+- CORE\VIBE_CTRL\          : ビルド/自己診断/運用スクリプト（PowerShell + .cmd）
+- VAULT\                    : ログ・レポート・成果物（dist.zip, patch.zip 等）
+- PROJECTS\                 : プロジェクト単位の資料/データ（各種入出力）
+
+ビルドのエントリ（推奨）
+- pwsh -NoProfile -ExecutionPolicy Bypass -File .\CORE\VIBE_CTRL\scripts\build_publish.ps1
+出力
+- APP\dist\OneScreenOSApp.exe（単一ファイル publish を想定）
+- ログ: VAULT\06_LOGS\build_publish_*.log
+
+起動
+- ビルド後、APP\dist\OneScreenOSApp.exe
+- 推奨: LAUNCH_ONE_SCREEN_OS.cmd（%~dp0 / 文字化け対策 / doctor経由などで堅牢化）
+
+================================================================================
+2. 混乱ポイントの確定解消: 「XAMLをPowerShellで実行しない」
+================================================================================
+起きたこと
+- PowerShellプロンプトに XAML断片（<ToggleButton ...> 等）を貼って実行してしまい、PowerShellが XMLタグの「<」をコマンドとして解釈しエラー。
+
+正しい扱い
+- XAMLは WPFプロジェクトの App.xaml / MainWindow.xaml へ書く
+- dotnet build/publish が XAML を BAML（バイナリXAML）へコンパイル
+- 実行時に InitializeComponent() が BAML を読み UI を生成
+
+「どのアプリでXAMLを実行するの？」
+- 実行主体は OneScreenOSApp.exe（WPFアプリ）
+- XAMLを単体で“実行するアプリ”は基本ない（デザイナ/プレビューは別）
+
+すぐ試す（ユーザー環境）
+cd "C:\Users\koji2\Desktop\VCG\01_作業（加工中）"
+pwsh -NoProfile -ExecutionPolicy Bypass -File ".\CORE\VIBE_CTRL\scripts\build_publish.ps1"
+
+ログ探索
+- VAULT\06_LOGS から最新の build_publish_*.log を確認
+- 例: build_publish_20260106_153010.log（ユーザーが見つけたログ位置）
+
+================================================================================
+3. 既知クラッシュ（XamlParseException）: 根因と確定修正
+================================================================================
+根因（確定）
+- ToggleButton が Style=ButtonSecondary を参照
+- ButtonSecondary の TargetType が Button
+- その結果、起動時に System.Windows.Markup.XamlParseException でクラッシュ
+
+正しい設計
+- Button/ToggleButtonの共通化は ButtonBase（共通基底）で作る
+- Toggle固有の見た目（IsChecked 等）は ToggleButton 用 Style でトリガ追加
+
+確定修正（要点）
+- App.xaml に ToggleSecondary を追加（TargetType=ToggleButton, BasedOn=ButtonBaseSecondary など）
+- MainWindow.xaml の ToggleInsightDetails を ToggleSecondary に差し替え
+
+パッチ（例: 最小構成）
+<Style x:Key="ToggleSecondary"
+       TargetType="{x:Type ToggleButton}"
+       BasedOn="{StaticResource ButtonBaseSecondary}">
+  <Style.Triggers>
+    <Trigger Property="IsChecked" Value="True">
+      <Setter Property="Background" Value="#2E3440"/>
+      <Setter Property="Foreground" Value="White"/>
+    </Trigger>
+  </Style.Triggers>
+</Style>
+
+該当箇所（MainWindow.xaml）
+<ToggleButton x:Name="ToggleInsightDetails"
+              Style="{StaticResource ToggleSecondary}"
+              ... />
+
+================================================================================
+4. 現在のビルド失敗（148 errors）: 症状・意味・最優先アクション
+================================================================================
+症状（代表）
+- MainWindow.xaml.cs 内で InitializeComponent が存在しない
+- TxtStatusBar / BtnRelease / ViewDashboard など x:Name 由来のフィールドが全滅
+
+意味（ほぼ確定）
+- MainWindow.g.cs が生成されていない / コンパイルに含まれていない
+- 通常は XAMLビルドで obj\...\MainWindow.g.cs が生成され、そこに InitializeComponent() と x:Name フィールドが入る
+- それが無いので C#側から参照できず大量エラーになる
+
+最優先でやること（P0）
+- build_publish_*.log の “先頭側” にある「最初のXAMLコンパイル失敗理由」を特定する
+- 148件のC#エラーは“二次災害”で、根因はその前に出ていることが多い
+
+================================================================================
+5. InitializeComponent が消える時の復旧チェックリスト（P0）
+================================================================================
+A. 物理ファイルとクラス名の整合
+1) MainWindow.xaml の x:Class と MainWindow.xaml.cs の namespace + class が一致？
+   - 期待例: x:Class="OneScreenOSApp.MainWindow"
+2) MainWindow.xaml.cs が public partial class MainWindow : Window になっている？
+
+B. csproj 設定
+1) <UseWPF>true</UseWPF> があるか（あるはず）
+2) TargetFramework が net8.0-windows 等 “-windows” 付きか
+3) XAML既定アイテムが無効化されていないか
+   - EnableDefaultItems=false 等があると Page扱いにならず壊れる
+
+C. XAMLが Page としてビルドされているか
+- Visual Studio: MainWindow.xaml の Build Action が Page
+- CLI: csproj に <Page Include="MainWindow.xaml" /> を明示しても良い
+
+D. obj/bin 完全クリーン（超重要）
+cd "C:\Users\koji2\Desktop\VCG\01_作業（加工中）\APP\OneScreenOSApp"
+Remove-Item -Recurse -Force .\bin,.\obj -ErrorAction SilentlyContinue
+
+E. 単体ビルドで原因を露出させる
+dotnet build .\OneScreenOSApp.csproj -c Release -v:n
+- ここで最初に出る XAML 関連エラーを直す
+- 直したら build_publish.ps1 に戻る
+
+F. よくある落とし穴
+- x:Name のスペル変更/削除と C#参照の不一致
+- XAMLファイル名変更/配置変更で csproj参照が切れた
+- XAML構文エラーで MarkupCompile が落ち、結果として g.cs が生成されない
+
+================================================================================
+6. ビルド/パブリッシュ スクリプト（build_publish.ps1）: 仕様
+================================================================================
+目的
+- OneScreenOSApp.csproj を publish し、APP\dist に成果物（OneScreenOSApp.exe）を生成し、VAULT\06_LOGS にログを保存。
+
+特徴（抜粋）
+- OneBoxRoot 自動推定（scripts から上位へ辿る）
+- .NET SDK チェック（dotnet --version）
+- 以前の出力をクリーン
+- dotnet publish -c Release -r win-x64 --self-contained false -o APP\dist
+- PublishSingleFile=true, IncludeNativeLibrariesForSelfExtract=true
+
+ログ
+- VAULT\06_LOGS\build_publish_YYYYMMDD_HHMMSS.log
+
+NEXT STEPS（ログに記載）
+- 起動: .\LAUNCH_ONE_SCREEN_OS.cmd
+- selftest: .\CORE\VIBE_CTRL\scripts\selftest_launch_enhanced.ps1
+
+================================================================================
+7. 起動導線と「強いDONE」検証（selftest_launch_enhanced / doctor_activate）
+================================================================================
+強いDONE条件（selftest_launch_enhanced.ps1）
+1) プロセスが起動し2秒後も生存
+2) MainWindowHandle が 0 ではない（UI生成済み）
+3) ウィンドウが前面に出る（最小化/背面/画面外を検知→自動Restore+Foreground）
+
+selftestが確認するもの（主要）
+- APP\dist\OneScreenOSApp.exe の存在
+- LAUNCH_ONE_SCREEN_OS.cmd の存在と内容（%~dp0 等）
+- デスクトップショートカットの妥当性（cmd.exe /c の強制、WorkingDirectory 等）
+- activate_window.ps1 の存在
+- Single Instance 監査（プロセス数が 1 に保たれるか）
+
+doctor_activate.ps1 の目的
+- OneBox診断（構造/エンコーディング）＋プロセス確認＋必要なら前面化＋クラッシュログ収集＋レポート生成
+- ログは VAULT\06_LOGS\doctor_activate_*.txt に出す想定
+
+重要バグと修正（ログ抜粋に基づく）
+- activate_window.ps1 が param([int]$Pid) を持つと PowerShell自動変数 $PID と衝突し「Cannot overwrite variable Pid...」で必ず失敗
+- 修正方針: $Pid → $TargetPid に変更し、[Alias("Pid")] で互換性維持、TimeoutSeconds を延長
+
+Single Instance 不安定（過去）
+- Thread.Sleep(500) が短く既存インスタンス前面化が間に合わないケース
+- Mutex名が一般的すぎると衝突の可能性
+- 修正案: Mutex名を VIBE固有にし、Sleepを 1000ms へ
+
+================================================================================
+8. OneScreenOSApp プロジェクト設定（csproj）
+================================================================================
+- OutputType: WinExe
+- TargetFramework: net8.0-windows
+- UseWPF: true
+- UseWindowsForms: true（FolderBrowserDialog等のため）
+- PublishSingleFile: true
+- SelfContained: true（ただし build_publish.ps1 では --self-contained false も指定。整合は要確認）
+- RuntimeIdentifier: win-x64
+- PublishTrimmed: false
+- IncludeNativeLibrariesForSelfExtract: true
+- PackageReference: Microsoft.Web.WebView2 (1.0.3650.58), System.Drawing.Common (8.0.0)
+- ProjectReference: ..\RunnerCore\RunnerCore.csproj
+
+注意（P1）
+- csproj に <Reference Include="System.Windows.Forms" /> がある。UseWindowsForms=true だけに一本化できるか検証（警告整理目的）。
+
+================================================================================
+9. 主要コード（概要）
+================================================================================
+MainWindow.xaml（UI）
+- 2カラム構成: 左サイドバー + 右メイン
+- サイドバー:
+  - ロゴ/タイトル
+  - 現在プロジェクト/フェーズ表示
+  - ナビ（Dashboard/DataOps/Secrets/Providers/Settings）
+  - Safe Mode 表示
+  - 次へボタン（大）＋実行内容表示
+  - キャンセル（実行中のみ）
+- メイン:
+  - Dashboard view（カード/インサイト/最近実行/操作/ログ）
+  - DataOps view（DBパス/ステップ実行/結果プレビュー）
+  - Secrets/Providers/Settings view（詳細はXAML全文参照）
+
+MainWindow.xaml.cs（ロジック）
+- OneBoxRoot 自動検出（VaultLocator）＋設定保存（onebox_config.json）＋フォールバック選択
+- EntryRegistry を読み込み、AutoNextResolver で “次へ” を解決
+- ExecutionQueue で同時実行防止
+- FileSystemWatcher で VAULT の dashboard/kpi/insights 更新を監視しデバウンスRefresh
+- RefreshAllAsync:
+  - SnapshotReader で VAULT\VIBE_DASHBOARD.md を読みUI更新
+  - FAIL時: 欠損ファイルを解析し UI に表示、テンプレ作成ボタンで生成
+  - OK時: 通常表示
+  - インサイト表示、実行履歴、リリースボタン制御など
+- DataOps 実行: run_db_catalog / run_dataops_* / run_dataops_pack 等の entry を実行し、結果ファイルを表示
+
+App.xaml.cs
+- Single instance（Mutex + EventWaitHandle）
+- 既存インスタンスがある場合はアクティブ化要求を送って終了
+- フォールバックでプロセスを探して前面化
+- UnhandledException をログへ
+
+================================================================================
+10. UltraSync（計画・DRY提案・監査・完了報告）の統合
+================================================================================
+10.1 UltraSync v2 PLAN（2026-01-05）
+- OneBoxRoot: C:\Users\koji2\Desktop\VCG\01_作業（加工中）
+- 正常稼働確認:
+  - VAULT\VIBE_DASHBOARD.md: 存在
+  - CORE\VIBE_CTRL\scripts\update_dashboard.ps1: 存在
+  - APP\dist\OneScreenOSApp.exe: 存在
+  - LAUNCH_ONE_SCREEN_OS.cmd: %~dp0 使用で適切
+- 削除/退避対象:
+  - APP\**\obj（ビルド生成物）: 削除OK
+  - KB_SYNC__*（特に KB_SYNC__INBOX 357,679 files）: 退避/削除は危険。調査必要
+  - 文字化けフォルダ: 退避→削除
+- 実行フェーズ: DRY → DO → VERIFY
+  - デスクトップショートカット作成、起動セルフテスト作成
+  - cleanup_junk（_TRASH に退避、MANIFEST 生成）
+  - UI/UX改善（Dashboard/Settings/DataOps/Secrets/Providers）骨組み提示
+
+10.2 UltraSync v3 DRY Proposal（改訂版, 2026-01-05 22:10）
+- 原則: ゼロブレイク、KB_SYNC__INBOX 保護、文字化け対策、段階的実装
+- 完了済み（v2成果）:
+  - デスクトップショートカット＋セルフテスト
+  - 1.17GB ゴミ削除（_TRASH 退避）
+  - KB_SYNC__INBOX 保護（29.65GB/357k files）
+  - OneScreenOSApp.exe ビルド成功（約155.67MB）
+- UI課題（スクリーンショット分析）:
+  - P0: Settings 接続失敗ガイド不足、Dashboard PASS CHECK FAIL時対処UI弱い
+  - P1: 欠損ファイル表/テンプレ一括生成、DataOpsガイド/プレビュー弱い
+  - P2: Secrets/Providersの空状態ガイド、デザイン統一
+- 変更提案:
+  - Dashboard: 欠損ファイル表示強化、テンプレ作成ボタン
+  - Settings: LM Studio/Ollama の接続テスト + エラー診断 + 手順Expander
+  - DataOps: 結果プレビューのデフォルト展開 + サマリー表示
+  - Secrets: 空状態ガイド
+  …など（詳細はDRY提案書本文参照）
+
+10.3 監査/修正レポート（2026-01-06）
+- activate_window.ps1 の $PID 競合バグを特定し修正案提示（$TargetPid + Alias + Timeout延長）
+- SingleInstance不安定の原因候補（ビルド未反映/ショートカット不明）を指摘
+- 検証手順（Build / Doctor / Shortcut / SingleInstance / EventLog）を明文化
+- Resume Report / Completion Report で「P0テスト全PASS」「起動導線OK」「SingleInstance OK」「Window Activation OK」を報告
+
+10.4 KB_SYNC__INBOX の扱い（重要）
+- サイズ: 約29.65GB〜30.4GB、ファイル数: 357,679
+- 中身の主成分: .md と .json が大半、ONEBOX_*.zip なども含む
+- 方針: 自動削除しない。分析レポート生成のみ。手動レビュー後にアーカイブ戦略を決定。
+
+================================================================================
+11. RUNコマンド（.cmd）体系（抜粋）
+================================================================================
+- 00_START_HERE.cmd: 安全メニューへ誘導（RUN_START_MENU_SAFE.cmd）
+- RUN_0A_PREFLIGHT.cmd: scoped preflight check
+- RUN_0B_INGEST_UPLOADS.cmd: VAULT/07_INBOX/UPLOADS 取り込み（任意）
+- RUN_0C_OCR_QUEUE.cmd: VAULT/pdf_ocr_ready の OCRキュー処理（任意）
+- RUN_0_DOCTOR.cmd: doctor.ps1 実行（ログ/サマリ）
+- RUN_1_SPEC.cmd: spec生成（run_1_spec.ps1）
+- RUN_8_TRACE_PACK.cmd: デバッグ用TRACE pack（通常運用ではFocus Pack推奨）
+- RUN_START_MENU.cmd: 最小メニュー（STATUS/Latest evidence/VERIFY/FINAL AUDIT等）
+
+注記
+- registry/RUNS.json がKB参照元 CORE.zip に含まれていなかったため、環境側の CORE\VIBE_CTRL\registry\RUNS.json を必要に応じて追加取り込み。
+
+================================================================================
+12. P0/P1/P2 まとめタスク（ビルド→起動→改善）
+================================================================================
+P0（必ずやる）
+- InitializeComponent / x:Name 大量エラーの根因特定（最初のXAMLコンパイルエラーを直す）
+- ToggleSecondary追加＋ToggleInsightDetails差し替え（TargetType不一致対策）
+- build_publish.ps1 で Release publish 成功
+- 起動テスト: クラッシュ無しで5秒以上、主要画面遷移、Toggle動作
+
+P1（同時にやると後が楽）
+- System.Windows.Forms参照警告整理（csproj参照の一本化検証）
+- x:Name と C#参照の差分監査（存在しない参照を0に）
+- UI余白/整列の一貫性
+
+P2（任意）
+- Empty State 文言/導線改善
+- アクセシビリティ（Tab順/フォーカス可視化）
+- 簡易E2E（launch_selftest + 主要クリック）をdoctorに統合
+
+================================================================================
+13. Claude Code 用ワンショット指示（運用）
+================================================================================
+目的
+- Claude Code（または類似の自動修正エージェント）に、診断→修正→ビルド→起動テスト→レポート作成を1回で完了させる。
+
+要点
+- OneBoxRoot を固定: C:\Users\koji2\Desktop\VCG\01_作業（加工中）
+- 変更前バックアップ必須（_TRASH\UI_FIX__timestamp）
+- “最初のXAMLコンパイルエラー” を特定して根因から直す
+- ToggleSecondaryパッチを適用/維持
+- ビルド成功 + 5秒以上クラッシュ無し起動 + レポート作成（VAULT\06_LOGS\UI_FIX_REPORT__*.md）
+
+================================================================================
+14. UIスクリーンショット（存在情報）
+================================================================================
+- UI Screenshot 1〜6 が PDF に格納（03_UI_SCREENSHOTS.pdf）
+- これは UI/UX 改善計画・分析の根拠として参照されている。
+
+================================================================================
+15. 参照ソースのハッシュ（再現性のため）
+================================================================================
+- 03_UI_SCREENSHOTS.pdf : 577110f2a3a1d1cd779ffd57809462c9e1885ab8c3b004f0942b4150422c9172
+- APP.zip : 75d9f2102f38eb061194104de3b01a2879659d51851bc2e9e0a7889c86bb7c85
+- App.g.cs : c3be5039a0edd1ad36eca942eb8dc8fbda665f9c3b367c4e8d365b4945653015
+- App.xaml.cs : ff936ddb6a7f1e1eb80d153f1e375022a3dfa06e3f781b33466d53bda5ed4428
+- CORE.zip : 45e1c3ea86f032653533a1fe8c5a6d3238db6c574bce5bdf98a8498a51fdfbcd
+- MainWindow.g.cs : bcaffb479a012566a381bb0ecb7816b4ce9b908fab827fc17f4df1e0af74d728
+- MainWindow.xaml : ff3c02c21e28441e0b81a95a55c2e430c8e3bd62f25df9869ff8045787dbf339
+- MainWindow.xaml.cs : 3581ed8a6f1cb5d7c2c94b9a6611623c5f417093e440c97c2eac8ac1e39e2052
+- PROJECTS.zip : 1be6ba2f82a3b146cfb6eaf9a3b87aa32ca545f387db92c04338ba005668000d
+- VAULT.zip : edd5a4d42afdd11dceabbee8cff142849649e499a5a198a63bcd418ab5dd0b6f
+- _tools.zip : bde9691bc98b5791be98972fc7fcefa02b435913e071bfdd48c11591ff87a39b
+
+================================================================================
+16. 付録: どの情報がどの元ファイル由来か（マッピング）
+================================================================================
+- 00_INDEX（ナレッジ概要/読順/結論/最短手順）: 00_INDEX.md
+- OneBox構成・ビルド/起動: 01_PROJECT_OVERVIEW.md
+- XAMLをPowerShellで実行しない: 02_HOW_TO_RUN_APP.md
+- UIスクショ一覧: 03_UI_SCREENSHOTS.pdf
+- TargetType不一致クラッシュ根因: 04_ROOT_CAUSE_XAML_PARSE_EXCEPTION.md
+- 148エラー症状: 05_CURRENT_BUILD_FAILURE_148_ERRORS.md
+- InitializeComponent消失チェックリスト: 06_FIX_CHECKLIST_BUILD_WPF.md
+- ToggleSecondaryパッチ: 07_PATCH_TOGGLE_SECONDARY_STYLE.md
+- ToggleInsightDetails差し替え: 08_PATCH_TOGGLEINSIGHTDETAILS_REFERENCE.md
+- MainWindow.xaml（全文）: 09_CODE__MainWindow_xaml__FULL.md
+- App.xaml（全文）: 10_CODE__App_xaml__FULL.md
+- MainWindow.xaml.cs（全文）: 11_CODE__MainWindow_xaml_cs__FULL.md
+- App.xaml.cs（全文）: 12_CODE__App_xaml_cs__FULL.md
+- csproj（全文）: 13_CODE__OneScreenOSApp_csproj__FULL.md
+- build_publish.ps1（全文）: 14_SCRIPT__build_publish_ps1__FULL.md
+- selftest_launch_enhanced.ps1（全文）: 15_SCRIPT__selftest_launch_enhanced_ps1__FULL.md
+- doctor_activate.ps1（全文）: 16_SCRIPT__doctor_activate_ps1__FULL.md
+- UltraSync計画: 17_TOOLS__ULTRASYNC_PLAN__FULL.md
+- UltraSync DRY提案: 18_TOOLS__ULTRASYNC_DRY_PROPOSAL__FULL.md
+- KB_SYNC__INBOX analyzer: 19_TOOLS__kb_sync_inbox_analyzer_ps1__FULL.md
+- RUNコマンド一覧: 20_RUN_CMDS__FULL.md
+- ログ/レポート抜粋: 21_LOGS_AND_REPORTS_EXCERPTS.md
+- P0/P1/P2まとめ: 22_BACKLOG_P0_P1_P2.md
+- Claude Code ワンショット指示: 23_CLAUDE_CODE_ONE_SHOT_PROMPT.md
+- 参照ハッシュ: 24_APPENDIX_MANIFEST_HASHES.md
+
+（統合TXT ここまで）

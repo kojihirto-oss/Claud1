@@ -1,0 +1,3759 @@
+### USER
+VCG_KB_SINGLE_COMPLETE_20260108_124522.md"
+これを行いたいけど全然うまくいかない。
+
+
+### ASSISTANT
+<details type="reasoning" done="true" duration="29" view="" last_tool_call_name="">
+> 与えられたドキュメントは、VIBE One Screen OSというWPFアプリケーションのUI/UX改善に関する提案書です。ユーザーがアプリを使いやすくするための具体的な改善策が多く含まれています。
+> 
+> ドキュメントの内容を整理すると、以下のような問題点と改善策が提案されています：
+> 
+> 【問題点】
+> 1. アプリを開いたときに何を操作しているかが分かりにくい
+> 2. ボタンをクリックしたときに裏でどのような処理が行っているかが分からない
+> 3. 処理している間に違うボタンをクリックしてしまう
+> 4. 画面がぴくぴくしている（ちらつく）
+> 5. 機能的には完璧だが直感的に操作がまだできない
+> 6. 2回目クリックしたら起動前に落ちてしまう
+> 
+> 【改善策】
+> 1. 全画面Busyオーバーレイの実装（処理中は操作をブロック）
+> 2. ナビゲーション固定（処理中はView切り替え禁止）
+> 3. 「何が走っているか」を常時表示
+> 4. 実行中の「進捗メッセージ」を出す
+> 5. ファイルシステムウォッチャーの更新抑制（処理中は更新を止め、完了後に1回だけ反映）
+> 6. 二重起動の体感改善（Mutexによる単一起動）
+> 
+> これらの改善策を実装するための具体的なコード変更や、Claude Codeを使った実装手順が詳細に記述されています。
+> 
+> ユーザーは「これを行いたいけど全然うまくいかない」と述べているので、おそらくこれらの改善策の実装で何らかの問題が発生しているのでしょう。具体的にどの部分で問題が発生しているのかを特定し、解決策を提案する必要があります。
+</details>
+# VIBE One Screen OS UI/UX改善：完全実装ガイド
+
+提供されたドキュメントを分析し、VIBE One Screen OSアプリケーションのUI/UX問題を解決するための実践的なアプローチを提案します。ユーザーが直面している課題は、アプリの直感性、応答性、および安定性に関連するもので、具体的には処理中の状態表示、誤操作防止、画面ちらつき、起動問題などが含まれます。
+
+## 現状の問題分析
+
+ドキュメントから抽出された主な問題点は以下の通りです：
+
+- **状態の可視化不足**: ユーザーが「いま何が実行中か」が分かりにくい
+- **誤操作の発生**: 処理中に他のボタンをクリックできてしまう
+- **画面のちらつき**: ファイルシステムウォッチャーによる過剰なUI更新
+- **二重起動問題**: アプリが2回目のクリックで落ちるように見える
+- **直感的でない操作**: ユーザーが次に何をすべきか迷ってしまう
+
+これらの問題を解決するため、ドキュメントで提案されている「UltraSync」アプローチに基づいた実装計画を立てます。
+
+## UI/UX改善の基本原則
+
+ドキュメントで強調されているUX原則を実装の指針とします：
+
+1. **Visibility of System Status**: 常に現在の状態を表示する
+2. **Error Prevention**: 誤操作を物理的に防ぐ
+3. **Recognition over Recall**: 探させない、思い出させない設計
+4. **Progressive Disclosure**: 初心者と熟練者向けの情報を段階的に表示
+5. **Consistency and Standards**: 一貫したUIパターンを適用
+
+## 実装計画
+
+以下に、ドキュメントで提案されている改善策を段階的に実装するための計画を示します。
+
+### Phase 1: 基本的な状態管理と誤操作防止（P0）
+
+最優先で実装すべきは、ユーザーが「いま何が起こっているか」を理解し、誤操作を防ぐための仕組みです。
+
+#### 1.1 BusyOverlayの実装
+
+処理中は画面全体を覆うオーバーレイを表示し、ユーザーの操作をブロックします。
+
+```xaml
+<!-- MainWindow.xaml -->
+<Grid>
+    <!-- 既存のコンテンツ -->
+    <ContentControl Content="{Binding CurrentView}" />
+    
+    <!-- Busy Overlay -->
+    <Grid x:Name="BusyOverlay" Visibility="Collapsed" 
+          Background="#80000000" IsHitTestVisible="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <ProgressBar IsIndeterminate="True" Height="20" Width="200" Margin="0,0,0,10"/>
+            <TextBlock x:Name="BusyTitle" Text="処理中..." FontSize="16" 
+                       HorizontalAlignment="Center" Margin="0,0,0,5"/>
+            <TextBlock x:Name="BusyDetail" Text="準備しています..." FontSize="14" 
+                       HorizontalAlignment="Center" Margin="0,0,0,5"/>
+            <TextBlock x:Name="BusyProgress" Text="" FontSize="12" 
+                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            <Button x:Name="CancelButton" Content="キャンセル" 
+                    Click="CancelButton_Click" Visibility="Collapsed"/>
+        </StackPanel>
+    </Grid>
+</Grid>
+```
+
+```csharp
+// MainWindow.xaml.cs
+private bool _isExecuting = false;
+private CancellationTokenSource _cancellationTokenSource;
+
+private void SetBusyState(bool isBusy, string title = "", string detail = "", string progress = "", bool canCancel = false)
+{
+    _isExecuting = isBusy;
+    
+    if (isBusy)
+    {
+        BusyOverlay.Visibility = Visibility.Visible;
+        BusyTitle.Text = title;
+        BusyDetail.Text = detail;
+        BusyProgress.Text = progress;
+        CancelButton.Visibility = canCancel ? Visibility.Visible : Visibility.Collapsed;
+        Mouse.OverrideCursor = Cursors.Wait;
+        
+        // ナビゲーションアイテムを無効化
+        DisableNavigationItems(true);
+    }
+    else
+    {
+        BusyOverlay.Visibility = Visibility.Collapsed;
+        Mouse.OverrideCursor = null;
+        
+        // ナビゲーションアイテムを有効化
+        DisableNavigationItems(false);
+    }
+}
+
+private void DisableNavigationItems(bool disable)
+{
+    // ナビゲーションボタンや主要操作ボタンのIsEnabledを設定
+    DashboardNavButton.IsEnabled = !disable;
+    DataOpsNavButton.IsEnabled = !disable;
+    SecretsNavButton.IsEnabled = !disable;
+    ProvidersNavButton.IsEnabled = !disable;
+    SettingsNavButton.IsEnabled = !disable;
+    
+    // その他の操作ボタンも無効化
+    UpdateDashboardButton.IsEnabled = !disable;
+    VerifyButton.IsEnabled = !disable;
+    ReleaseButton.IsEnabled = !disable;
+    // ... その他のボタン
+}
+
+private void CancelButton_Click(object sender, RoutedEventArgs e)
+{
+    _cancellationTokenSource?.Cancel();
+}
+```
+
+#### 1.2 OperationGateによる多重実行防止
+
+`SemaphoreSlim`を使用して、同時に複数の操作が実行されるのを防ぎます。
+
+```csharp
+// OperationGate.cs
+public class OperationGate
+{
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+    
+    public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            return await operation();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+    
+    public async Task ExecuteAsync(Func<Task> operation)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            await operation();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+}
+
+// MainWindow.xaml.cs
+private readonly OperationGate _operationGate = new OperationGate();
+
+private async Task RunOperationAsync(string operationName, Func<Task> operation, bool canCancel = false)
+{
+    if (_isExecuting)
+    {
+        ShowNotification("処理中です。完了までお待ちください。");
+        return;
+    }
+    
+    SetBusyState(true, $"{operationName}を実行中...", "準備しています...", "", canCancel);
+    
+    _cancellationTokenSource = new CancellationTokenSource();
+    
+    try
+    {
+        await _operationGate.ExecuteAsync(async () =>
+        {
+            // 進捗報告用のProgress<T>を作成
+            var progress = new Progress<string>(message =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    BusyProgress.Text = message;
+                });
+            });
+            
+            // 操作を実行
+            await operation();
+        });
+        
+        SetBusyState(false);
+        ShowNotification($"{operationName}が完了しました。");
+    }
+    catch (OperationCanceledException)
+    {
+        SetBusyState(false);
+        ShowNotification($"{operationName}がキャンセルされました。");
+    }
+    catch (Exception ex)
+    {
+        SetBusyState(false);
+        ShowNotification($"{operationName}中にエラーが発生しました: {ex.Message}");
+    }
+}
+```
+
+#### 1.3 各操作の実装
+
+既存の操作メソッドを`RunOperationAsync`を使うように修正します。
+
+```csharp
+// MainWindow.xaml.cs
+private async void UpdateDashboardButton_Click(object sender, RoutedEventArgs e)
+{
+    await RunOperationAsync("ダッシュボード更新", async () =>
+    {
+        await UpdateDashboardAsync();
+    });
+}
+
+private async void VerifyButton_Click(object sender, RoutedEventArgs e)
+{
+    await RunOperationAsync("検証", async () =>
+    {
+        await RunVerifyAsync();
+    }, true); // キャンセル可能
+}
+
+private async void ReleaseButton_Click(object sender, RoutedEventArgs e)
+{
+    // リリース前の検証チェック
+    if (!IsLastVerifySuccessful)
+    {
+        ShowNotification("リリースするにはまず検証を完了させる必要があります。");
+        return;
+    }
+    
+    await RunOperationAsync("リリース", async () =>
+    {
+        await RunReleaseAsync();
+    });
+}
+
+// その他の操作メソッドも同様に修正
+```
+
+### Phase 2: 画面ちらつきの防止（P1）
+
+ファイルシステムウォッチャーによる過剰なUI更新を制御します。
+
+#### 2.1 FileSystemWatcherイベントのデバウンス
+
+```csharp
+// MainWindow.xaml.cs
+private readonly object _refreshLock = new object();
+private DateTime _lastRefreshTime = DateTime.MinValue;
+private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(500);
+private bool _isRefreshing = false;
+private bool _pendingRefresh = false;
+
+private void OnFileChanged(object sender, FileSystemEventArgs e)
+{
+    lock (_refreshLock)
+    {
+        var now = DateTime.Now;
+        if (now - _lastRefreshTime < _debounceInterval)
+        {
+            // 前回の更新から間隔が短すぎる場合は、保留フラグを立てるだけ
+            _pendingRefresh = true;
+            return;
+        }
+        
+        _lastRefreshTime = now;
+    }
+    
+    // UI更新をディスパッチャー経由で実行
+    Dispatcher.InvokeAsync(async () =>
+    {
+        if (_isExecuting)
+        {
+            // 実行中は更新を保留
+            _pendingRefresh = true;
+            return;
+        }
+        
+        await RefreshAllAsync();
+    });
+}
+
+private async Task RefreshAllAsync()
+{
+    if (_isRefreshing)
+        return;
+    
+    _isRefreshing = true;
+    
+    try
+    {
+        // UI更新処理
+        await UpdateDashboardContentAsync();
+        await UpdateDataOpsContentAsync();
+        // ... その他の更新処理
+    }
+    finally
+    {
+        _isRefreshing = false;
+        
+        // 保留中の更新があれば実行
+        if (_pendingRefresh)
+        {
+            _pendingRefresh = false;
+            await RefreshAllAsync();
+        }
+    }
+}
+```
+
+#### 2.2 実行中の更新抑制
+
+操作実行中はファイルシステムウォッチャーによる更新を一時停止します。
+
+```csharp
+// MainWindow.xaml.cs
+private async Task RunOperationAsync(string operationName, Func<Task> operation, bool canCancel = false)
+{
+    if (_isExecuting)
+    {
+        ShowNotification("処理中です。完了までお待ちください。");
+        return;
+    }
+    
+    SetBusyState(true, $"{operationName}を実行中...", "準備しています...", "", canCancel);
+    
+    // ファイルシステムウォッチャーを一時停止
+    var watcherEnabled = FileSystemWatcher.Enabled;
+    if (watcherEnabled)
+        FileSystemWatcher.EnableRaisingEvents = false;
+    
+    _cancellationTokenSource = new CancellationTokenSource();
+    
+    try
+    {
+        await _operationGate.ExecuteAsync(async () =>
+        {
+            var progress = new Progress<string>(message =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    BusyProgress.Text = message;
+                });
+            });
+            
+            await operation();
+        });
+        
+        SetBusyState(false);
+        ShowNotification($"{operationName}が完了しました。");
+        
+        // 操作完了後に保留中の更新があれば実行
+        if (_pendingRefresh)
+        {
+            _pendingRefresh = false;
+            await RefreshAllAsync();
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        SetBusyState(false);
+        ShowNotification($"{operationName}がキャンセルされました。");
+    }
+    catch (Exception ex)
+    {
+        SetBusyState(false);
+        ShowNotification($"{operationName}中にエラーが発生しました: {ex.Message}");
+    }
+    finally
+    {
+        // ファイルシステムウォッチャーを再開
+        if (watcherEnabled)
+            FileSystemWatcher.EnableRaisingEvents = true;
+    }
+}
+```
+
+### Phase 3: 二重起動防止（P0）
+
+アプリケーションの二重起動を防ぎ、既存のウィンドウを前面に表示します。
+
+```csharp
+// App.xaml.cs
+public partial class App : Application
+{
+    private const string MutexName = "Global\\VIBE_OneScreenOSApp_SingleInstance";
+    private const string EventName = "Global\\VIBE_OneScreenOSApp_ActivateEvent";
+    private Mutex _mutex;
+    private EventWaitHandle _eventWaitHandle;
+    
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        // 二重起動チェック
+        if (IsSingleInstance())
+        {
+            // 既存のインスタンスをアクティブ化
+            ActivateExistingInstance();
+            Shutdown();
+            return;
+        }
+        
+        // 通常の起動処理
+        _mutex = new Mutex(true, MutexName);
+        _eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventName);
+        
+        base.OnStartup(e);
+        
+        // イベントリスナーを開始
+        Task.Run(() =>
+        {
+            while (_eventWaitHandle.WaitOne())
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var mainWindow = MainWindow;
+                    if (mainWindow != null && mainWindow.WindowState == WindowState.Minimized)
+                    {
+                        mainWindow.WindowState = WindowState.Normal;
+                    }
+                    mainWindow.Activate();
+                    mainWindow.Topmost = true;
+                    mainWindow.Topmost = false;
+                    mainWindow.Focus();
+                });
+            }
+        });
+    }
+    
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _mutex?.ReleaseMutex();
+        _eventWaitHandle?.Set();
+        base.OnExit(e);
+    }
+    
+    private bool IsSingleInstance()
+    {
+        try
+        {
+            return Mutex.TryOpenExisting(MutexName, out _);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    private void ActivateExistingInstance()
+    {
+        try
+        {
+            using (var eventHandle = EventWaitHandle.OpenExisting(EventName))
+            {
+                eventHandle.Set();
+            }
+        }
+        catch
+        {
+            // イベントが存在しない場合は何もしない
+        }
+    }
+}
+```
+
+### Phase 4: ユーザーガイドの改善（P1）
+
+初心者でも使いやすいように、セットアップチェックリストと操作ガイドを追加します。
+
+#### 4.1 セットアップチェックリスト
+
+```xaml
+<!-- MainWindow.xaml -->
+<StackPanel x:Name="SetupChecklist" Margin="10">
+    <TextBlock Text="セットアップチェックリスト" FontSize="16" FontWeight="Bold" Margin="0,0,0,5"/>
+    
+    <CheckBox x:Name="ProvidersSetupCheck" Content="プロバイダー設定" IsChecked="{Binding IsProvidersSetupComplete}" 
+              IsEnabled="False" Margin="0,2"/>
+    <Button x:Name="FixProvidersButton" Content="設定" Click="FixProvidersButton_Click" 
+            Visibility="{Binding IsProvidersSetupComplete, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}" 
+            Margin="20,0,0,5"/>
+    
+    <CheckBox x:Name="SecretsSetupCheck" Content="シークレット設定" IsChecked="{Binding IsSecretsSetupComplete}" 
+              IsEnabled="False" Margin="0,2"/>
+    <Button x:Name="FixSecretsButton" Content="設定" Click="FixSecretsButton_Click" 
+            Visibility="{Binding IsSecretsSetupComplete, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}" 
+            Margin="20,0,0,5"/>
+    
+    <CheckBox x:Name="SettingsSetupCheck" Content="基本設定" IsChecked="{Binding IsSettingsSetupComplete}" 
+              IsEnabled="False" Margin="0,2"/>
+    <Button x:Name="FixSettingsButton" Content="設定" Click="FixSettingsButton_Click" 
+            Visibility="{Binding IsSettingsSetupComplete, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}" 
+            Margin="20,0,0,5"/>
+    
+    <Separator Margin="0,10"/>
+    
+    <TextBlock Text="次のアクション" FontSize="16" FontWeight="Bold" Margin="0,0,0,5"/>
+    <Button x:Name="NextActionButton" Content="次へ" Click="NextActionButton_Click" 
+            FontWeight="Bold" Padding="20,5"/>
+</StackPanel>
+```
+
+```csharp
+// MainWindow.xaml.cs
+public bool IsProvidersSetupComplete
+{
+    get { return (bool)GetValue(IsProvidersSetupCompleteProperty); }
+    set { SetValue(IsProvidersSetupCompleteProperty, value); }
+}
+
+public static readonly DependencyProperty IsProvidersSetupCompleteProperty =
+    DependencyProperty.Register("IsProvidersSetupComplete", typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
+
+// 同様にIsSecretsSetupCompleteとIsSettingsSetupCompleteも定義
+
+private void FixProvidersButton_Click(object sender, RoutedEventArgs e)
+{
+    // プロバイダー設定画面に遷移
+    MainNavigation.SelectedItem = ProvidersNavButton;
+}
+
+private void FixSecretsButton_Click(object sender, RoutedEventArgs e)
+{
+    // シークレット設定画面に遷移
+    MainNavigation.SelectedItem = SecretsNavButton;
+}
+
+private void FixSettingsButton_Click(object sender, RoutedEventArgs e)
+{
+    // 設定画面に遷移
+    MainNavigation.SelectedItem = SettingsNavButton;
+}
+
+private void NextActionButton_Click(object sender, RoutedEventArgs e)
+{
+    // 現在の状態に基づいて次のアクションを決定
+    if (!IsProvidersSetupComplete)
+    {
+        MainNavigation.SelectedItem = ProvidersNavButton;
+    }
+    else if (!IsSecretsSetupComplete)
+    {
+        MainNavigation.SelectedItem = SecretsNavButton;
+    }
+    else if (!IsSettingsSetupComplete)
+    {
+        MainNavigation.SelectedItem = SettingsNavButton;
+    }
+    else
+    {
+        // すべてのセットアップが完了している場合、次の操作（例：検証）を実行
+        VerifyButton_Click(null, null);
+    }
+}
+```
+
+#### 4.2 初心者モードとプロモードの切り替え
+
+```xaml
+<!-- MainWindow.xaml -->
+<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+    <TextBlock Text="表示モード:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+    <ComboBox x:Name="ModeComboBox" SelectionChanged="ModeComboBox_SelectionChanged">
+        <ComboBoxItem Tag="Beginner">初心者</ComboBoxItem>
+        <ComboBoxItem Tag="Pro" IsSelected="True">プロ</ComboBoxItem>
+    </ComboBox>
+</StackPanel>
+
+<!-- コンテンツエリア -->
+<ContentControl Content="{Binding CurrentView}">
+
+<!-- 初心者モード用の簡略化されたビュー -->
+<UserControl x:Class="VIBE.OneScreenOS.BeginnerDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Text="ダッシュボード" FontSize="24" FontWeight="Bold" Margin="10"/>
+        
+        <!-- セットアップチェックリスト -->
+        <ContentControl Content="{Binding SetupChecklist}" Margin="10"/>
+        
+        <!-- 次のアクション -->
+        <Button x:Name="AutoNextButton" Content="次へ" Command="{Binding AutoNextCommand}" 
+                FontWeight="Bold" FontSize="16" Padding="20,10" Margin="10" HorizontalAlignment="Center"/>
+        
+        <!-- 簡略化された状態表示 -->
+        <Expander Header="詳細状態" Margin="10">
+            <TextBlock Text="{Binding DashboardSummary}" TextWrapping="Wrap" Margin="5"/>
+        </Expander>
+    </StackPanel>
+</UserControl>
+```
+
+```csharp
+// MainWindow.xaml.cs
+private void ModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+{
+    var selectedItem = ModeComboBox.SelectedItem as ComboBoxItem;
+    if (selectedItem != null)
+    {
+        var mode = selectedItem.Tag as string;
+        UpdateViewMode(mode);
+    }
+}
+
+private void UpdateViewMode(string mode)
+{
+    if (mode == "Beginner")
+    {
+        // 初心者モード用のビューを表示
+        CurrentView = new BeginnerDashboardView { DataContext = this };
+    }
+    else
+    {
+        // プロモード用のビューを表示（通常のビュー）
+        CurrentView = new DashboardView { DataContext = this };
+    }
+}
+```
+
+### Phase 5: コマンドパレットの実装（P2）
+
+熟練者向けに、キーボードショートカットで操作を実行できるコマンドパレットを実装します。
+
+```xaml
+<!-- CommandPalette.xaml -->
+<Window x:Class="VIBE.OneScreenOS.CommandPalette"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="コマンドパレット" Height="300" Width="500" 
+        WindowStyle="None" ResizeMode="NoResize" Topmost="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <TextBox x:Name="SearchTextBox" Grid.Row="0" Margin="10" 
+                 TextChanged="SearchTextBox_TextChanged" 
+                 KeyDown="SearchTextBox_KeyDown"/>
+        
+        <ListBox x:Name="CommandsListBox" Grid.Row="1" Margin="10" 
+                 SelectionChanged="CommandsListBox_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding Description}" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Shortcut}" Margin="10,0,0,0" Foreground="Blue" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Window>
+```
+
+```csharp
+// CommandPalette.xaml.cs
+public partial class CommandPalette : Window
+{
+    public class CommandItem
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string Shortcut { get; set; }
+        public Action Action { get; set; }
+    }
+    
+    private readonly List<CommandItem> _allCommands = new List<CommandItem>();
+    
+    public CommandPalette(MainWindow mainWindow)
+    {
+        InitializeComponent();
+        
+        // コマンドを登録
+        _allCommands.Add(new CommandItem
+        {
+            Name = "ダッシュボード更新",
+            Description = "ダッシュボードを更新します",
+            Shortcut = "Ctrl+U",
+            Action = () => mainWindow.UpdateDashboardButton_Click(null, null)
+        });
+        
+        _allCommands.Add(new CommandItem
+        {
+            Name = "検証",
+            Description = "プロジェクトを検証します",
+            Shortcut = "Ctrl+Shift+V",
+            Action = () => mainWindow.VerifyButton_Click(null, null)
+        });
+        
+        _allCommands.Add(new CommandItem
+        {
+            Name = "リリース",
+            Description = "プロジェクトをリリースします",
+            Shortcut = "Ctrl+Shift+R",
+            Action = () => mainWindow.ReleaseButton_Click(null, null)
+        });
+        
+        // ... その他のコマンド
+        
+        CommandsListBox.ItemsSource = _allCommands;
+        SearchTextBox.Focus();
+    }
+    
+    private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var searchText = SearchTextBox.Text.ToLower();
+        var filteredCommands = _allCommands
+            .Where(cmd => cmd.Name.ToLower().Contains(searchText) || 
+                          cmd.Description.ToLower().Contains(searchText) ||
+                          cmd.Shortcut.ToLower().Contains(searchText))
+            .ToList();
+        
+        CommandsListBox.ItemsSource = filteredCommands;
+    }
+    
+    private void CommandsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CommandsListBox.SelectedItem is CommandItem selectedCommand)
+        {
+            selectedCommand.Action?.Invoke();
+            Close();
+        }
+    }
+    
+    private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Down && CommandsListBox.Items.Count > 0)
+        {
+            CommandsListBox.SelectedIndex = 0;
+            CommandsListBox.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            Close();
+        }
+    }
+}
+
+// MainWindow.xaml.cs
+private CommandPalette _commandPalette;
+
+protected override void OnKeyDown(KeyEventArgs e)
+{
+    base.OnKeyDown(e);
+    
+    if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+    {
+        // Ctrl+Kでコマンドパレットを開く
+        if (_commandPalette == null || !_commandPalette.IsVisible)
+        {
+            _commandPalette = new CommandPalette(this);
+            _commandPalette.Closed += (s, args) => _commandPalette = null;
+            _commandPalette.Show();
+        }
+    }
+}
+```
+
+### Phase 6: エラーメッセージの改善（P1）
+
+エラー発生時に、ユーザーが問題を理解し、次のアクションを取れるようなメッセージを表示します。
+
+```csharp
+// MainWindow.xaml.cs
+private void ShowError(string title, string message, string details = null, Action recoveryAction = null)
+{
+    var errorMessage = $"{title}\n\n{message}";
+    
+    if (!string.IsNullOrEmpty(details))
+    {
+        errorMessage += $"\n\n詳細:\n{details}";
+    }
+    
+    var result = MessageBox.Show(errorMessage, "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+    
+    recoveryAction?.Invoke();
+}
+
+private void ShowNotification(string message)
+{
+    // 画面内に通知を表示（トースト通知）
+    var notification = new NotificationWindow(message);
+    notification.Show();
+}
+
+// NotificationWindow.xaml
+<Window x:Class="VIBE.OneScreenOS.NotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Notification" Height="80" Width="300" 
+        WindowStyle="None" ResizeMode="NoResize" Topmost="True" 
+        AllowsTransparency="True" Background="Transparent">
+    <Border Background="#333" CornerRadius="5" Margin="10">
+        <TextBlock Text="{Binding Message}" Foreground="White" 
+                   HorizontalAlignment="Center" VerticalAlignment="Center" 
+                   Margin="10" TextWrapping="Wrap"/>
+    </Border>
+</Window>
+
+// NotificationWindow.xaml.cs
+public partial class NotificationWindow : Window
+{
+    public string Message
+    {
+        get { return (string)GetValue(MessageProperty); }
+        set { SetValue(MessageProperty, value); }
+    }
+    
+    public static readonly DependencyProperty MessageProperty =
+        DependencyProperty.Register("Message", typeof(string), typeof(NotificationWindow));
+    
+    public NotificationWindow(string message)
+    {
+        InitializeComponent();
+        Message = message;
+        
+        // 画面の右下に表示
+        var workingArea = SystemParameters.WorkArea;
+        Left = workingArea.Right - Width - 20;
+        Top = workingArea.Bottom - Height - 20;
+        
+        // 3秒後に自動で閉じる
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        timer.Tick += (s, e) =>
+        {
+            timer.Stop();
+            Close();
+        };
+        timer.Start();
+    }
+}
+```
+
+## 実装の検証
+
+上記の改善を実装した後、以下のテストを実施して問題が解決されたことを確認します。
+
+### 検証チェックリスト
+
+1. **起動テスト**
+   - [ ] アプリを起動できること
+   - [ ] 二重起動しようとした場合、既存のウィンドウが前面に表示されること
+   - [ ] 起動直後にクラッシュしないこと
+
+2. **操作中の状態表示**
+   - [ ] ダッシュボード更新中にBusyオーバーレイが表示されること
+   - [ ] 検証中に進捗メッセージが表示されること
+   - [ ] 処理中に他のボタンが無効化されること
+
+3. **画面ちらつき防止**
+   - [ ] ファイルシステムウォッチャーによる更新がデバウンスされること
+   - [ ] 処理中はUI更新が保留されること
+   - [ ] 処理完了後に保留されていた更新が一度だけ反映されること
+
+4. **誤操作防止**
+   - [ ] 処理中に他の操作ボタンをクリックできないこと
+   - [ ] キャンセルボタンが正しく機能すること
+   - [ ] 処理完了後にボタンが再有効化されること
+
+5. **ユーザーガイド**
+   - [ ] セットアップチェックリストが正しく表示されること
+   - [ ] 初心者モードとプロモードの切り替えができること
+   - [ ] コマンドパレット（Ctrl+K）が開き、コマンドを実行できること
+
+6. **エラーメッセージ**
+   - [ ] エラー発生時に適切なメッセージが表示されること
+   - [ ] 通知が画面内に表示されること
+   - [ ] エラーからの復旧手順が提示されること
+
+## まとめ
+
+VIBE One Screen OSのUI/UX改善は、以下の主要な変更によって実現できます：
+
+1. **状態の可視化**: Busyオーバーレイと進捗メッセージの表示
+2. **誤操作防止**: OperationGateによる多重実行防止と処理中のUIブロック
+3. **画面ちらつき防止**: ファイルシステムウォッチャーのデバウンスと処理中の更新抑制
+4. **二重起動防止**: Mutexによる単一起動制御
+5. **ユーザーガイド**: セットアップチェックリストと初心者/プロモードの切り替え
+6. **効率化**: コマンドパレットによるキーボード操作のサポート
+7. **エラーハンドリング**: わかりやすいエラーメッセージと通知システム
+
+これらの改善により、ユーザーは「いま何が起こっているか」を明確に理解でき、誤操作を防ぎ、より直感的にアプリケーションを操作できるようになります。ドキュメントで提案されている「UltraSync」アプローチに基づいたこれらの変更は、アプリケーションの使いやすさを大幅に向上させるでしょう。
+
+### USER
+アプリケーションの課題もそうだけどアプリ内のバイブコーディング運用についても課題があると思う。
+最高峰で最先端な大規模なコーディング開発をできる状態にないと思う。
+
+### ASSISTANT
+<details type="reasoning" done="true" duration="20" view="" last_tool_call_name="">
+> アプリ内のバイブコーディング運用にも課題があるとのこと。具体的には、最高峰で最先端な大規模コーディング開発ができる状態にない、というご指摘ですね。提供されたドキュメントには、VIBE（Vibe-Driven Development）という開発手法に関する詳細な記述があり、それを基にアプリケーション内での大規模コーディング開発をサポートする仕組みを提案します。
+> 
+> ドキュメントから読み取れるVIBEの主な要素：
+> - OneBox（フォルダ運用）
+> - PIvE（Plan-Implement-Verify-Evidence）サイクル
+> - Gates（VERIFY/FINAL AUDIT）
+> - Evidence（VAULTに証拠を残す）
+> - Safety（文字化け・多重実行・Watcher暴走防止）
+> - Scale（ワンショット丸投げ禁止、1カード=1パッチ）
+> 
+> 現在のアプリケーションでは、これらの要素が完全には統合されていない可能性があります。特に、ドキュメント内で言及されている「VIBE KANBAN」や「VIBE DASHBOARD」がアプリ内で適切に表示・操作できるようになっていないと、大規模開発の効率が落ちます。
+> 
+> 改善案としては、以下の点が考えられます：
+> 
+> 1. **VIBE KANBANの統合**: アプリ内でVIBE KANBANを直接表示・編集できるようにする
+> 2. **自動化されたPIvEサイクル**: Plan（カード作成）→Implement（実装）→Verify（検証）→Evidence（証拠保存）をアプリ内でシームレスに行えるようにする
+> 3. **Gatesの自動化**: VERIFYやFINAL AUDITをアプリ内で実行し、結果をダッシュボードに反映させる
+> 4. **Evidence管理**: VAULT内のファイルをアプリ内でプレビュー・管理できるようにする
+> 5. **コラボレーション機能**: 複数のAIエージェントや開発者が協調して作業できる仕組み
+> 
+> 具体的な実装方針としては、以下のようになります：
+> 
+> - VIBE KANBAN用のカスタムコントロールを作成
+> - カード（タスク）の作成・編集・状態遷移機能を実装
+> - Gates（VERIFY/FINAL AUDIT）の実行と結果表示機能
+> - Evidence（ファイル）のプレビュー機能
+> - AIエージェントとの連携インターフェース
+> 
+> これにより、アプリケーション内で完結した大規模コーディング開発が可能になります。
+</details>
+# VIBE One Screen OS：大規模コーディング開発プラットフォームへの進化
+
+提供されたドキュメントを分析し、VIBE One Screen OSアプリケーションを単なるUI改善だけでなく、真の「大規模コーディング開発プラットフォーム」へと進化させるための包括的なソリューションを提案します。現在のアプリケーションには、VIBE（Vibe-Driven Development）の理念を完全に実装するための重要な要素が欠落している可能性があります。
+
+## 現状の課題分析
+
+ドキュメントから読み取れる、大規模コーディング開発プラットフォームとしての課題：
+
+1. **VIBE KANBANとの統合不足**: アプリ内でVIBE KANBANを直接操作できない
+2. **PIvEサイクルの不完全性**: Plan-Implement-Verify-Evidenceのサイクルがアプリ内で完結していない
+3. **Gatesの自動化不足**: VERIFYやFINAL AUDITが手動で行われている
+4. **Evidence管理の非効率性**: VAULT内のファイルをアプリ内で適切に管理・プレビューできない
+5. **AIエージェント連携の欠如**: 複数のAIエージェントとの協調作業がサポートされていない
+6. **スケーラビリティの欠如**: ワンショット丸投げを防ぐ仕組みが不十分
+
+## VIBE開発プラットフォームの設計原則
+
+ドキュメントで定義されているVIBEの原則を、アプリケーション内で完全に実現するための設計方針を示します。
+
+### 1. OneBox統合
+
+```csharp
+// OneBoxManager.cs
+public class OneBoxManager
+{
+    private string _oneBoxRoot;
+    private string _vaultPath;
+    private string _projectsPath;
+    private string _scriptsPath;
+    
+    public OneBoxManager(string oneBoxRoot)
+    {
+        _oneBoxRoot = oneBoxRoot;
+        _vaultPath = Path.Combine(oneBoxRoot, "VAULT");
+        _projectsPath = Path.Combine(oneBoxRoot, "PROJECTS");
+        _scriptsPath = Path.Combine(oneBoxRoot, "CORE", "VIBE_CTRL", "scripts");
+    }
+    
+    public string GetVaultPath() => _vaultPath;
+    public string GetProjectsPath() => _projectsPath;
+    public string GetScriptsPath() => _scriptsPath;
+    
+    public bool ValidateOneBoxStructure()
+    {
+        return Directory.Exists(_vaultPath) && 
+               Directory.Exists(_projectsPath) && 
+               Directory.Exists(_scriptsPath);
+    }
+    
+    public async Task<VibeDashboard> LoadVibeDashboardAsync()
+    {
+        var dashboardPath = Path.Combine(_vaultPath, "VIBE_DASHBOARD.md");
+        if (!File.Exists(dashboardPath))
+            throw new FileNotFoundException("VIBE_DASHBOARD.md not found");
+        
+        var content = await File.ReadAllTextAsync(dashboardPath);
+        return VibeDashboardParser.Parse(content);
+    }
+    
+    public async Task SaveVibeDashboardAsync(VibeDashboard dashboard)
+    {
+        var dashboardPath = Path.Combine(_vaultPath, "VIBE_DASHBOARD.md");
+        var content = VibeDashboardGenerator.Generate(dashboard);
+        await File.WriteAllTextAsync(dashboardPath, content);
+    }
+}
+```
+
+### 2. PIvEサイクルの実装
+
+```csharp
+// PiveCycleManager.cs
+public class PiveCycleManager
+{
+    private readonly OneBoxManager _oneBoxManager;
+    private readonly VibeKanbanManager _kanbanManager;
+    private readonly GateManager _gateManager;
+    
+    public PiveCycleManager(OneBoxManager oneBoxManager, 
+                           VibeKanbanManager kanbanManager,
+                           GateManager gateManager)
+    {
+        _oneBoxManager = oneBoxManager;
+        _kanbanManager = kanbanManager;
+        _gateManager = gateManager;
+    }
+    
+    public async Task<VibeCard> CreatePlanCardAsync(string title, string description, string category)
+    {
+        var card = new VibeCard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = title,
+            Description = description,
+            Category = category,
+            Status = VibeCardStatus.Planned,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+        
+        await _kanbanManager.AddCardAsync(card);
+        return card;
+    }
+    
+    public async Task ImplementCardAsync(string cardId, Func<Task> implementation)
+    {
+        var card = await _kanbanManager.GetCardAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Card {cardId} not found");
+            
+        card.Status = VibeCardStatus.InProgress;
+        card.UpdatedAt = DateTime.Now;
+        await _kanbanManager.UpdateCardAsync(card);
+        
+        try
+        {
+            await implementation();
+            
+            card.Status = VibeCardStatus.Verify;
+            card.UpdatedAt = DateTime.Now;
+            await _kanbanManager.UpdateCardAsync(card);
+        }
+        catch (Exception ex)
+        {
+            card.Status = VibeCardStatus.Failed;
+            card.Error = ex.Message;
+            card.UpdatedAt = DateTime.Now;
+            await _kanbanManager.UpdateCardAsync(card);
+            throw;
+        }
+    }
+    
+    public async Task<bool> VerifyCardAsync(string cardId)
+    {
+        var card = await _kanbanManager.GetCardAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Card {cardId} not found");
+            
+        var verifyResult = await _gateManager.RunVerifyGateAsync(cardId);
+        
+        if (verifyResult.Success)
+        {
+            card.Status = VibeCardStatus.Evidence;
+            card.VerifyResult = verifyResult;
+            card.UpdatedAt = DateTime.Now;
+            await _kanbanManager.UpdateCardAsync(card);
+            return true;
+        }
+        else
+        {
+            card.Status = VibeCardStatus.NeedsFix;
+            card.VerifyResult = verifyResult;
+            card.UpdatedAt = DateTime.Now;
+            await _kanbanManager.UpdateCardAsync(card);
+            return false;
+        }
+    }
+    
+    public async Task EvidenceCardAsync(string cardId, List<string> evidenceFiles)
+    {
+        var card = await _kanbanManager.GetCardAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Card {cardId} not found");
+            
+        card.Status = VibeCardStatus.Done;
+        card.EvidenceFiles = evidenceFiles;
+        card.UpdatedAt = DateTime.Now;
+        await _kanbanManager.UpdateCardAsync(card);
+        
+        // VIBE_DASHBOARD.mdを更新
+        await UpdateVibeDashboardAsync();
+    }
+    
+    private async Task UpdateVibeDashboardAsync()
+    {
+        var dashboard = await _oneBoxManager.LoadVibeDashboardAsync();
+        var cards = await _kanbanManager.GetAllCardsAsync();
+        
+        // ダッシュボード情報を更新
+        dashboard.UpdateCards(cards);
+        
+        await _oneBoxManager.SaveVibeDashboardAsync(dashboard);
+    }
+}
+```
+
+### 3. VIBE KANBANの統合
+
+```xaml
+<!-- VibeKanbanView.xaml -->
+<UserControl x:Class="VIBE.OneScreenOS.Views.VibeKanbanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:VIBE.OneScreenOS.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style x:Key="KanbanColumnStyle" TargetType="ItemsControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ItemsControl">
+                        <Border Background="#F5F5F5" Margin="5" CornerRadius="5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                
+                                <TextBlock Text="{TemplateBinding Tag}" 
+                                           FontSize="16" FontWeight="Bold" 
+                                           HorizontalAlignment="Center" 
+                                           Margin="0,5"/>
+                                
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Vertical"/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <DataTemplate x:Key="KanbanCardTemplate">
+            <Border Background="White" Margin="5" Padding="10" CornerRadius="3" 
+                    BorderThickness="1" BorderBrush="#DDD">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" 
+                               FontSize="14" Margin="0,0,0,5"/>
+                    
+                    <TextBlock Grid.Row="1" Text="{Binding Description}" 
+                               TextWrapping="Wrap" FontSize="12" 
+                               Foreground="#666" Margin="0,0,0,5"/>
+                    
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
+                        <TextBlock Text="{Binding Category}" FontSize="10" 
+                                   Foreground="#999" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:MM/dd HH:mm}'}" 
+                                   FontSize="10" Foreground="#999" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Grid>
+                
+                <Border.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" 
+                                  Command="{Binding DataContext.CardDoubleClickCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}"/>
+                </Border.InputBindings>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Planned Column -->
+        <ItemsControl Grid.Column="0" Tag="Planned" 
+                      ItemsSource="{Binding PlannedCards}"
+                      ItemTemplate="{StaticResource KanbanCardTemplate}"
+                      Style="{StaticResource KanbanColumnStyle}"/>
+        
+        <!-- InProgress Column -->
+        <ItemsControl Grid.Column="1" Tag="In Progress" 
+                      ItemsSource="{Binding InProgressCards}"
+                      ItemTemplate="{StaticResource KanbanCardTemplate}"
+                      Style="{StaticResource KanbanColumnStyle}"/>
+        
+        <!-- Verify Column -->
+        <ItemsControl Grid.Column="2" Tag="Verify" 
+                      ItemsSource="{Binding VerifyCards}"
+                      ItemTemplate="{StaticResource KanbanCardTemplate}"
+                      Style="{StaticResource KanbanColumnStyle}"/>
+        
+        <!-- Evidence Column -->
+        <ItemsControl Grid.Column="3" Tag="Evidence" 
+                      ItemsSource="{Binding EvidenceCards}"
+                      ItemTemplate="{StaticResource KanbanCardTemplate}"
+                      Style="{StaticResource KanbanColumnStyle}"/>
+        
+        <!-- Done Column -->
+        <ItemsControl Grid.Column="4" Tag="Done" 
+                      ItemsSource="{Binding DoneCards}"
+                      ItemTemplate="{StaticResource KanbanCardTemplate}"
+                      Style="{StaticResource KanbanColumnStyle}"/>
+    </Grid>
+</UserControl>
+```
+
+```csharp
+// VibeKanbanViewModel.cs
+public class VibeKanbanViewModel : INotifyPropertyChanged
+{
+    private readonly VibeKanbanManager _kanbanManager;
+    private readonly PiveCycleManager _piveCycleManager;
+    
+    public ObservableCollection<VibeCard> PlannedCards { get; } = new ObservableCollection<VibeCard>();
+    public ObservableCollection<VibeCard> InProgressCards { get; } = new ObservableCollection<VibeCard>();
+    public ObservableCollection<VibeCard> VerifyCards { get; } = new ObservableCollection<VibeCard>();
+    public ObservableCollection<VibeCard> EvidenceCards { get; } = new ObservableCollection<VibeCard>();
+    public ObservableCollection<VibeCard> DoneCards { get; } = new ObservableCollection<VibeCard>();
+    
+    public ICommand CardDoubleClickCommand { get; }
+    
+    public VibeKanbanViewModel(VibeKanbanManager kanbanManager, PiveCycleManager piveCycleManager)
+    {
+        _kanbanManager = kanbanManager;
+        _piveCycleManager = piveCycleManager;
+        
+        CardDoubleClickCommand = new RelayCommand<VibeCard>(OnCardDoubleClick);
+        
+        LoadCards();
+    }
+    
+    private async void LoadCards()
+    {
+        var cards = await _kanbanManager.GetAllCardsAsync();
+        
+        PlannedCards.Clear();
+        InProgressCards.Clear();
+        VerifyCards.Clear();
+        EvidenceCards.Clear();
+        DoneCards.Clear();
+        
+        foreach (var card in cards)
+        {
+            switch (card.Status)
+            {
+                case VibeCardStatus.Planned:
+                    PlannedCards.Add(card);
+                    break;
+                case VibeCardStatus.InProgress:
+                    InProgressCards.Add(card);
+                    break;
+                case VibeCardStatus.Verify:
+                    VerifyCards.Add(card);
+                    break;
+                case VibeCardStatus.Evidence:
+                    EvidenceCards.Add(card);
+                    break;
+                case VibeCardStatus.Done:
+                    DoneCards.Add(card);
+                    break;
+            }
+        }
+    }
+    
+    private void OnCardDoubleClick(VibeCard card)
+    {
+        // カード詳細を表示
+        var detailWindow = new CardDetailWindow(card, _piveCycleManager);
+        detailWindow.Show();
+    }
+}
+```
+
+### 4. Gatesの自動化
+
+```csharp
+// GateManager.cs
+public class GateManager
+{
+    private readonly OneBoxManager _oneBoxManager;
+    
+    public GateManager(OneBoxManager oneBoxManager)
+    {
+        _oneBoxManager = oneBoxManager;
+    }
+    
+    public async Task<GateResult> RunVerifyGateAsync(string cardId)
+    {
+        var verifyScript = Path.Combine(_oneBoxManager.GetScriptsPath(), "run_verify.ps1");
+        
+        if (!File.Exists(verifyScript))
+            throw new FileNotFoundException("Verify script not found");
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = "pwsh",
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{verifyScript}\" -CardId \"{cardId}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        
+        using (var process = Process.Start(psi))
+        {
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            
+            return new GateResult
+            {
+                Success = process.ExitCode == 0,
+                Output = output,
+                Error = error,
+                ExitCode = process.ExitCode
+            };
+        }
+    }
+    
+    public async Task<GateResult> RunFinalAuditGateAsync(string cardId)
+    {
+        var auditScript = Path.Combine(_oneBoxManager.GetScriptsPath(), "generate_final_audit.ps1");
+        
+        if (!File.Exists(auditScript))
+            throw new FileNotFoundException("Final audit script not found");
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = "pwsh",
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{auditScript}\" -CardId \"{cardId}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        
+        using (var process = Process.Start(psi))
+        {
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            
+            return new GateResult
+            {
+                Success = process.ExitCode == 0,
+                Output = output,
+                Error = error,
+                ExitCode = process.ExitCode
+            };
+        }
+    }
+}
+
+public class GateResult
+{
+    public bool Success { get; set; }
+    public string Output { get; set; }
+    public string Error { get; set; }
+    public int ExitCode { get; set; }
+}
+```
+
+### 5. Evidence管理システム
+
+```xaml
+<!-- EvidenceManagerView.xaml -->
+<UserControl x:Class="VIBE.OneScreenOS.Views.EvidenceManagerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:VIBE.OneScreenOS.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <Button Content="Evidenceを追加" Command="{Binding AddEvidenceCommand}" Margin="0,0,5,0"/>
+            <Button Content="Evidenceを圧縮" Command="{Binding CompressEvidenceCommand}" Margin="0,0,5,0"/>
+            <Button Content="Evidenceをアップロード" Command="{Binding UploadEvidenceCommand}" Margin="0,0,5,0"/>
+        </StackPanel>
+        
+        <DataGrid Grid.Row="1" ItemsSource="{Binding EvidenceFiles}" AutoGenerateColumns="False" 
+                  Margin="10" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ファイル名" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="サイズ" Binding="{Binding Size, StringFormat='{}{0} KB'}" Width="100"/>
+                <DataGridTextColumn Header="更新日時" Binding="{Binding LastModified, StringFormat='{}{0:yyyy/MM/dd HH:mm}'}" Width="150"/>
+                <DataGridTextColumn Header="ステータス" Binding="{Binding Status}" Width="100"/>
+                <DataGridTemplateColumn Header="操作" Width="150">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="プレビュー" Command="{Binding DataContext.PreviewEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Margin="0,0,2,0"/>
+                                <Button Content="開く" Command="{Binding DataContext.OpenEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Margin="0,0,2,0"/>
+                                <Button Content="削除" Command="{Binding DataContext.DeleteEvidenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
+```
+
+```csharp
+// EvidenceManagerViewModel.cs
+public class EvidenceManagerViewModel : INotifyPropertyChanged
+{
+    private readonly OneBoxManager _oneBoxManager;
+    
+    public ObservableCollection<EvidenceFile> EvidenceFiles { get; } = new ObservableCollection<EvidenceFile>();
+    
+    public ICommand AddEvidenceCommand { get; }
+    public ICommand CompressEvidenceCommand { get; }
+    public ICommand UploadEvidenceCommand { get; }
+    public ICommand PreviewEvidenceCommand { get; }
+    public ICommand OpenEvidenceCommand { get; }
+    public ICommand DeleteEvidenceCommand { get; }
+    
+    public EvidenceManagerViewModel(OneBoxManager oneBoxManager)
+    {
+        _oneBoxManager = oneBoxManager;
+        
+        AddEvidenceCommand = new RelayCommand(OnAddEvidence);
+        CompressEvidenceCommand = new RelayCommand(OnCompressEvidence);
+        UploadEvidenceCommand = new RelayCommand(OnUploadEvidence);
+        PreviewEvidenceCommand = new RelayCommand<EvidenceFile>(OnPreviewEvidence);
+        OpenEvidenceCommand = new RelayCommand<EvidenceFile>(OnOpenEvidence);
+        DeleteEvidenceCommand = new RelayCommand<EvidenceFile>(OnDeleteEvidence);
+        
+        LoadEvidenceFiles();
+    }
+    
+    private void LoadEvidenceFiles()
+    {
+        var evidencePath = Path.Combine(_oneBoxManager.GetVaultPath(), "04_EVIDENCE");
+        
+        if (!Directory.Exists(evidencePath))
+            return;
+        
+        EvidenceFiles.Clear();
+        
+        foreach (var file in Directory.GetFiles(evidencePath, "*.*", SearchOption.AllDirectories))
+        {
+            var fileInfo = new FileInfo(file);
+            EvidenceFiles.Add(new EvidenceFile
+            {
+                Name = fileInfo.Name,
+                Path = fileInfo.FullName,
+                Size = fileInfo.Length / 1024,
+                LastModified = fileInfo.LastWriteTime,
+                Status = "Ready"
+            });
+        }
+    }
+    
+    private void OnAddEvidence()
+    {
+        var dialog = new OpenFileDialog();
+        if (dialog.ShowDialog() == true)
+        {
+            var evidencePath = Path.Combine(_oneBoxManager.GetVaultPath(), "04_EVIDENCE");
+            Directory.CreateDirectory(evidencePath);
+            
+            var destPath = Path.Combine(evidencePath, Path.GetFileName(dialog.FileName));
+            File.Copy(dialog.FileName, destPath, true);
+            
+            LoadEvidenceFiles();
+        }
+    }
+    
+    private void OnCompressEvidence()
+    {
+        // Evidenceファイルを圧縮するロジック
+        var evidencePath = Path.Combine(_oneBoxManager.GetVaultPath(), "04_EVIDENCE");
+        var zipPath = Path.Combine(evidencePath, $"Evidence_{DateTime.Now:yyyyMMdd_HHmmss}.zip");
+        
+        ZipFile.CreateFromDirectory(evidencePath, zipPath);
+        
+        MessageBox.Show($"Evidenceを圧縮しました: {zipPath}", "圧縮完了", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    
+    private void OnUploadEvidence()
+    {
+        // Evidenceファイルをアップロードするロジック
+        // 実際のアップロード先に応じて実装
+        MessageBox.Show("Evidenceをアップロードしました", "アップロード完了", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    
+    private void OnPreviewEvidence(EvidenceFile file)
+    {
+        // ファイルプレビューウィンドウを開く
+        var previewWindow = new EvidencePreviewWindow(file.Path);
+        previewWindow.Show();
+    }
+    
+    private void OnOpenEvidence(EvidenceFile file)
+    {
+        // ファイルを関連付けられたアプリで開く
+        Process.Start(new ProcessStartInfo(file.Path) { UseShellExecute = true });
+    }
+    
+    private void OnDeleteEvidence(EvidenceFile file)
+    {
+        if (MessageBox.Show($"ファイル {file.Name} を削除してもよろしいですか？", "削除確認", 
+            MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            File.Delete(file.Path);
+            LoadEvidenceFiles();
+        }
+    }
+}
+
+public class EvidenceFile
+{
+    public string Name { get; set; }
+    public string Path { get; set; }
+    public long Size { get; set; }
+    public DateTime LastModified { get; set; }
+    public string Status { get; set; }
+}
+```
+
+### 6. AIエージェント連携システム
+
+```csharp
+// AIAgentManager.cs
+public class AIAgentManager
+{
+    private readonly OneBoxManager _oneBoxManager;
+    private readonly List<AIAgent> _agents;
+    
+    public AIAgentManager(OneBoxManager oneBoxManager)
+    {
+        _oneBoxManager = oneBoxManager;
+        _agents = new List<AIAgent>();
+        
+        // AIエージェントを初期化
+        InitializeAgents();
+    }
+    
+    private void InitializeAgents()
+    {
+        // Claude Codeエージェント
+        _agents.Add(new AIAgent
+        {
+            Id = "claude-code",
+            Name = "Claude Code",
+            Description = "コード生成と最適化の専門家",
+            Capabilities = new[] { "code-generation", "refactoring", "optimization" },
+            Endpoint = "https://api.anthropic.com/v1/messages",
+            ApiKey = Environment.GetEnvironmentVariable("CLAUDE_API_KEY")
+        });
+        
+        // Cursorエージェント
+        _agents.Add(new AIAgent
+        {
+            Id = "cursor",
+            Name = "Cursor",
+            Description = "コード分析とデバッグの専門家",
+            Capabilities = new[] { "code-analysis", "debugging", "code-review" },
+            Endpoint = "https://api.cursor.com/v1/chat",
+            ApiKey = Environment.GetEnvironmentVariable("CURSOR_API_KEY")
+        });
+        
+        // GitHub Copilotエージェント
+        _agents.Add(new AIAgent
+        {
+            Id = "github-copilot",
+            Name = "GitHub Copilot",
+            Description = "コード補完と提案の専門家",
+            Capabilities = new[] { "code-completion", "code-suggestion" },
+            Endpoint = "https://api.githubcopilot.com/v1/chat",
+            ApiKey = Environment.GetEnvironmentVariable("GITHUB_COPILOT_API_KEY")
+        });
+    }
+    
+    public async Task<AIAgentResponse> ExecuteAgentAsync(string agentId, string prompt, string context = null)
+    {
+        var agent = _agents.FirstOrDefault(a => a.Id == agentId);
+        if (agent == null)
+            throw new InvalidOperationException($"Agent {agentId} not found");
+        
+        var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {agent.ApiKey}");
+        
+        var request = new
+        {
+            model = agent.Id,
+            messages = new[]
+            {
+                new { role = "system", content = agent.Description },
+                new { role = "user", content = prompt + (context != null ? $"\n\nContext: {context}" : "") }
+            },
+            max_tokens = 2000
+        };
+        
+        var response = await httpClient.PostAsJsonAsync(agent.Endpoint, request);
+        var result = await response.Content.ReadFromJsonAsync<AIAgentResponse>();
+        
+        return result;
+    }
+    
+    public List<AIAgent> GetAvailableAgents() => _agents;
+    
+    public async Task<string> CollaborativeCodeGenerationAsync(string requirement, string existingCode = null)
+    {
+        var tasks = new List<Task<string>>();
+        
+        foreach (var agent in _agents.Where(a => a.Capabilities.Contains("code-generation")))
+        {
+            var prompt = $"以下の要件に基づいてコードを生成してください:\n{requirement}";
+            if (!string.IsNullOrEmpty(existingCode))
+            {
+                prompt += $"\n\n既存のコード:\n{existingCode}";
+            }
+            
+            tasks.Add(ExecuteAgentAsync(agent.Id, prompt).ContinueWith(t => t.Result.Content));
+        }
+        
+        var results = await Task.WhenAll(tasks);
+        return string.Join("\n\n---\n\n", results);
+    }
+}
+
+public class AIAgent
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public string[] Capabilities { get; set; }
+    public string Endpoint { get; set; }
+    public string ApiKey { get; set; }
+}
+
+public class AIAgentResponse
+{
+    public string Content { get; set; }
+    public string Model { get; set; }
+    public int TotalTokens { get; set; }
+}
+```
+
+### 7. 大規模開発プロジェクト管理
+
+```csharp
+// ProjectManager.cs
+public class ProjectManager
+{
+    private readonly OneBoxManager _oneBoxManager;
+    private readonly VibeKanbanManager _kanbanManager;
+    private readonly PiveCycleManager _piveCycleManager;
+    private readonly AIAgentManager _agentManager;
+    
+    public ProjectManager(OneBoxManager oneBoxManager, 
+                         VibeKanbanManager kanbanManager,
+                         PiveCycleManager piveCycleManager,
+                         AIAgentManager agentManager)
+    {
+        _oneBoxManager = oneBoxManager;
+        _kanbanManager = kanbanManager;
+        _piveCycleManager = piveCycleManager;
+        _agentManager = agentManager;
+    }
+    
+    public async Task<VibeProject> CreateProjectAsync(string name, string description)
+    {
+        var project = new VibeProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = name,
+            Description = description,
+            CreatedAt = DateTime.Now,
+            Status = ProjectStatus.Active
+        };
+        
+        var projectPath = Path.Combine(_oneBoxManager.GetProjectsPath(), project.Id);
+        Directory.CreateDirectory(projectPath);
+        
+        // プロジェクトファイルを作成
+        var projectFile = Path.Combine(projectPath, "project.json");
+        var json = JsonSerializer.Serialize(project, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(projectFile, json);
+        
+        return project;
+    }
+    
+    public async Task<VibeCard> CreateCardFromRequirementAsync(string projectId, string requirement)
+    {
+        // AIエージェントを使って要件からカードを生成
+        var prompt = $"以下の要件からVIBEカードを作成してください。カードにはタイトル、説明、カテゴリー、見積もり工数を含めてください:\n{requirement}";
+        
+        var response = await _agentManager.ExecuteAgentAsync("claude-code", prompt);
+        
+        // AIの応答をパースしてカードを作成
+        var card = ParseAICardResponse(response.Content);
+        card.ProjectId = projectId;
+        
+        await _piveCycleManager.CreatePlanCardAsync(card.Title, card.Description, card.Category);
+        
+        return card;
+    }
+    
+    public async Task<List<VibeCard>> GetProjectCardsAsync(string projectId)
+    {
+        var allCards = await _kanbanManager.GetAllCardsAsync();
+        return allCards.Where(c => c.ProjectId == projectId).ToList();
+    }
+    
+    public async Task<ProjectProgress> GetProjectProgressAsync(string projectId)
+    {
+        var cards = await GetProjectCardsAsync(projectId);
+        
+        return new ProjectProgress
+        {
+            ProjectId = projectId,
+            TotalCards = cards.Count,
+            PlannedCards = cards.Count(c => c.Status == VibeCardStatus.Planned),
+            InProgressCards = cards.Count(c => c.Status == VibeCardStatus.InProgress),
+            VerifyCards = cards.Count(c => c.Status == VibeCardStatus.Verify),
+            EvidenceCards = cards.Count(c => c.Status == VibeCardStatus.Evidence),
+            DoneCards = cards.Count(c => c.Status == VibeCardStatus.Done),
+            FailedCards = cards.Count(c => c.Status == VibeCardStatus.Failed),
+            CompletionPercentage = cards.Count > 0 ? 
+                (int)((double)cards.Count(c => c.Status == VibeCardStatus.Done) / cards.Count * 100) : 0
+        };
+    }
+    
+    private VibeCard ParseAICardResponse(string aiResponse)
+    {
+        // AIの応答をパースしてVibeCardを作成
+        // 実際の実装では、AIの出力形式に応じたパーサーが必要
+        var lines = aiResponse.Split('\n');
+        var card = new VibeCard();
+        
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("Title:"))
+                card.Title = line.Substring("Title:".Length).Trim();
+            else if (line.StartsWith("Description:"))
+                card.Description = line.Substring("Description:".Length).Trim();
+            else if (line.StartsWith("Category:"))
+                card.Category = line.Substring("Category:".Length).Trim();
+            // ... 他のフィールドもパース
+        }
+        
+        return card;
+    }
+}
+
+public class VibeProject
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public ProjectStatus Status { get; set; }
+}
+
+public enum ProjectStatus
+{
+    Planning,
+    Active,
+    OnHold,
+    Completed,
+    Cancelled
+}
+
+public class ProjectProgress
+{
+    public string ProjectId { get; set; }
+    public int TotalCards { get; set; }
+    public int PlannedCards { get; set; }
+    public int InProgressCards { get; set; }
+    public int VerifyCards { get; set; }
+    public int EvidenceCards { get; set; }
+    public int DoneCards { get; set; }
+    public int FailedCards { get; set; }
+    public int CompletionPercentage { get; set; }
+}
+```
+
+### 8. 統合的なダッシュボード
+
+```xaml
+<!-- VibeDashboardView.xaml -->
+<UserControl x:Class="VIBE.OneScreenOS.Views.VibeDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:VIBE.OneScreenOS.Views"
+             xmlns:chart="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- プロジェクト概要 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
+            <TextBlock Text="プロジェクト進捗" FontSize="24" FontWeight="Bold" Margin="0,0,20,0"/>
+            
+            <ComboBox ItemsSource="{Binding Projects}" 
+                      SelectedItem="{Binding SelectedProject}"
+                      DisplayMemberPath="Name" Width="200" Margin="0,0,10,0"/>
+            
+            <Button Content="新規プロジェクト" Command="{Binding NewProjectCommand}" Margin="0,0,10,0"/>
+            <Button Content="カード作成" Command="{Binding NewCardCommand}" Margin="0,0,10,0"/>
+            <Button Content="AI支援" Command="{Binding AIAssistCommand}" Margin="0,0,10,0"/>
+        </StackPanel>
+        
+        <!-- 進捗チャート -->
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- 円グラフ -->
+            <chart:PieChart Grid.Column="0" Series="{Binding ProgressSeries}" 
+                             LegendLocation="Right" Margin="0,0,10,0">
+                <chart:PieChart.DataTooltip>
+                    <chart:DefaultTooltip/>
+                </chart:PieChart.DataTooltip>
+            </chart:PieChart>
+            
+            <!-- バーチャート -->
+            <chart:CartesianChart Grid.Column="1" Series="{Binding StatusSeries}" 
+                                   Margin="10,0,0,0">
+                <chart:CartesianChart.AxisX>
+                    <chart:Axis Title="ステータス" Labels="{Binding StatusLabels}"/>
+                </chart:CartesianChart.AxisX>
+                <chart:CartesianChart.AxisY>
+                    <chart:Axis Title="カード数"/>
+                </chart:CartesianChart.AxisY>
+            </chart:CartesianChart>
+        </Grid>
+        
+        <!-- 最近のアクティビティ -->
+        <DataGrid Grid.Row="2" ItemsSource="{Binding RecentActivities}" AutoGenerateColumns="False" 
+                  Margin="10" Height="200" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="日時" Binding="{Binding Timestamp, StringFormat='{}{0:MM/dd HH:mm}'}" Width="150"/>
+                <DataGridTextColumn Header="カード" Binding="{Binding CardTitle}" Width="*"/>
+                <DataGridTextColumn Header="アクション" Binding="{Binding Action}" Width="100"/>
+                <DataGridTextColumn Header="ユーザー" Binding="{Binding User}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
+```
+
+```csharp
+// VibeDashboardViewModel.cs
+public class VibeDashboardViewModel : INotifyPropertyChanged
+{
+    private readonly ProjectManager _projectManager;
+    private readonly AIAgentManager _agentManager;
+    
+    public ObservableCollection<VibeProject> Projects { get; } = new ObservableCollection<VibeProject>();
+    public VibeProject SelectedProject { get; set; }
+    
+    public SeriesCollection ProgressSeries { get; set; }
+    public SeriesCollection StatusSeries { get; set; }
+    public string[] StatusLabels { get; } = { "Planned", "InProgress", "Verify", "Evidence", "Done" };
+    
+    public ObservableCollection<ActivityItem> RecentActivities { get; } = new ObservableCollection<ActivityItem>();
+    
+    public ICommand NewProjectCommand { get; }
+    public ICommand NewCardCommand { get; }
+    public ICommand AIAssistCommand { get; }
+    
+    public VibeDashboardViewModel(ProjectManager projectManager, AIAgentManager agentManager)
+    {
+        _projectManager = projectManager;
+        _agentManager = agentManager;
+        
+        NewProjectCommand = new RelayCommand(OnNewProject);
+        NewCardCommand = new RelayCommand(OnNewCard);
+        AIAssistCommand = new RelayCommand(OnAIAssist);
+        
+        LoadProjects();
+    }
+    
+    private void LoadProjects()
+    {
+        // プロジェクト一覧を読み込む
+        Projects.Clear();
+        
+        var projectsPath = Path.Combine(_projectManager.OneBoxManager.GetProjectsPath());
+        if (Directory.Exists(projectsPath))
+        {
+            foreach (var projectDir in Directory.GetDirectories(projectsPath))
+            {
+                var projectFile = Path.Combine(projectDir, "project.json");
+                if (File.Exists(projectFile))
+                {
+                    var json = File.ReadAllText(projectFile);
+                    var project = JsonSerializer.Deserialize<VibeProject>(json);
+                    Projects.Add(project);
+                }
+            }
+        }
+    }
+    
+    private void OnNewProject()
+    {
+        var dialog = new NewProjectDialog();
+        if (dialog.ShowDialog() == true)
+        {
+            var project = _projectManager.CreateProjectAsync(dialog.ProjectName, dialog.ProjectDescription).Result;
+            Projects.Add(project);
+            SelectedProject = project;
+        }
+    }
+    
+    private void OnNewCard()
+    {
+        if (SelectedProject == null)
+        {
+            MessageBox.Show("プロジェクトを選択してください", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        
+        var dialog = new NewCardDialog();
+        if (dialog.ShowDialog() == true)
+        {
+            var card = _projectManager.CreateCardFromRequirementAsync(SelectedProject.Id, dialog.Requirement).Result;
+            MessageBox.Show($"カードを作成しました: {card.Title}", "作成完了", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+    
+    private void OnAIAssist()
+    {
+        var dialog = new AIAssistDialog(_agentManager);
+        dialog.ShowDialog();
+    }
+    
+    public async Task UpdateDashboardAsync()
+    {
+        if (SelectedProject == null) return;
+        
+        var progress = await _projectManager.GetProjectProgressAsync(SelectedProject.Id);
+        
+        // 円グラフのデータを更新
+        ProgressSeries = new SeriesCollection
+        {
+            new PieSeries
+            {
+                Title = "完了",
+                Values = new ChartValues<int> { progress.DoneCards },
+                DataLabels = true,
+                LabelPoint = point => $"{point.Y} ({point.Participation:P})"
+            },
+            new PieSeries
+            {
+                Title = "進行中",
+                Values = new ChartValues<int> { progress.InProgressCards },
+                DataLabels = true,
+                LabelPoint = point => $"{point.Y} ({point.Participation:P})"
+            },
+            new PieSeries
+            {
+                Title = "計画中",
+                Values = new ChartValues<int> { progress.PlannedCards },
+                DataLabels = true,
+                LabelPoint = point => $"{point.Y} ({point.Participation:P})"
+            }
+        };
+        
+        // バーチャートのデータを更新
+        StatusSeries = new SeriesCollection
+        {
+            new ColumnSeries
+            {
+                Title = "カード数",
+                Values = new ChartValues<int>
+                {
+                    progress.PlannedCards,
+                    progress.InProgressCards,
+                    progress.VerifyCards,
+                    progress.EvidenceCards,
+                    progress.DoneCards
+                }
+            }
+        };
+        
+        OnPropertyChanged(nameof(ProgressSeries));
+        OnPropertyChanged(nameof(StatusSeries));
+    }
+}
+
+public class ActivityItem
+{
+    public DateTime Timestamp { get; set; }
+    public string CardTitle { get; set; }
+    public string Action { get; set; }
+    public string User { get; set; }
+}
+```
+
+## 実装の統合
+
+最後に、これらのコンポーネントをメインウィンドウに統合します。
+
+```csharp
+// MainWindow.xaml.cs
+public partial class MainWindow : Window
+{
+    private OneBoxManager _oneBoxManager;
+    private VibeKanbanManager _kanbanManager;
+    private PiveCycleManager _piveCycleManager;
+    private GateManager _gateManager;
+    private AIAgentManager _agentManager;
+    private ProjectManager _projectManager;
+    
+    public MainWindow()
+    {
+        InitializeComponent();
+        
+        // OneBoxを初期化
+        var oneBoxRoot = DetectOneBoxRoot();
+        _oneBoxManager = new OneBoxManager(oneBoxRoot);
+        
+        // マネージャーを初期化
+        _kanbanManager = new VibeKanbanManager(_oneBoxManager);
+        _gateManager = new GateManager(_oneBoxManager);
+        _agentManager = new AIAgentManager(_oneBoxManager);
+        _piveCycleManager = new PiveCycleManager(_oneBoxManager, _kanbanManager, _gateManager);
+        _projectManager = new ProjectManager(_oneBoxManager, _kanbanManager, _piveCycleManager, _agentManager);
+        
+        // ViewModelを作成
+        var dashboardViewModel = new VibeDashboardViewModel(_projectManager, _agentManager);
+        var kanbanViewModel = new VibeKanbanViewModel(_kanbanManager, _piveCycleManager);
+        var evidenceViewModel = new EvidenceManagerViewModel(_oneBoxManager);
+        
+        // ビューを設定
+        MainContent.Content = new VibeDashboardView { DataContext = dashboardViewModel };
+        
+        // メニュー項目のクリックイベントを設定
+        DashboardMenuItem.Click += (s, e) => MainContent.Content = new VibeDashboardView { DataContext = dashboardViewModel };
+        KanbanMenuItem.Click += (s, e) => MainContent.Content = new VibeKanbanView { DataContext = kanbanViewModel };
+        EvidenceMenuItem.Click += (s, e) => MainContent.Content = new EvidenceManagerView { DataContext = evidenceViewModel };
+    }
+    
+    private string DetectOneBoxRoot()
+    {
+        // OneBoxのルートディレクトリを自動検出
+        var currentDir = Directory.GetCurrentDirectory();
+        while (currentDir != null)
+        {
+            if (Directory.Exists(Path.Combine(currentDir, "VAULT")) &&
+                Directory.Exists(Path.Combine(currentDir, "PROJECTS")) &&
+                Directory.Exists(Path.Combine(currentDir, "CORE")))
+            {
+                return currentDir;
+            }
+            currentDir = Directory.GetParent(currentDir)?.FullName;
+        }
+        
+        throw new InvalidOperationException("OneBox root directory not found");
+    }
+}
+```
+
+## まとめ
+
+VIBE One Screen OSを真の「大規模コーディング開発プラットフォーム」へと進化させるためには、以下の要素が不可欠です：
+
+1. **OneBox統合**: プロジェクトのルート構造を一元管理
+2. **PIvEサイクル**: Plan-Implement-Verify-Evidenceのサイクルを完全自動化
+3. **VIBE KANBAN**: ビジュアルなタスク管理
+4. **Gates自動化**: VERIFYとFINAL AUDITの自動実行
+5. **Evidence管理**: 成果物の管理とプレビュー
+6. **AIエージェント連携**: 複数のAIツールとの協調作業
+7. **プロジェクト管理**: 複数プロジェクトの進捗管理
+8. **統合ダッシュボード**: 全体状況の可視化
+
+この実装により、開発者はアプリケーション内で完結した大規模コーディング開発が可能になり、生産性が飛躍的に向上します。VIBEの理念に基づいた開発プロセスを完全にサポートすることで、最高峰で最先端なコーディング開発環境を実現できます。
+
+### USER
+このアプリも同様にIDEとCLIをメインでコーディングしてます。　この後に行うこと完成までにどのように進めていけばいいかを提示してください。
+
+### ASSISTANT
+<details type="reasoning" done="true" duration="111" view="" last_tool_call_name="">
+> VIBE One Screen OSアプリケーションを「完成」まで持っていくための具体的な進め方を、提供されたドキュメント（UI改善提案、アプリ改善提案、Knowledge Single File）を基に提案します。
+> 
+> ## 現状の課題整理
+> 
+> ドキュメントから読み取れる主な課題：
+> 
+> 1. **UI/UXの問題**:
+>    - アプリを開いたときに何を操作しているかわからない
+>    - ボタンをクリックしたときに裏で何が行われているかがわからない
+>    - 処理中に違うボタンをクリックしてしまう
+>    - 画面がぴくぴくする（ちらつき）
+>    - 2回目クリックしたら起動前に落ちてしまう
+> 
+> 2. **大規模コーディング開発プラットフォームとしての課題**:
+>    - PIvEサイクル（Plan-Implement-Verify-Evidence）が不完全
+>    - Gatesの自動化不足
+>    - Evidence管理の非効率性
+>    - AIエージェント連携の欠如
+>    - スケーラビリティの欠如
+> 
+> 3. **技術的な課題**:
+>    - XAMLコンパイルエラー（148件）
+>    - 二重起動問題
+>    - ファイルシステムウォッチャーの過剰更新
+>    - ビルド警告
+> 
+> ## 完成までのロードマップ
+> 
+> ### Phase 0: 基盤整備（最優先）
+> 
+> #### 1. ビルド環境の安定化
+> - **目標**: ビルドエラーを0にする
+> - **具体的なタスク**:
+>   ```powershell
+>   # 1. doctor.ps1で環境チェック
+>   .\CORE\VIBE_CTRL\scripts\doctor.ps1
+>   
+>   # 2. ビルド実行
+>   .\CORE\VIBE_CTRL\scripts\build_publish.ps1
+>   ```
+> - **期待結果**: エラーなしでビルド完了
+> 
+> #### 2. 基本的な起動確認
+> - **目標**: アプリが正常に起動することを確認
+> - **具体的なタスク**:
+>   ```powershell
+>   # 起動テスト
+>   .\APP\dist\OneScreenOSApp.exe
+>   ```
+> - **期待結果**: クラッシュせずに起動
+> 
+> ### Phase 1: UI/UX改善（P0）
+> 
+> #### 1. BusyOverlayの実装
+> - **目標**: 処理中の状態を可視化し、誤操作を防止
+> - **具体的なタスク**:
+>   ```csharp
+>   // MainWindow.xamlにBusyOverlayを追加
+>   <Grid x:Name="BusyOverlay" Visibility="Collapsed" Background="#80000000">
+>     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+>       <ProgressBar IsIndeterminate="True" Width="200" Height="20"/>
+>       <TextBlock x:Name="BusyTitle" Text="処理中..." Margin="0,10,0,0"/>
+>       <TextBlock x:Name="BusyDetail" Text="準備中..." Margin="0,5,0,0"/>
+>       <Button x:Name="CancelButton" Content="キャンセル" Click="CancelButton_Click"/>
+>     </StackPanel>
+>   </Grid>
+>   
+>   // MainWindow.xaml.csに状態管理を追加
+>   private bool _isExecuting = false;
+>   
+>   private void SetBusyState(bool isBusy, string title = "", string detail = "")
+>   {
+>       _isExecuting = isBusy;
+>       BusyOverlay.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+>       BusyTitle.Text = title;
+>       BusyDetail.Text = detail;
+>       Mouse.OverrideCursor = isBusy ? Cursors.Wait : null;
+>   }
+>   ```
+> 
+> #### 2. OperationGateによる多重実行防止
+> - **目標**: 同時に複数の操作が実行されるのを防ぐ
+> - **具体的なタスク**:
+>   ```csharp
+>   public class OperationGate
+>   {
+>       private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+>       
+>       public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
+>       {
+>           await _semaphore.WaitAsync();
+>           try
+>           {
+>               return await operation();
+>           }
+>           finally
+>           {
+>               _semaphore.Release();
+>           }
+>       }
+>   }
+>   ```
+> 
+> #### 3. ファイルシステムウォッチャーの改善
+> - **目標**: 画面のちらつきを防止
+> - **具体的なタスク**:
+>   ```csharp
+>   private DateTime _lastRefreshTime = DateTime.MinValue;
+>   private readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(500);
+>   
+>   private void OnFileChanged(object sender, FileSystemEventArgs e)
+>   {
+>       var now = DateTime.Now;
+>       if (now - _lastRefreshTime < _debounceInterval)
+>           return;
+>       
+>       _lastRefreshTime = now;
+>       Dispatcher.InvokeAsync(RefreshAllAsync);
+>   }
+>   ```
+> 
+> #### 4. 二重起動防止
+> - **目標**: 2回目の起動を防ぐ
+> - **具体的なタスク**:
+>   ```csharp
+>   // App.xaml.cs
+>   private const string MutexName = "Global\\VIBE_OneScreenOSApp_SingleInstance";
+>   private Mutex _mutex;
+>   
+>   protected override void OnStartup(StartupEventArgs e)
+>   {
+>       if (Mutex.TryOpenExisting(MutexName, out _))
+>       {
+>           // 既存のインスタンスをアクティブ化
+>           MessageBox.Show("アプリは既に起動しています");
+>           Shutdown();
+>           return;
+>       }
+>       
+>       _mutex = new Mutex(true, MutexName);
+>       base.OnStartup(e);
+>   }
+>   ```
+> 
+> ### Phase 2: VIBE開発プラットフォーム化（P1）
+> 
+> #### 1. PIvEサイクルの実装
+> - **目標**: Plan-Implement-Verify-Evidenceのサイクルを自動化
+> - **具体的なタスク**:
+>   ```csharp
+>   public class PiveCycleManager
+>   {
+>       public async Task<VibeCard> CreatePlanCardAsync(string title, string description)
+>       {
+>           // カード作成ロジック
+>       }
+>       
+>       public async Task ImplementCardAsync(string cardId, Func<Task> implementation)
+>       {
+>           // 実装ロジック
+>       }
+>       
+>       public async Task<bool> VerifyCardAsync(string cardId)
+>       {
+>           // 検証ロジック
+>       }
+>       
+>       public async Task EvidenceCardAsync(string cardId, List<string> evidenceFiles)
+>       {
+>           // エビデンス保存ロジック
+>       }
+>   }
+>   ```
+> 
+> #### 2. VIBE KANBANの統合
+> - **目標**: アプリ内でKANBANを表示・操作
+> - **具体的なタスク**:
+>   ```xaml
+>   <!-- VibeKanbanView.xaml -->
+>   <Grid>
+>     <Grid.ColumnDefinitions>
+>       <ColumnDefinition Width="*"/>
+>       <ColumnDefinition Width="*"/>
+>       <ColumnDefinition Width="*"/>
+>       <ColumnDefinition Width="*"/>
+>       <ColumnDefinition Width="*"/>
+>     </Grid.ColumnDefinitions>
+>     
+>     <ItemsControl Grid.Column="0" Tag="Planned" ItemsSource="{Binding PlannedCards}"/>
+>     <ItemsControl Grid.Column="1" Tag="InProgress" ItemsSource="{Binding InProgressCards}"/>
+>     <ItemsControl Grid.Column="2" Tag="Verify" ItemsSource="{Binding VerifyCards}"/>
+>     <ItemsControl Grid.Column="3" Tag="Evidence" ItemsSource="{Binding EvidenceCards}"/>
+>     <ItemsControl Grid.Column="4" Tag="Done" ItemsSource="{Binding DoneCards}"/>
+>   </Grid>
+>   ```
+> 
+> #### 3. Gatesの自動化
+> - **目標**: VERIFYとFINAL AUDITを自動化
+> - **具体的なタスク**:
+>   ```csharp
+>   public class GateManager
+>   {
+>       public async Task<GateResult> RunVerifyGateAsync(string cardId)
+>       {
+>           // Verifyスクリプト実行
+>       }
+>       
+>       public async Task<GateResult> RunFinalAuditGateAsync(string cardId)
+>       {
+>           // Final Auditスクリプト実行
+>       }
+>   }
+>   ```
+> 
+> ### Phase 3: AIエージェント連携（P2）
+> 
+> #### 1. AIエージェント管理
+> - **目標**: 複数のAIエージェントと連携
+> - **具体的なタスク**:
+>   ```csharp
+>   public class AIAgentManager
+>   {
+>       public async Task<string> GenerateCodeAsync(string prompt)
+>       {
+>           // Claude Codeとの連携
+>       }
+>       
+>       public async Task<string> AnalyzeCodeAsync(string code)
+>       {
+>           // Cursorとの連携
+>       }
+>   }
+>   ```
+> 
+> #### 2. コマンドパレットの実装
+> - **目標**: キーボード操作でコマンドを実行
+> - **具体的なタスク**:
+>   ```xaml
+>   <!-- CommandPalette.xaml -->
+>   <Window x:Class="VIBE.OneScreenOS.CommandPalette">
+>     <TextBox x:Name="SearchTextBox" TextChanged="SearchTextBox_TextChanged"/>
+>     <ListBox x:Name="CommandsListBox" SelectionChanged="CommandsListBox_SelectionChanged"/>
+>   </Window>
+>   ```
+> 
+> ### Phase 4: 統合と最適化（P3）
+> 
+> #### 1. 統合ダッシュボード
+> - **目標**: 全体状況を可視化
+> - **具体的なタスク**:
+>   ```xaml
+>   <!-- VibeDashboardView.xaml -->
+>   <Grid>
+>     <chart:PieChart Series="{Binding ProgressSeries}"/>
+>     <chart:CartesianChart Series="{Binding StatusSeries}"/>
+>     <DataGrid ItemsSource="{Binding RecentActivities}"/>
+>   </Grid>
+>   ```
+> 
+> #### 2. パフォーマンス最適化
+> - **目標**: アプリの応答性を向上
+> - **具体的なタスク**:
+>   - 非同期処理の最適化
+>   - メモリリークの修正
+>   - UI更新の最適化
+> 
+> ## 実装スケジュール
+> 
+> ### Week 1-2: 基盤整備（Phase 0）
+> - [ ] ビルド環境の安定化
+> - [ ] 基本的な起動確認
+> - [ ] UI/UX改善の基本設計
+> 
+> ### Week 3-4: UI/UX改善（Phase 1）
+> - [ ] BusyOverlayの実装
+> - [ ] OperationGateの実装
+> - [ ] ファイルシステムウォッチャーの改善
+> - [ ] 二重起動防止
+> 
+> ### Week 5-6: VIBE開発プラットフォーム化（Phase 2）
+> - [ ] PIvEサイクルの実装
+> - [ ] VIBE KANBANの統合
+> - [ ] Gatesの自動化
+> 
+> ### Week 7-8: AIエージェント連携（Phase 3）
+> - [ ] AIエージェント管理の実装
+> - [ ] コマンドパレットの実装
+> 
+> ### Week 9-10: 統合と最適化（Phase 4）
+> - [ ] 統合ダッシュボードの実装
+> - [ ] パフォーマンス最適化
+> - [ ] テストとデバッグ
+> 
+> ## 品質管理
+> 
+> ### 各フェーズの品質ゲート
+> 1. **ビルドゲート**: エラーなしでビルドできること
+> 2. **ユニットテスト**: 主要な機能のテストカバレッジ80%以上
+> 3. **UIテスト**: 手動テストでの基本操作が問題ないこと
+> 4. **パフォーマンステスト**: 応答時間が許容範囲内であること
+> 
+> ### 継続的インテグレーション
+> ```powershell
+> # CIスクリプトの例
+> .\CORE\VIBE_CTRL\scripts\run_all_gates.ps1
+> ```
+> 
+> ## 成功の定義
+> 
+> ### 短期目標（3ヶ月）
+> - [ ] UI/UXの問題が解決されている
+> - [ ] 基本的なVIBE開発サイクルが動作している
+> - [ ] AIエージェントとの基本的な連携ができている
+> 
+> ### 長期目標（6ヶ月）
+> - [ ] 完全な大規模コーディング開発プラットフォームとして機能
+> - [ ] 複数のプロジェクトを並行して管理できる
+> - [ ] AIエージェントとの高度な連携が実現
+> 
+> ## リスク管理
+> 
+> ### 主要なリスク
+> 1. **技術的リスク**: 複雑な機能の実装が遅れる可能性
+> 2. **リソースリスク**: 開発リソースが不足する可能性
+> 3. **品質リスク**: 品質が低下する可能性
+> 
+> ### 対応策
+> 1. **段階的実装**: 小さな機能単位で実装・テスト
+> 2. **優先順位管理**: 重要な機能から優先的に実装
+> 3. **品質ゲート**: 各フェーズで品質を厳密に管理
+> 
+> ## まとめ
+> 
+> VIBE One Screen OSを完成させるには、以下のステップが重要です：
+> 
+> 1. **基盤整備**: ビルド環境の安定化
+> 2. **UI/UX改善**: ユーザー体験の向上
+> 3. **VIBE開発プラットフォーム化**: PIvEサイクルの実装
+> 4. **AIエージェント連携**: 生産性の向上
+> 5. **統合と最適化**: 全体としての品質向上
+> 
+> このロードマップに従って、段階的に実装を進めることで、VIBE One Screen OSを真の「大規模コーディング開発プラットフォーム」へと進化させることができます。
+</details>
+# VIBE One Screen OS：完成までの包括的ロードマップ
+
+提供されたドキュメントを分析し、VIBE One Screen OSアプリケーションを「完成」まで持っていくための体系的な進め方を提案します。現在の課題は、UI/UX問題だけでなく、真の「大規模コーディング開発プラットフォーム」としての機能不足にもあります。
+
+## 現状の課題分析
+
+ドキュメントから抽出した主要な課題：
+
+1. **UI/UXの根本的な問題**:
+   - 状態の可視化不足（いま何が起きているか分からない）
+   - 誤操作防止機能の欠如（処理中に他のボタンが押せる）
+   - 画面のちらつき（ファイルシステムウォッチャーの過剰更新）
+   - 二重起動問題（2回目クリックで落ちるように見える）
+
+2. **大規模開発プラットフォームとしての未完成**:
+   - PIvEサイクル（Plan-Implement-Verify-Evidence）が不完全
+   - Gatesの自動化不足
+   - Evidence管理の非効率性
+   - AIエージェント連携の欠如
+   - スケーラビリティの欠如
+
+3. **技術的な基盤問題**:
+   - XAMLコンパイルエラー（148件）
+   - ビルド警告
+   - アーキテクチャの不統一
+
+## 完成までの4フェーズロードマップ
+
+### Phase 0: 基盤再構築（最優先・2週間）
+
+#### 0.1 環境診断と安定化
+```powershell
+# 1. 現状の完全な診断
+.\CORE\VIBE_CTRL\scripts\doctor.ps1 -Full
+
+# 2. ビルドクリーンと再構築
+.\CORE\VIBE_CTRL\scripts\build_publish.ps1 -Clean -Configuration Release
+
+# 3. セルフテスト実行
+.\CORE\VIBE_CTRL\scripts\selftest_launch.ps1
+```
+
+**成功基準**: ビルドエラー0件、起動テスト100%成功
+
+#### 0.2 アーキテクチャの再設計
+```csharp
+// CoreServices.cs - すべてのサービスを統合
+public class CoreServices : ICoreServices
+{
+    public IOneBoxManager OneBoxManager { get; }
+    public IVibeKanbanManager VibeKanbanManager { get; }
+    public IPiveCycleManager PiveCycleManager { get; }
+    public IGateManager GateManager { get; }
+    public IAIAgentManager AIAgentManager { get; }
+    public IProjectManager ProjectManager { get; }
+    public IUxManager UxManager { get; }
+    
+    public CoreServices(string oneBoxRoot)
+    {
+        // 依存性注入の設定
+        OneBoxManager = new OneBoxManager(oneBoxRoot);
+        VibeKanbanManager = new VibeKanbanManager(OneBoxManager);
+        GateManager = new GateManager(OneBoxManager);
+        AIAgentManager = new AIAgentManager();
+        PiveCycleManager = new PiveCycleManager(VibeKanbanManager, GateManager);
+        ProjectManager = new ProjectManager(OneBoxManager, PiveCycleManager, AIAgentManager);
+        UxManager = new UxManager(PiveCycleManager, AIAgentManager);
+    }
+}
+```
+
+#### 0.3 MVVMパターンの完全適用
+```csharp
+// MainWindowViewModel.cs
+public class MainWindowViewModel : ViewModelBase
+{
+    public INavigationService NavigationService { get; }
+    public ICoreServices CoreServices { get; }
+    
+    public ObservableCollection<MenuItem> MenuItems { get; } = new ObservableCollection<MenuItem>();
+    
+    public MainWindowViewModel(ICoreServices coreServices, INavigationService navigationService)
+    {
+        CoreServices = coreServices;
+        NavigationService = navigationService;
+        
+        InitializeMenu();
+        InitializeNavigation();
+    }
+    
+    private void InitializeMenu()
+    {
+        MenuItems.Add(new MenuItem 
+        { 
+            Header = "ダッシュボード", 
+            Icon = "📊", 
+            Command = new RelayCommand(() => NavigationService.NavigateTo<DashboardViewModel>())
+        });
+        MenuItems.Add(new MenuItem 
+        { 
+            Header = "VIBE KANBAN", 
+            Icon = "📋", 
+            Command = new RelayCommand(() => NavigationService.NavigateTo<VibeKanbanViewModel>())
+        });
+        MenuItems.Add(new MenuItem 
+        { 
+            Header = "Evidence管理", 
+            Icon = "📁", 
+            Command = new RelayCommand(() => NavigationService.NavigateTo<EvidenceManagerViewModel>())
+        });
+        MenuItems.Add(new MenuItem 
+        { 
+            Header = "AIアシスタント", 
+            Icon = "🤖", 
+            Command = new RelayCommand(() => NavigationService.NavigateTo<AIAssistantViewModel>())
+        });
+        MenuItems.Add(new MenuItem 
+        { 
+            Header = "設定", 
+            Icon = "⚙️", 
+            Command = new RelayCommand(() => NavigationService.NavigateTo<SettingsViewModel>())
+        });
+    }
+}
+```
+
+### Phase 1: UI/UX革命（3週間）
+
+#### 1.1 状態可視化システムの構築
+```xaml
+<!-- ModernBusyOverlay.xaml -->
+<UserControl x:Class="VIBE.OneScreenOS.Views.ModernBusyOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#CC000000" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- アニメーション付きプログレス -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <ContentControl Width="120" Height="120">
+                <ContentControl.Template>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Grid>
+                            <Ellipse Width="100" Height="100" Stroke="#4CAF50" StrokeThickness="4" 
+                                     StrokeDashArray="250" StrokeDashOffset="0">
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="StrokeDashOffset" 
+                                                               From="250" To="0" Duration="0:0:2" RepeatBehavior="Forever"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                            <TextBlock Text="🔄" FontSize="40" HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform CenterX="20" CenterY="20">
+                                        <RotateTransform.Angle>
+                                            <DoubleAnimation From="0" To="360" Duration="0:0:2" 
+                                                           RepeatBehavior="Forever"/>
+                                        </RotateTransform.Angle>
+                                    </RotateTransform>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                        </Grid>
+                    </ControlTemplate>
+                </ContentControl.Template>
+            </ContentControl>
+            
+            <TextBlock Text="{Binding BusyTitle}" FontSize="20" FontWeight="Bold" 
+                       Foreground="White" HorizontalAlignment="Center" Margin="0,20,0,5"/>
+            <TextBlock Text="{Binding BusyDetail}" FontSize="14" 
+                       Foreground="#CCCCCC" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            <TextBlock Text="{Binding BusyProgress}" FontSize="12" 
+                       Foreground="#999999" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+            
+            <Button Content="キャンセル" Command="{Binding CancelCommand}" 
+                    Visibility="{Binding CanCancel, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Background="#F44336" Foreground="White" Padding="20,5"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+```
+
+#### 1.2 操作ガイドシステムの実装
+```csharp
+// OperationGuideManager.cs
+public class OperationGuideManager : IOperationGuideManager
+{
+    private readonly Stack<GuideStep> _guideSteps = new Stack<GuideStep>();
+    public event EventHandler<GuideStep> GuideStepChanged;
+    
+    public void StartGuide(string guideId)
+    {
+        _guideSteps.Clear();
+        
+        switch (guideId)
+        {
+            case "first-time-setup":
+                AddGuideStep(new GuideStep 
+                { 
+                    Title = "ようこそ VIBE One Screen OS へ", 
+                    Description = "まずはプロジェクトの設定をしましょう",
+                    TargetElement = "SettingsButton",
+                    ActionType = GuideActionType.Highlight
+                });
+                AddGuideStep(new GuideStep 
+                { 
+                    Title = "プロバイダー設定", 
+                    Description = "使用するAIプロバイダーを設定します",
+                    TargetElement = "ProvidersTab",
+                    ActionType = GuideActionType.Navigate
+                });
+                AddGuideStep(new GuideStep 
+                { 
+                    Title = "最初のカード作成", 
+                    Description = "VIBE KANBANで最初のカードを作成しましょう",
+                    TargetElement = "NewCardButton",
+                    ActionType = GuideActionType.Click
+                });
+                break;
+        }
+        
+        ShowNextStep();
+    }
+    
+    public void ShowNextStep()
+    {
+        if (_guideSteps.Count > 0)
+        {
+            var currentStep = _guideSteps.Pop();
+            GuideStepChanged?.Invoke(this, currentStep);
+        }
+    }
+    
+    private void AddGuideStep(GuideStep step)
+    {
+        _guideSteps.Push(step);
+    }
+}
+
+public class GuideStep
+{
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public string TargetElement { get; set; }
+    public GuideActionType ActionType { get; set; }
+}
+
+public enum GuideActionType
+{
+    Highlight,
+    Navigate,
+    Click,
+    Input
+}
+```
+
+#### 1.3 コマンドパレットの高度化
+```xaml
+<!-- AdvancedCommandPalette.xaml -->
+<Window x:Class="VIBE.OneScreenOS.Views.AdvancedCommandPalette"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="コマンドパレット" Height="400" Width="600" 
+        WindowStyle="None" ResizeMode="NoResize" Topmost="True"
+        Background="#2D2D2D" AllowsTransparency="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 検索ボックス -->
+        <TextBox x:Name="SearchTextBox" Grid.Row="0" Margin="10" 
+                 Background="#3D3D3D" Foreground="White" BorderBrush="#555"
+                 FontSize="16" Padding="5" VerticalContentAlignment="Center"
+                 TextChanged="SearchTextBox_TextChanged"/>
+        
+        <!-- コマンドリスト -->
+        <ListBox x:Name="CommandsListBox" Grid.Row="1" Margin="10,0,10,10"
+                 Background="Transparent" BorderBrush="Transparent"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- アイコン -->
+                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="20" 
+                                   Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        
+                        <!-- 詳細 -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" Foreground="White" 
+                                       FontSize="14" FontWeight="Medium"/>
+                            <TextBlock Text="{Binding Description}" Foreground="#AAA" 
+                                       FontSize="12" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        
+                        <!-- ショートカット -->
+                        <TextBlock Grid.Column="2" Text="{Binding Shortcut}" 
+                                   Foreground="#4CAF50" FontSize="12" 
+                                   VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border Background="{TemplateBinding Background}" 
+                                        CornerRadius="5" Margin="2">
+                                    <ContentPresenter/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#4CAF50"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#3D3D3D"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+        
+        <!-- ヒント -->
+        <TextBlock Grid.Row="2" Text="↑↓ で選択 | Enter で実行 | ESC でキャンセル" 
+                   Foreground="#666" FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+    </Grid>
+</Window>
+```
+
+### Phase 2: VIBE開発プラットフォーム化（4週間）
+
+#### 2.1 PIvEサイクルの完全自動化
+```csharp
+// AutomatedPiveCycleManager.cs
+public class AutomatedPiveCycleManager : IPiveCycleManager
+{
+    private readonly IVibeKanbanManager _kanbanManager;
+    private readonly IGateManager _gateManager;
+    private readonly IAIAgentManager _aiAgentManager;
+    private readonly IEvidenceManager _evidenceManager;
+    
+    public AutomatedPiveCycleManager(IVibeKanbanManager kanbanManager, 
+                                     IGateManager gateManager,
+                                     IAIAgentManager aiAgentManager,
+                                     IEvidenceManager evidenceManager)
+    {
+        _kanbanManager = kanbanManager;
+        _gateManager = gateManager;
+        _aiAgentManager = aiAgentManager;
+        _evidenceManager = evidenceManager;
+    }
+    
+    public async Task<VibeCard> CreateAndExecuteCardAsync(string title, string description, 
+                                                          string category, bool useAI = true)
+    {
+        // Plan: カード作成
+        var card = await CreateCardAsync(title, description, category);
+        
+        try
+        {
+            // Implement: AI支援実装
+            if (useAI)
+            {
+                var aiResult = await _aiAgentManager.GenerateImplementationAsync(card);
+                card.AIImplementation = aiResult;
+            }
+            
+            // Implement: 実行
+            await ImplementCardAsync(card);
+            
+            // Verify: 自動検証
+            var verifyResult = await VerifyCardAsync(card);
+            
+            if (verifyResult.Success)
+            {
+                // Evidence: 自動収集
+                var evidenceFiles = await _evidenceManager.CollectEvidenceAsync(card);
+                await EvidenceCardAsync(card, evidenceFiles);
+                
+                card.Status = VibeCardStatus.Done;
+            }
+            else
+            {
+                card.Status = VibeCardStatus.NeedsFix;
+                card.VerifyResult = verifyResult;
+            }
+            
+            await _kanbanManager.UpdateCardAsync(card);
+            return card;
+        }
+        catch (Exception ex)
+        {
+            card.Status = VibeCardStatus.Failed;
+            card.Error = ex.Message;
+            await _kanbanManager.UpdateCardAsync(card);
+            throw;
+        }
+    }
+    
+    private async Task<VibeCard> CreateCardAsync(string title, string description, string category)
+    {
+        var card = new VibeCard
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = title,
+            Description = description,
+            Category = category,
+            Status = VibeCardStatus.Planned,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+        
+        await _kanbanManager.AddCardAsync(card);
+        return card;
+    }
+    
+    private async Task ImplementCardAsync(VibeCard card)
+    {
+        card.Status = VibeCardStatus.InProgress;
+        card.UpdatedAt = DateTime.Now;
+        await _kanbanManager.UpdateCardAsync(card);
+        
+        // 実装ロジック（カードの種類に応じて）
+        switch (card.Category)
+        {
+            case "UI-Improvement":
+                await ImplementUIImprovementAsync(card);
+                break;
+            case "Feature-Development":
+                await ImplementFeatureDevelopmentAsync(card);
+                break;
+            case "Bug-Fix":
+                await ImplementBugFixAsync(card);
+                break;
+            default:
+                await ImplementGenericTaskAsync(card);
+                break;
+        }
+    }
+    
+    private async Task<GateResult> VerifyCardAsync(VibeCard card)
+    {
+        return await _gateManager.RunVerifyGateAsync(card.Id);
+    }
+    
+    private async Task EvidenceCardAsync(VibeCard card, List<string> evidenceFiles)
+    {
+        await _evidenceManager.SaveEvidenceAsync(card.Id, evidenceFiles);
+    }
+}
+```
+
+#### 2.2 AI駆動開発の統合
+```csharp
+// AIDrivenDevelopmentManager.cs
+public class AIDrivenDevelopmentManager : IAIDrivenDevelopmentManager
+{
+    private readonly IAIAgentManager _aiAgentManager;
+    private readonly ICodeAnalysisService _codeAnalysisService;
+    private readonly ITestGenerationService _testGenerationService;
+    
+    public AIDrivenDevelopmentManager(IAIAgentManager aiAgentManager,
+                                      ICodeAnalysisService codeAnalysisService,
+                                      ITestGenerationService testGenerationService)
+    {
+        _aiAgentManager = aiAgentManager;
+        _codeAnalysisService = codeAnalysisService;
+        _testGenerationService = testGenerationService;
+    }
+    
+    public async Task<AIDevelopmentSession> StartDevelopmentSessionAsync(string requirement)
+    {
+        var session = new AIDevelopmentSession
+        {
+            Id = Guid.NewGuid().ToString(),
+            Requirement = requirement,
+            StartTime = DateTime.Now,
+            Status = DevelopmentStatus.Planning
+        };
+        
+        // 要件分析
+        var analysisResult = await AnalyzeRequirementAsync(requirement);
+        session.RequirementAnalysis = analysisResult;
+        
+        // 実装計画の生成
+        var implementationPlan = await GenerateImplementationPlanAsync(analysisResult);
+        session.ImplementationPlan = implementationPlan;
+        
+        return session;
+    }
+    
+    public async Task<DevelopmentResult> ExecuteDevelopmentSessionAsync(AIDevelopmentSession session)
+    {
+        session.Status = DevelopmentStatus.Implementing;
+        
+        var results = new List<TaskResult>();
+        
+        foreach (var task in session.ImplementationPlan.Tasks)
+        {
+            var result = await ExecuteTaskAsync(task);
+            results.Add(result);
+        }
+        
+        session.Status = DevelopmentStatus.Verifying;
+        
+        // 自動テスト生成と実行
+        var testResults = await GenerateAndRunTestsAsync(session);
+        
+        session.Status = DevelopmentStatus.Completed;
+        session.EndTime = DateTime.Now;
+        
+        return new DevelopmentResult
+        {
+            SessionId = session.Id,
+            TaskResults = results,
+            TestResults = testResults,
+            Success = testResults.All(t => t.Success)
+        };
+    }
+    
+    private async Task<RequirementAnalysis> AnalyzeRequirementAsync(string requirement)
+    {
+        var prompt = $"以下の要件を分析し、実装に必要な情報を抽出してください:\n{requirement}";
+        var response = await _aiAgentManager.ExecuteAgentAsync("requirement-analyzer", prompt);
+        
+        return ParseAnalysisResponse(response);
+    }
+    
+    private async Task<ImplementationPlan> GenerateImplementationPlanAsync(RequirementAnalysis analysis)
+    {
+        var prompt = $"以下の要件分析に基づいて、実装計画を作成してください:\n{JsonSerializer.Serialize(analysis)}";
+        var response = await _aiAgentManager.ExecuteAgentAsync("planner", prompt);
+        
+        return ParsePlanResponse(response);
+    }
+    
+    private async Task<TaskResult> ExecuteTaskAsync(ImplementationTask task)
+    {
+        switch (task.Type)
+        {
+            case TaskType.CodeGeneration:
+                return await ExecuteCodeGenerationTaskAsync(task);
+            case TaskType.CodeModification:
+                return await ExecuteCodeModificationTaskAsync(task);
+            case TaskType.Configuration:
+                return await ExecuteConfigurationTaskAsync(task);
+            default:
+                throw new NotSupportedException($"Task type {task.Type} is not supported");
+        }
+    }
+    
+    private async Task<List<TestResult>> GenerateAndRunTestsAsync(AIDevelopmentSession session)
+    {
+        var testResults = new List<TestResult>();
+        
+        foreach (var task in session.ImplementationPlan.Tasks)
+        {
+            if (task.Testable)
+            {
+                var testCode = await _testGenerationService.GenerateTestsAsync(task);
+                var testResult = await _testGenerationService.RunTestsAsync(testCode);
+                testResults.Add(testResult);
+            }
+        }
+        
+        return testResults;
+    }
+}
+```
+
+### Phase 3: 大規模開発対応（3週間）
+
+#### 3.1 マルチプロジェクト管理
+```csharp
+// MultiProjectManager.cs
+public class MultiProjectManager : IMultiProjectManager
+{
+    private readonly IOneBoxManager _oneBoxManager;
+    private readonly Dictionary<string, IProjectManager> _projectManagers = new Dictionary<string, IProjectManager>();
+    
+    public MultiProjectManager(IOneBoxManager oneBoxManager)
+    {
+        _oneBoxManager = oneBoxManager;
+    }
+    
+    public async Task<ProjectWorkspace> CreateProjectWorkspaceAsync(string workspaceName)
+    {
+        var workspace = new ProjectWorkspace
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = workspaceName,
+            CreatedAt = DateTime.Now,
+            Projects = new List<VibeProject>()
+        };
+        
+        var workspacePath = Path.Combine(_oneBoxManager.GetProjectsPath(), workspace.Id);
+        Directory.CreateDirectory(workspacePath);
+        
+        // ワークスペース設定ファイルを作成
+        var workspaceFile = Path.Combine(workspacePath, "workspace.json");
+        var json = JsonSerializer.Serialize(workspace, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(workspaceFile, json);
+        
+        return workspace;
+    }
+    
+    public async Task<VibeProject> AddProjectToWorkspaceAsync(string workspaceId, string projectName, string description)
+    {
+        var workspace = await LoadWorkspaceAsync(workspaceId);
+        var projectManager = await CreateProjectManagerAsync(workspaceId);
+        
+        var project = await projectManager.CreateProjectAsync(projectName, description);
+        workspace.Projects.Add(project);
+        
+        await SaveWorkspaceAsync(workspace);
+        _projectManagers[$"{workspaceId}:{project.Id}"] = projectManager;
+        
+        return project;
+    }
+    
+    public async Task<WorkspaceProgress> GetWorkspaceProgressAsync(string workspaceId)
+    {
+        var workspace = await LoadWorkspaceAsync(workspaceId);
+        var allProgress = new List<ProjectProgress>();
+        
+        foreach (var project in workspace.Projects)
+        {
+            var projectManager = await GetProjectManagerAsync(workspaceId, project.Id);
+            var progress = await projectManager.GetProjectProgressAsync(project.Id);
+            allProgress.Add(progress);
+        }
+        
+        return new WorkspaceProgress
+        {
+            WorkspaceId = workspaceId,
+            WorkspaceName = workspace.Name,
+            ProjectProgresses = allProgress,
+            TotalCards = allProgress.Sum(p => p.TotalCards),
+            CompletedCards = allProgress.Sum(p => p.DoneCards),
+            OverallCompletion = allProgress.Count > 0 ? 
+                (int)((double)allProgress.Sum(p => p.DoneCards) / allProgress.Sum(p => p.TotalCards) * 100) : 0
+        };
+    }
+    
+    public async Task<WorkspaceDashboard> GenerateWorkspaceDashboardAsync(string workspaceId)
+    {
+        var progress = await GetWorkspaceProgressAsync(workspaceId);
+        var recentActivities = await GetRecentActivitiesAsync(workspaceId);
+        
+        return new WorkspaceDashboard
+        {
+            Progress = progress,
+            RecentActivities = recentActivities,
+            ActiveProjects = progress.ProjectProgresses.Where(p => p.Status == ProjectStatus.Active).ToList(),
+            BlockedProjects = progress.ProjectProgresses.Where(p => p.Status == ProjectStatus.OnHold).ToList(),
+            CompletedProjects = progress.ProjectProgresses.Where(p => p.Status == ProjectStatus.Completed).ToList()
+        };
+    }
+    
+    private async Task<List<ActivityItem>> GetRecentActivitiesAsync(string workspaceId)
+    {
+        var activities = new List<ActivityItem>();
+        var workspace = await LoadWorkspaceAsync(workspaceId);
+        
+        foreach (var project in workspace.Projects)
+        {
+            var projectManager = await GetProjectManagerAsync(workspaceId, project.Id);
+            var projectActivities = await projectManager.GetRecentActivitiesAsync(project.Id);
+            activities.AddRange(projectActivities);
+        }
+        
+        return activities.OrderByDescending(a => a.Timestamp).Take(20).ToList();
+    }
+    
+    private async Task<ProjectWorkspace> LoadWorkspaceAsync(string workspaceId)
+    {
+        var workspacePath = Path.Combine(_oneBoxManager.GetProjectsPath(), workspaceId);
+        var workspaceFile = Path.Combine(workspacePath, "workspace.json");
+        
+        var json = await File.ReadAllTextAsync(workspaceFile);
+        return JsonSerializer.Deserialize<ProjectWorkspace>(json);
+    }
+    
+    private async Task SaveWorkspaceAsync(ProjectWorkspace workspace)
+    {
+        var workspacePath = Path.Combine(_oneBoxManager.GetProjectsPath(), workspace.Id);
+        var workspaceFile = Path.Combine(workspacePath, "workspace.json");
+        
+        var json = JsonSerializer.Serialize(workspace, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(workspaceFile, json);
+    }
+    
+    private async Task<IProjectManager> CreateProjectManagerAsync(string workspaceId)
+    {
+        var workspacePath = Path.Combine(_oneBoxManager.GetProjectsPath(), workspaceId);
+        var oneBoxManager = new OneBoxManager(workspacePath);
+        
+        var projectManager = new ProjectManager(
+            oneBoxManager,
+            new VibeKanbanManager(oneBoxManager),
+            new PiveCycleManager(new VibeKanbanManager(oneBoxManager), new GateManager(oneBoxManager)),
+            new AIAgentManager(oneBoxManager)
+        );
+        
+        return projectManager;
+    }
+    
+    private async Task<IProjectManager> GetProjectManagerAsync(string workspaceId, string projectId)
+    {
+        var key = $"{workspaceId}:{projectId}";
+        
+        if (!_projectManagers.TryGetValue(key, out var projectManager))
+        {
+            projectManager = await CreateProjectManagerAsync(workspaceId);
+            _projectManagers[key] = projectManager;
+        }
+        
+        return projectManager;
+    }
+}
+```
+
+#### 3.2 コラボレーション機能
+```csharp
+// CollaborationManager.cs
+public class CollaborationManager : ICollaborationManager
+{
+    private readonly IOneBoxManager _oneBoxManager;
+    private readonly IMultiProjectManager _multiProjectManager;
+    private readonly Dictionary<string, CollaborationSession> _activeSessions = new Dictionary<string, CollaborationSession>();
+    
+    public CollaborationManager(IOneBoxManager oneBoxManager, IMultiProjectManager multiProjectManager)
+    {
+        _oneBoxManager = oneBoxManager;
+        _multiProjectManager = multiProjectManager;
+    }
+    
+    public async Task<CollaborationSession> StartCollaborationSessionAsync(string workspaceId, string sessionId, List<string> participants)
+    {
+        var session = new CollaborationSession
+        {
+            Id = sessionId,
+            WorkspaceId = workspaceId,
+            Participants = participants,
+            StartTime = DateTime.Now,
+            Status = CollaborationStatus.Active,
+            Activities = new List<CollaborationActivity>()
+        };
+        
+        _activeSessions[sessionId] = session;
+        
+        // 参加者に通知
+        await NotifyParticipantsAsync(session, "セッションが開始されました");
+        
+        return session;
+    }
+    
+    public async Task<CollaborationActivity> AddActivityAsync(string sessionId, string userId, CollaborationActivity activity)
+    {
+        if (!_activeSessions.TryGetValue(sessionId, out var session))
+            throw new InvalidOperationException($"Session {sessionId} not found");
+        
+        activity.UserId = userId;
+        activity.Timestamp = DateTime.Now;
+        activity.Id = Guid.NewGuid().ToString();
+        
+        session.Activities.Add(activity);
+        
+        // リアルタイム通知
+        await NotifyParticipantsAsync(session, $"{userId} がアクティビティを追加しました: {activity.Type}");
+        
+        return activity;
+    }
+    
+    public async Task<List<CollaborationActivity>> GetSessionActivitiesAsync(string sessionId)
+    {
+        if (_activeSessions.TryGetValue(sessionId, out var session))
+            return session.Activities.OrderByDescending(a => a.Timestamp).ToList();
+        
+        return new List<CollaborationActivity>();
+    }
+    
+    public async Task EndCollaborationSessionAsync(string sessionId)
+    {
+        if (_activeSessions.TryGetValue(sessionId, out var session))
+        {
+            session.Status = CollaborationStatus.Ended;
+            session.EndTime = DateTime.Now;
+            
+            await NotifyParticipantsAsync(session, "セッションが終了しました");
+            
+            _activeSessions.Remove(sessionId);
+        }
+    }
+    
+    private async Task NotifyParticipantsAsync(CollaborationSession session, string message)
+    {
+        // 実際の実装では、WebSocketやSignalRを使用してリアルタイム通知
+        foreach (var participant in session.Participants)
+        {
+            // 通知ロジックを実装
+            Console.WriteLine($"通知: {participant} - {message}");
+        }
+    }
+}
+```
+
+### Phase 4: 完成と最適化（2週間）
+
+#### 4.1 パフォーマンス最適化
+```csharp
+// PerformanceOptimizer.cs
+public class PerformanceOptimizer : IPerformanceOptimizer
+{
+    private readonly IOneBoxManager _oneBoxManager;
+    private readonly IMemoryCache _memoryCache;
+    private readonly object _cacheLock = new object();
+    
+    public PerformanceOptimizer(IOneBoxManager oneBoxManager, IMemoryCache memoryCache)
+    {
+        _oneBoxManager = oneBoxManager;
+        _memoryCache = memoryCache;
+    }
+    
+    public async Task<T> GetOrAddCachedAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null)
+    {
+        if (_memoryCache.TryGetValue(key, out T cachedValue))
+            return cachedValue;
+        
+        lock (_cacheLock)
+        {
+            if (_memoryCache.TryGetValue(key, out cachedValue))
+                return cachedValue;
+            
+            var value = factory().Result;
+            
+            var cacheEntryOptions = new MemoryCacheEntryOptions();
+            if (expiration.HasValue)
+                cacheEntryOptions.AbsoluteExpirationRelativeToNow = expiration.Value;
+            else
+                cacheEntryOptions.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+            
+            _memoryCache.Set(key, value, cacheEntryOptions);
+            return value;
+        }
+    }
+    
+    public async Task<List<VibeCard>> GetCachedCardsAsync(string projectId)
+    {
+        var cacheKey = $"cards_{projectId}";
+        return await GetOrAddCachedAsync(cacheKey, async () =>
+        {
+            var kanbanManager = new VibeKanbanManager(_oneBoxManager);
+            return await kanbanManager.GetAllCardsAsync();
+        }, TimeSpan.FromMinutes(5));
+    }
+    
+    public void ClearCache(string pattern = null)
+    {
+        if (string.IsNullOrEmpty(pattern))
+        {
+            _memoryCache.Compact(1.0);
+            return;
+        }
+        
+        // パターンに一致するキャッシュのみをクリア
+        var cacheKeys = _memoryCache.GetKeys<string>().Where(k => k.Contains(pattern)).ToList();
+        foreach (var key in cacheKeys)
+        {
+            _memoryCache.Remove(key);
+        }
+    }
+    
+    public async Task<PerformanceReport> GeneratePerformanceReportAsync()
+    {
+        var report = new PerformanceReport
+        {
+            GeneratedAt = DateTime.Now,
+            CacheStatistics = new CacheStatistics
+            {
+                TotalEntries = _memoryCache.GetCount(),
+                MemoryUsage = GetCacheMemoryUsage()
+            },
+            DatabaseStatistics = await GetDatabaseStatisticsAsync(),
+            UIStatistics = await GetUIStatisticsAsync()
+        };
+        
+        return report;
+    }
+    
+    private long GetCacheMemoryUsage()
+    {
+        // キャッシュのメモリ使用量を計算
+        return GC.GetTotalMemory(false);
+    }
+    
+    private async Task<DatabaseStatistics> GetDatabaseStatisticsAsync()
+    {
+        // データベースの統計情報を取得
+        return new DatabaseStatistics
+        {
+            TotalCards = await CountCardsAsync(),
+            TotalProjects = await CountProjectsAsync(),
+            TotalEvidenceFiles = await CountEvidenceFilesAsync()
+        };
+    }
+    
+    private async Task<UIStatistics> GetUIStatisticsAsync()
+    {
+        // UIのパフォーマンス統計を取得
+        return new UIStatistics
+        {
+            AverageLoadTime = await GetAverageLoadTimeAsync(),
+            MemoryUsage = Process.GetCurrentProcess().WorkingSet64,
+            ThreadCount = Process.GetCurrentProcess().Threads.Count
+        };
+    }
+    
+    private async Task<int> CountCardsAsync()
+    {
+        var kanbanManager = new VibeKanbanManager(_oneBoxManager);
+        var cards = await kanbanManager.GetAllCardsAsync();
+        return cards.Count;
+    }
+    
+    private async Task<int> CountProjectsAsync()
+    {
+        var projectsPath = _oneBoxManager.GetProjectsPath();
+        if (!Directory.Exists(projectsPath))
+            return 0;
+        
+        return Directory.GetDirectories(projectsPath).Length;
+    }
+    
+    private async Task<int> CountEvidenceFilesAsync()
+    {
+        var evidencePath = Path.Combine(_oneBoxManager.GetVaultPath(), "04_EVIDENCE");
+        if (!Directory.Exists(evidencePath))
+            return 0;
+        
+        return Directory.GetFiles(evidencePath, "*.*", SearchOption.AllDirectories).Length;
+    }
+    
+    private async Task<TimeSpan> GetAverageLoadTimeAsync()
+    {
+        // UIの平均読み込み時間を計測
+        var loadTimes = new List<TimeSpan>();
+        
+        // 複数回の読み込み時間を測定
+        for (int i = 0; i < 10; i++)
+        {
+            var startTime = DateTime.Now;
+            
+            // UIの読み込み処理をシミュレート
+            await Task.Delay(10); // 実際の読み込み処理
+            
+            var endTime = DateTime.Now;
+            loadTimes.Add(endTime - startTime);
+        }
+        
+        return TimeSpan.FromMilliseconds(loadTimes.Average(t => t.TotalMilliseconds));
+    }
+}
+```
+
+#### 4.2 完成度評価と品質保証
+```csharp
+// QualityAssuranceManager.cs
+public class QualityAssuranceManager : IQualityAssuranceManager
+{
+    private readonly IOneBoxManager _oneBoxManager;
+    private readonly IMultiProjectManager _multiProjectManager;
+    private readonly IPerformanceOptimizer _performanceOptimizer;
+    
+    public QualityAssuranceManager(IOneBoxManager oneBoxManager,
+                                   IMultiProjectManager multiProjectManager,
+                                   IPerformanceOptimizer performanceOptimizer)
+    {
+        _oneBoxManager = oneBoxManager;
+        _multiProjectManager = multiProjectManager;
+        _performanceOptimizer = performanceOptimizer;
+    }
+    
+    public async Task<CompletionAssessment> AssessCompletionAsync()
+    {
+        var assessment = new CompletionAssessment
+        {
+            AssessmentDate = DateTime.Now,
+            UxCompletion = await AssessUxCompletionAsync(),
+            PlatformCompletion = await AssessPlatformCompletionAsync(),
+            PerformanceCompletion = await AssessPerformanceCompletionAsync(),
+            CollaborationCompletion = await AssessCollaborationCompletionAsync(),
+            OverallCompletion = 0
+        };
+        
+        // 全体の完成度を計算
+        assessment.OverallCompletion = (int)(
+            (assessment.UxCompletion.CompletionPercentage * 0.25) +
+            (assessment.PlatformCompletion.CompletionPercentage * 0.35) +
+            (assessment.PerformanceCompletion.CompletionPercentage * 0.25) +
+            (assessment.CollaborationCompletion.CompletionPercentage * 0.15)
+        );
+        
+        return assessment;
+    }
+    
+    private async Task<CategoryCompletion> AssessUxCompletionAsync()
+    {
+        var completion = new CategoryCompletion { Category = "UI/UX" };
+        
+        // UI/UXの完成度を評価
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "状態可視化",
+            Description = "処理中の状態が適切に表示される",
+            IsCompleted = await CheckBusyOverlayImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "誤操作防止",
+            Description = "処理中の誤操作が防止される",
+            IsCompleted = await CheckOperationGateImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "操作ガイド",
+            Description = "初心者向けの操作ガイドが機能する",
+            IsCompleted = await CheckOperationGuideImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "コマンドパレット",
+            Description = "高度なコマンドパレットが利用可能",
+            IsCompleted = await CheckCommandPaletteImplementationAsync()
+        });
+        
+        completion.CompletionPercentage = (int)completion.CheckItems.Average(i => i.IsCompleted ? 100 : 0);
+        
+        return completion;
+    }
+    
+    private async Task<CategoryCompletion> AssessPlatformCompletionAsync()
+    {
+        var completion = new CategoryCompletion { Category = "開発プラットフォーム" };
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "PIvEサイクル",
+            Description = "Plan-Implement-Verify-Evidenceサイクルが自動化されている",
+            IsCompleted = await CheckPiveCycleImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "VIBE KANBAN",
+            Description = "VIBE KANBANが完全に機能する",
+            IsCompleted = await CheckVibeKanbanImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "Gates自動化",
+            Description = "VERIFYとFINAL AUDITが自動化されている",
+            IsCompleted = await CheckGatesAutomationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "AI連携",
+            Description = "AIエージェントとの連携が機能する",
+            IsCompleted = await CheckAIIntegrationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "マルチプロジェクト",
+            Description = "複数プロジェクトの管理が可能",
+            IsCompleted = await CheckMultiProjectImplementationAsync()
+        });
+        
+        completion.CompletionPercentage = (int)completion.CheckItems.Average(i => i.IsCompleted ? 100 : 0);
+        
+        return completion;
+    }
+    
+    private async Task<CategoryCompletion> AssessPerformanceCompletionAsync()
+    {
+        var completion = new CategoryCompletion { Category = "パフォーマンス" };
+        
+        var performanceReport = await _performanceOptimizer.GeneratePerformanceReportAsync();
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "キャッシュ最適化",
+            Description = "キャッシュによるパフォーマンス向上",
+            IsCompleted = performanceReport.CacheStatistics.TotalEntries > 0
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "メモリ使用量",
+            Description = "メモリ使用量が適切な範囲内",
+            IsCompleted = performanceReport.UIStatistics.MemoryUsage < 1024 * 1024 * 1024 // 1GB未満
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "応答時間",
+            Description = "UIの応答時間が許容範囲内",
+            IsCompleted = performanceReport.UIStatistics.AverageLoadTime.TotalMilliseconds < 1000 // 1秒未満
+        });
+        
+        completion.CompletionPercentage = (int)completion.CheckItems.Average(i => i.IsCompleted ? 100 : 0);
+        
+        return completion;
+    }
+    
+    private async Task<CategoryCompletion> AssessCollaborationCompletionAsync()
+    {
+        var completion = new CategoryCompletion { Category = "コラボレーション" };
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "コラボレーションセッション",
+            Description = "複数ユーザーでの協業が可能",
+            IsCompleted = await CheckCollaborationSessionImplementationAsync()
+        });
+        
+        completion.CheckItems.Add(new CompletionCheckItem
+        {
+            Name = "リアルタイム通知",
+            Description = "アクティビティのリアルタイム通知",
+            IsCompleted = await CheckRealtimeNotificationImplementationAsync()
+        });
+        
+        completion.CompletionPercentage = (int)completion.CheckItems.Average(i => i.IsCompleted ? 100 : 0);
+        
+        return completion;
+    }
+    
+    // 各チェック項目の実装状態を確認するメソッド
+    private async Task<bool> CheckBusyOverlayImplementationAsync()
+    {
+        // BusyOverlayの実装を確認
+        var mainWindowPath = Path.Combine(_oneBoxManager.GetVaultPath(), "APP", "OneScreenOSApp", "MainWindow.xaml");
+        var content = await File.ReadAllTextAsync(mainWindowPath);
+        return content.Contains("BusyOverlay");
+    }
+    
+    private async Task<bool> CheckOperationGateImplementationAsync()
+    {
+        // OperationGateの実装を確認
+        var operationGatePath = Path.Combine(_oneBoxManager.GetVaultPath(), "APP", "OneScreenOSApp", "OperationGate.cs");
+        return File.Exists(operationGatePath);
+    }
+    
+    // 他のチェックメソッドも同様に実装...
+    
+    private async Task<bool> CheckPiveCycleImplementationAsync() { /* 実装 */ }
+    private async Task<bool> CheckVibeKanbanImplementationAsync() { /* 実装 */ }
+    private async Task<bool> CheckGatesAutomationAsync() { /* 実装 */ }
+    private async Task<bool> CheckAIIntegrationAsync() { /* 実装 */ }
+    private async Task<bool> CheckMultiProjectImplementationAsync() { /* 実装 */ }
+    private async Task<bool> CheckCollaborationSessionImplementationAsync() { /* 実装 */ }
+    private async Task<bool> CheckRealtimeNotificationImplementationAsync() { /* 実装 */ }
+}
+```
+
+## 実行計画
+
+### Week 1-2: Phase 0 - 基盤再構築
+- [ ] 環境診断と安定化
+- [ ] アーキテクチャ再設計
+- [ ] MVVMパターン適用
+- [ ] 依存性注入の設定
+
+### Week 3-5: Phase 1 - UI/UX革命
+- [ ] 状態可視化システム
+- [ ] 操作ガイドシステム
+- [ ] コマンドパレット
+- [ ] UIテストとデバッグ
+
+### Week 6-9: Phase 2 - VIBE開発プラットフォーム化
+- [ ] PIvEサイクル自動化
+- [ ] AI駆動開発
+- [ ] Evidence管理
+- [ ] Gates自動化
+
+### Week 10-12: Phase 3 - 大規模開発対応
+- [ ] マルチプロジェクト管理
+- [ ] コラボレーション機能
+- [ ] パフォーマンスチューニング
+- [ ] 統合テスト
+
+### Week 13-14: Phase 4 - 完成と最適化
+- [ ] 完成度評価
+- [ ] 品質保証
+- [ ] ドキュメント作成
+- [ ] リリース準備
+
+## 成功の定義
+
+### 短期目標（Phase 0-1完了時）
+- [ ] UI/UXの問題が90%解決
+- [ ] 基本的なVIBE開発サイクルが動作
+- [ ] ユーザー満足度が80%以上
+
+### 中期目標（Phase 2完了時）
+- [ ] 完全なPIvEサイクル自動化
+- [ ] AIエージェントとの高度な連携
+- [ ] 開发生産性が50%向上
+
+### 長期目標（Phase 3-4完了時）
+- [ ] 大規模開発プロジェクト対応
+- [ ] チームコラボレーション機能
+- [ ] 業界標準を超える開発体験
+
+## まとめ
+
+VIBE One Screen OSを真の「大規模コーディング開発プラットフォーム」へと進化させるには、以下の要素が不可欠です：
+
+1. **基盤の再構築**: MVVMアーキテクチャと依存性注入
+2. **UI/UX革命**: 状態可視化と操作ガイド
+3. **VIBE開発プラットフォーム化**: PIvEサイクルの完全自動化
+4. **AI駆動開発**: 複数AIエージェントとの連携
+5. **大規模開発対応**: マルチプロジェクトとコラボレーション
+6. **品質保証**: 完成度評価とパフォーマンス最適化
+
+このロードマップに従って段階的に実装を進めることで、VIBE One Screen OSは単なるUI改善アプリではなく、業界をリードする大規模コーディング開発プラットフォームへと進化することができます。

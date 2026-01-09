@@ -1,0 +1,382 @@
+### USER
+目的：50フォルダ以上の大規模リポジトリで「新規開発＋既存改修」をAIと一緒に進める。バイブコーディングでも精度（影響範囲漏れ・設計ブレ・実装漏れ）を最小化したい。技術スタックは複数混在。
+
+あなたの役割：シニアテックリード兼QAとして振る舞って。
+
+やってほしいこと
+
+大規模開発で精度が落ちる原因を先に整理し、対策方針を提示して。
+
+「最小の手順」で回せるワークフローを、フェーズ（把握→設計→分割→実装→検証→統合）ごとに提案して。
+
+各フェーズで私がAIに投げる指示の短いテンプレ（コピペ用）を出して。
+
+50+フォルダ前提で、必ず入れるべきチェックリストを出して（影響範囲、依存、設定、テスト、移行、ドキュメント）。
+
+「迷走しないタスク分割のやり方」と「1イテレーションの基本ループ（例：30〜60分単位）」を提示して。
+
+最後に、私に最初に確認すべき質問を最大7個だけ聞いて。
+
+制約
+
+プロンプトや手順は複雑にしすぎない（“運用できる”こと優先）
+
+不明点は推測せず、確認質問にして
+
+### ASSISTANT
+<details type="reasoning" done="true" duration="9" view="" last_tool_call_name="">
+> 大規模なリポジトリ（50以上のフォルダ）で新規開発と既存修正をAIと協力して進める際の、精度低下を防ぐための対策、ワークフロー、テンプレート、チェックリストなどを提供する。  
+> プロジェクトの性質、チーム構成、使用ツールなどが不明なため、具体的な提案前に確認が必要。  
+> ユーザーはシニアテックリード兼QAとしての役割を求めており、運用可能な簡潔な手順を重視。  
+> 不明点は推測せず、質問で明確にする方針。
+</details>
+
+<glm_block view="" tool_call_name="search">{"data":{"browser":{"search_result":[{"title":"20 Best AI Coding Assistant Tools [Updated Aug 2025]","url":"https://www.qodo.ai/blog/best-ai-coding-assistant-tools","text":"Explore our list of the 20 best AI coding assistant tools in 2025, boosting productivity and code quality for developers.","index":1,"favicon":"","host_name":"www.qodo.ai"},{"title":"Anyone found the best AI coding assistant 2025 for large/","url":"https://www.reddit.com/r/ExperiencedDevs/comments/1oxx4tc/anyone_found_the_best_ai_coding_assistant_2025","text":"Anyone found the best AI coding assistant 2025 for large/older codebases? ... I'm working in a mid-sized codebase with years of mixed coding ...","index":2,"favicon":"","host_name":"www.reddit.com"},{"title":"Best AI Coding Assistants 2025: Tools for Developers","url":"https://replit.com/discover/best-ai-coding-assistant","text":"Best AI coding assistants of 2025 compared. See how tools like Replit, Cursor, and Copilot automate coding, testing, and deployment.","index":3,"favicon":"","host_name":"replit.com"},{"title":"Top 7 AI Code Assistants for Navigating Large Codebases","url":"https://www.secondtalent.com/resources/ai-code-assistants-for-codebases","text":"1. Understand the Whole Project · 2. Follow the Thread Across Files · 3. Adapt to Your Codebase · 4. Stay in Your Editor · 5. Handle Big Changes · 6.","index":4,"favicon":"","host_name":"www.secondtalent.com"},{"title":"The Top Ten GitHub Agentic AI Repositories in 2025 | by ODSC","url":"https://odsc.medium.com/the-top-ten-github-agentic-ai-repositories-in-2025-1a1440fe50c5","text":"The year 2025 has seen an explosion of open-source projects aimed at building and enhancing AI agents. GitHub's latest Octoverse report ...","index":5,"favicon":"","host_name":"odsc.medium.com"},{"title":"12 AI Code Generators Tested: Which Is Best? (2025)","url":"https://prismic.io/blog/ai-code-generators","text":"We compared 12 AI code generators, like Cursor, Claude Code, Windsurf, and more! This is our honest review to help you choose the right tool ...","index":6,"favicon":"","host_name":"prismic.io"},{"title":"13 Best AI Coding Tools for Complex Enterprise","url":"https://www.augmentcode.com/guides/13-best-ai-coding-tools-for-complex-codebases","text":"This guide breaks down 13 tools, from Augment Code's 400,000+ file indexing to Tabnine's air-gapped deployment, helping you match enterprise ...","index":7,"favicon":"","host_name":"www.augmentcode.com"},{"title":"The Best AI Coding Tools for Developers in 2025 (That I","url":"https://www.youtube.com/watch?v=YESrXVkcCHY","text":"In this video I want to talk to you about which ones I actually use on a day-by-day basis as a developer.","index":8,"favicon":"","host_name":"www.youtube.com"},{"title":"Best AI coding tool in 2025—thoughts? : r/nocode","url":"https://www.reddit.com/r/nocode/comments/1n8zylf/best_ai_coding_tool_in_2025thoughts","text":"Let's see what tool is best for you based on your skilled level and use the same prompt for all three of these tools and see where we get all right.","index":9,"favicon":"","host_name":"www.reddit.com"},{"title":"20 Best AI-Powered Coding Assistant Tools in 2026","url":"https://spacelift.io/blog/ai-coding-assistant-tools","text":"See our list of 20 best AI coding assistant tools that can improve your programming workflow with bug fixing, code generation, and more.","index":10,"favicon":"","host_name":"spacelift.io"}]},"metadata":{"arguments":"{\"query\":\"large repository AI assistant code generation workflow 2025\"}","display_result":"","duration":"4s","id":"call_mo2ocb47gP","is_error":false,"mcp_server":{"name":"mcp-server"},"name":"search","result":"【0†20 Best AI Coding Assistant Tools [Updated Aug 2025]†https://www.qodo.ai/blog/best-ai-coding-assistant-tools】\nExplore our list of the 20 best AI coding assistant tools in 2025, boosting productivity and code quality for developers.\n\n【1†Anyone found the best AI coding assistant 2025 for large/†https://www.reddit.com/r/ExperiencedDevs/comments/1oxx4tc/anyone_found_the_best_ai_coding_assistant_2025】\nAnyone found the best AI coding assistant 2025 for large/older codebases? ... I'm working in a mid-sized codebase with years of mixed coding ...\n\n【2†Best AI Coding Assistants 2025: Tools for Developers†https://replit.com/discover/best-ai-coding-assistant】\nBest AI coding assistants of 2025 compared. See how tools like Replit, Cursor, and Copilot automate coding, testing, and deployment.\n\n【3†Top 7 AI Code Assistants for Navigating Large Codebases†https://www.secondtalent.com/resources/ai-code-assistants-for-codebases】\n1. Understand the Whole Project · 2. Follow the Thread Across Files · 3. Adapt to Your Codebase · 4. Stay in Your Editor · 5. Handle Big Changes · 6.\n\n【4†The Top Ten GitHub Agentic AI Repositories in 2025 | by ODSC†https://odsc.medium.com/the-top-ten-github-agentic-ai-repositories-in-2025-1a1440fe50c5】\nThe year 2025 has seen an explosion of open-source projects aimed at building and enhancing AI agents. GitHub's latest Octoverse report ...\n\n【5†12 AI Code Generators Tested: Which Is Best? (2025)†https://prismic.io/blog/ai-code-generators】\nWe compared 12 AI code generators, like Cursor, Claude Code, Windsurf, and more! This is our honest review to help you choose the right tool ...\n\n【6†13 Best AI Coding Tools for Complex Enterprise†https://www.augmentcode.com/guides/13-best-ai-coding-tools-for-complex-codebases】\nThis guide breaks down 13 tools, from Augment Code's 400,000+ file indexing to Tabnine's air-gapped deployment, helping you match enterprise ...\n\n【7†The Best AI Coding Tools for Developers in 2025 (That I†https://www.youtube.com/watch?v=YESrXVkcCHY】\nIn this video I want to talk to you about which ones I actually use on a day-by-day basis as a developer.\n\n【8†Best AI coding tool in 2025—thoughts? : r/nocode†https://www.reddit.com/r/nocode/comments/1n8zylf/best_ai_coding_tool_in_2025thoughts】\nLet's see what tool is best for you based on your skilled level and use the same prompt for all three of these tools and see where we get all right.\n\n【9†20 Best AI-Powered Coding Assistant Tools in 2026†https://spacelift.io/blog/ai-coding-assistant-tools】\nSee our list of 20 best AI coding assistant tools that can improve your programming workflow with bug fixing, code generation, and more.\n","status":"completed"}},"type":"mcp"}</glm_block>
+<glm_block view="" tool_call_name="search">{"data":{"browser":{"search_result":[{"title":"20 Best AI Coding Assistant Tools [Updated Aug 2025]","url":"https://www.qodo.ai/blog/best-ai-coding-assistant-tools","text":"Explore our list of the 20 best AI coding assistant tools in 2025, boosting productivity and code quality for developers.","index":1,"favicon":"","host_name":"www.qodo.ai"},{"title":"Anyone found the best AI coding assistant 2025 for large/","url":"https://www.reddit.com/r/ExperiencedDevs/comments/1oxx4tc/anyone_found_the_best_ai_coding_assistant_2025","text":"Anyone found the best AI coding assistant 2025 for large/older codebases? ... I'm working in a mid-sized codebase with years of mixed coding ...","index":2,"favicon":"","host_name":"www.reddit.com"},{"title":"Best AI Coding Assistants 2025: Tools for Developers","url":"https://replit.com/discover/best-ai-coding-assistant","text":"Best AI coding assistants of 2025 compared. See how tools like Replit, Cursor, and Copilot automate coding, testing, and deployment.","index":3,"favicon":"","host_name":"replit.com"},{"title":"Top 7 AI Code Assistants for Navigating Large Codebases","url":"https://www.secondtalent.com/resources/ai-code-assistants-for-codebases","text":"1. Understand the Whole Project · 2. Follow the Thread Across Files · 3. Adapt to Your Codebase · 4. Stay in Your Editor · 5. Handle Big Changes · 6.","index":4,"favicon":"","host_name":"www.secondtalent.com"},{"title":"The Top Ten GitHub Agentic AI Repositories in 2025 | by ODSC","url":"https://odsc.medium.com/the-top-ten-github-agentic-ai-repositories-in-2025-1a1440fe50c5","text":"The year 2025 has seen an explosion of open-source projects aimed at building and enhancing AI agents. GitHub's latest Octoverse report ...","index":5,"favicon":"","host_name":"odsc.medium.com"},{"title":"12 AI Code Generators Tested: Which Is Best? (2025)","url":"https://prismic.io/blog/ai-code-generators","text":"We compared 12 AI code generators, like Cursor, Claude Code, Windsurf, and more! This is our honest review to help you choose the right tool ...","index":6,"favicon":"","host_name":"prismic.io"},{"title":"13 Best AI Coding Tools for Complex Enterprise","url":"https://www.augmentcode.com/guides/13-best-ai-coding-tools-for-complex-codebases","text":"This guide breaks down 13 tools, from Augment Code's 400,000+ file indexing to Tabnine's air-gapped deployment, helping you match enterprise ...","index":7,"favicon":"","host_name":"www.augmentcode.com"},{"title":"The Best AI Coding Tools for Developers in 2025 (That I","url":"https://www.youtube.com/watch?v=YESrXVkcCHY","text":"In this video I want to talk to you about which ones I actually use on a day-by-day basis as a developer.","index":8,"favicon":"","host_name":"www.youtube.com"},{"title":"Best AI coding tool in 2025—thoughts? : r/nocode","url":"https://www.reddit.com/r/nocode/comments/1n8zylf/best_ai_coding_tool_in_2025thoughts","text":"Let's see what tool is best for you based on your skilled level and use the same prompt for all three of these tools and see where we get all right.","index":9,"favicon":"","host_name":"www.reddit.com"},{"title":"20 Best AI-Powered Coding Assistant Tools in 2026","url":"https://spacelift.io/blog/ai-coding-assistant-tools","text":"See our list of 20 best AI coding assistant tools that can improve your programming workflow with bug fixing, code generation, and more.","index":10,"favicon":"","host_name":"spacelift.io"},{"title":"Monorepo Tools","url":"https://2024.stateofjs.com/en-US/libraries/monorepo_tools","text":"Monorepo Tools. Tools used to manage JavaScript monorepos.","index":11,"favicon":"","host_name":"2024.stateofjs.com"},{"title":"Semgrep Quarterly Launch: scaling your AppSec impact","url":"https://semgrep.dev/blog/2024/may-quarterly-launch","text":"Once this requirement is met (and frequently before), teams will attempt to roll out their security tooling more broadly, which is another process that can also ...","index":12,"favicon":"","host_name":"semgrep.dev"},{"title":"Nx monorepo toolkit","url":"https://graphite.com/guides/nx-monorepo-toolkit","text":"Nx is an advanced set of development tools that enables efficient management of monorepos. It is created and maintained by Nrwl, a company known for its ...","index":13,"favicon":"","host_name":"graphite.com"},{"title":"11 Monorepo Build Tools You Should Know - ITNEXT","url":"https://itnext.io/11-monorepo-build-tools-you-should-know-35b83738b95f","text":"So, here are useful monorepo build tools for 2024. I hope it helps. 1. Bit. Bit is a unique tool in the software development landscape ...","index":14,"favicon":"","host_name":"itnext.io"},{"title":"Super 7 JavaScript Monorepo Tools 2024","url":"https://themeselection.com/javascript-monorepo-tools/?srsltid=AfmBOoriNANfZ4RIDtwSj-jYg-3lvg7ehOPVUSQ3osqyUjhjoErt5os4","text":"What Is Javascript Monorepo Tools? A Javascript monorepo tool is a software tool that helps developers manage a monorepo, which is a single ...","index":15,"favicon":"","host_name":"themeselection.com"},{"title":"10 Common monorepo problems and how your team can","url":"https://digma.ai/10-common-problems-of-working-with-a-monorepo","text":"Tooling for clarity: Use tools like Nx or CodeSee to visualize dependencies and enforce bounded contexts between projects. 7. Technical Debt and ...","index":16,"favicon":"","host_name":"digma.ai"},{"title":"AI & Monorepos","url":"https://monorepo.tools/ai","text":"AI can automate tooling modernization across projects, updating configurations and handling dependency conflicts when upgrading build tools, linters, or testing ...","index":17,"favicon":"","host_name":"monorepo.tools"},{"title":"JavaScript Monorepos in 2024: Legit or Sus?","url":"https://keyholesoftware.com/javascript-monorepos-in-2024-legit-or-sus","text":"NX is not simply a monorepo tool but an umbrella tool that covers many different facets of modern JS development: JavaScript Monorepos: what do ...","index":18,"favicon":"","host_name":"keyholesoftware.com"},{"title":"korfuri/awesome-monorepo: A curated list of","url":"https://github.com/korfuri/awesome-monorepo","text":"Nx is a build system for TypeScript monorepos and a set of monorepo management tools. OAO is a Yarn-based, opinionated JavaScript monorepo management tool.","index":19,"favicon":"","host_name":"github.com"},{"title":"Introducing a Better Way to SCA for Monorepos and Bazel","url":"https://www.endorlabs.com/learn/introducing-a-better-way-to-sca-for-monorepos-and-bazel","text":"If the SCA tool doesn't support the languages in your Bazel-driven monorepo, you won't get complete or fully accurate results. Challenge 2: ...","index":20,"favicon":"","host_name":"www.endorlabs.com"}]},"metadata":{"arguments":"{\"query\":\"monorepo impact analysis tooling 2024\"}","display_result":"","duration":"4s","id":"call_zjQ6xmz98n","is_error":false,"mcp_server":{"name":"mcp-server"},"name":"search","result":"【10†Monorepo Tools†https://2024.stateofjs.com/en-US/libraries/monorepo_tools】\nMonorepo Tools. Tools used to manage JavaScript monorepos.\n\n【11†Semgrep Quarterly Launch: scaling your AppSec impact†https://semgrep.dev/blog/2024/may-quarterly-launch】\nOnce this requirement is met (and frequently before), teams will attempt to roll out their security tooling more broadly, which is another process that can also ...\n\n【12†Nx monorepo toolkit†https://graphite.com/guides/nx-monorepo-toolkit】\nNx is an advanced set of development tools that enables efficient management of monorepos. It is created and maintained by Nrwl, a company known for its ...\n\n【13†11 Monorepo Build Tools You Should Know - ITNEXT†https://itnext.io/11-monorepo-build-tools-you-should-know-35b83738b95f】\nSo, here are useful monorepo build tools for 2024. I hope it helps. 1. Bit. Bit is a unique tool in the software development landscape ...\n\n【14†Super 7 JavaScript Monorepo Tools 2024†https://themeselection.com/javascript-monorepo-tools/?srsltid=AfmBOoriNANfZ4RIDtwSj-jYg-3lvg7ehOPVUSQ3osqyUjhjoErt5os4】\nWhat Is Javascript Monorepo Tools? A Javascript monorepo tool is a software tool that helps developers manage a monorepo, which is a single ...\n\n【15†10 Common monorepo problems and how your team can†https://digma.ai/10-common-problems-of-working-with-a-monorepo】\nTooling for clarity: Use tools like Nx or CodeSee to visualize dependencies and enforce bounded contexts between projects. 7. Technical Debt and ...\n\n【16†AI & Monorepos†https://monorepo.tools/ai】\nAI can automate tooling modernization across projects, updating configurations and handling dependency conflicts when upgrading build tools, linters, or testing ...\n\n【17†JavaScript Monorepos in 2024: Legit or Sus?†https://keyholesoftware.com/javascript-monorepos-in-2024-legit-or-sus】\nNX is not simply a monorepo tool but an umbrella tool that covers many different facets of modern JS development: JavaScript Monorepos: what do ...\n\n【18†korfuri/awesome-monorepo: A curated list of†https://github.com/korfuri/awesome-monorepo】\nNx is a build system for TypeScript monorepos and a set of monorepo management tools. OAO is a Yarn-based, opinionated JavaScript monorepo management tool.\n\n【19†Introducing a Better Way to SCA for Monorepos and Bazel†https://www.endorlabs.com/learn/introducing-a-better-way-to-sca-for-monorepos-and-bazel】\nIf the SCA tool doesn't support the languages in your Bazel-driven monorepo, you won't get complete or fully accurate results. Challenge 2: ...\n","status":"completed"}},"type":"mcp"}</glm_block>
+
+
+<details type="reasoning" done="true" duration="12" view="" last_tool_call_name="search">
+> 大規模リポジトリでAIを活用した開発プロセスの精度低下を防ぐための一般的な原因を整理し、対策方針を提示する。  
+> 具体的には、影響範囲の特定漏れ、設計のブレ、実装漏れ、テスト不足、ドキュメント不足、依存関係の複雑さ、設定の不整合、コミュニケーション不足などが挙げられる。  
+> 対策として、静的解析、グラフベースの依存関係可視化、ドキュメント自動生成、テストカバレッジ向上、設定ファイルの一元管理、短いサイクルでのフィードバックなどを提案。  
+> ワークフローは「把握→設計→分割→実装→検証→統合」のフェーズで構成し、各フェーズでAIを活用した具体的な手順を示す。
+</details>
+
+<glm_block view="" tool_call_name="search">{"data":{"browser":{"search_result":[{"title":"20 Best AI Coding Assistant Tools [Updated Aug 2025]","url":"https://www.qodo.ai/blog/best-ai-coding-assistant-tools","text":"Explore our list of the 20 best AI coding assistant tools in 2025, boosting productivity and code quality for developers.","index":1,"favicon":"","host_name":"www.qodo.ai"},{"title":"Anyone found the best AI coding assistant 2025 for large/","url":"https://www.reddit.com/r/ExperiencedDevs/comments/1oxx4tc/anyone_found_the_best_ai_coding_assistant_2025","text":"Anyone found the best AI coding assistant 2025 for large/older codebases? ... I'm working in a mid-sized codebase with years of mixed coding ...","index":2,"favicon":"","host_name":"www.reddit.com"},{"title":"Best AI Coding Assistants 2025: Tools for Developers","url":"https://replit.com/discover/best-ai-coding-assistant","text":"Best AI coding assistants of 2025 compared. See how tools like Replit, Cursor, and Copilot automate coding, testing, and deployment.","index":3,"favicon":"","host_name":"replit.com"},{"title":"Top 7 AI Code Assistants for Navigating Large Codebases","url":"https://www.secondtalent.com/resources/ai-code-assistants-for-codebases","text":"1. Understand the Whole Project · 2. Follow the Thread Across Files · 3. Adapt to Your Codebase · 4. Stay in Your Editor · 5. Handle Big Changes · 6.","index":4,"favicon":"","host_name":"www.secondtalent.com"},{"title":"The Top Ten GitHub Agentic AI Repositories in 2025 | by ODSC","url":"https://odsc.medium.com/the-top-ten-github-agentic-ai-repositories-in-2025-1a1440fe50c5","text":"The year 2025 has seen an explosion of open-source projects aimed at building and enhancing AI agents. GitHub's latest Octoverse report ...","index":5,"favicon":"","host_name":"odsc.medium.com"},{"title":"12 AI Code Generators Tested: Which Is Best? (2025)","url":"https://prismic.io/blog/ai-code-generators","text":"We compared 12 AI code generators, like Cursor, Claude Code, Windsurf, and more! This is our honest review to help you choose the right tool ...","index":6,"favicon":"","host_name":"prismic.io"},{"title":"13 Best AI Coding Tools for Complex Enterprise","url":"https://www.augmentcode.com/guides/13-best-ai-coding-tools-for-complex-codebases","text":"This guide breaks down 13 tools, from Augment Code's 400,000+ file indexing to Tabnine's air-gapped deployment, helping you match enterprise ...","index":7,"favicon":"","host_name":"www.augmentcode.com"},{"title":"The Best AI Coding Tools for Developers in 2025 (That I","url":"https://www.youtube.com/watch?v=YESrXVkcCHY","text":"In this video I want to talk to you about which ones I actually use on a day-by-day basis as a developer.","index":8,"favicon":"","host_name":"www.youtube.com"},{"title":"Best AI coding tool in 2025—thoughts? : r/nocode","url":"https://www.reddit.com/r/nocode/comments/1n8zylf/best_ai_coding_tool_in_2025thoughts","text":"Let's see what tool is best for you based on your skilled level and use the same prompt for all three of these tools and see where we get all right.","index":9,"favicon":"","host_name":"www.reddit.com"},{"title":"20 Best AI-Powered Coding Assistant Tools in 2026","url":"https://spacelift.io/blog/ai-coding-assistant-tools","text":"See our list of 20 best AI coding assistant tools that can improve your programming workflow with bug fixing, code generation, and more.","index":10,"favicon":"","host_name":"spacelift.io"},{"title":"Monorepo Tools","url":"https://2024.stateofjs.com/en-US/libraries/monorepo_tools","text":"Monorepo Tools. Tools used to manage JavaScript monorepos.","index":11,"favicon":"","host_name":"2024.stateofjs.com"},{"title":"Semgrep Quarterly Launch: scaling your AppSec impact","url":"https://semgrep.dev/blog/2024/may-quarterly-launch","text":"Once this requirement is met (and frequently before), teams will attempt to roll out their security tooling more broadly, which is another process that can also ...","index":12,"favicon":"","host_name":"semgrep.dev"},{"title":"Nx monorepo toolkit","url":"https://graphite.com/guides/nx-monorepo-toolkit","text":"Nx is an advanced set of development tools that enables efficient management of monorepos. It is created and maintained by Nrwl, a company known for its ...","index":13,"favicon":"","host_name":"graphite.com"},{"title":"11 Monorepo Build Tools You Should Know - ITNEXT","url":"https://itnext.io/11-monorepo-build-tools-you-should-know-35b83738b95f","text":"So, here are useful monorepo build tools for 2024. I hope it helps. 1. Bit. Bit is a unique tool in the software development landscape ...","index":14,"favicon":"","host_name":"itnext.io"},{"title":"Super 7 JavaScript Monorepo Tools 2024","url":"https://themeselection.com/javascript-monorepo-tools/?srsltid=AfmBOoriNANfZ4RIDtwSj-jYg-3lvg7ehOPVUSQ3osqyUjhjoErt5os4","text":"What Is Javascript Monorepo Tools? A Javascript monorepo tool is a software tool that helps developers manage a monorepo, which is a single ...","index":15,"favicon":"","host_name":"themeselection.com"},{"title":"10 Common monorepo problems and how your team can","url":"https://digma.ai/10-common-problems-of-working-with-a-monorepo","text":"Tooling for clarity: Use tools like Nx or CodeSee to visualize dependencies and enforce bounded contexts between projects. 7. Technical Debt and ...","index":16,"favicon":"","host_name":"digma.ai"},{"title":"AI & Monorepos","url":"https://monorepo.tools/ai","text":"AI can automate tooling modernization across projects, updating configurations and handling dependency conflicts when upgrading build tools, linters, or testing ...","index":17,"favicon":"","host_name":"monorepo.tools"},{"title":"JavaScript Monorepos in 2024: Legit or Sus?","url":"https://keyholesoftware.com/javascript-monorepos-in-2024-legit-or-sus","text":"NX is not simply a monorepo tool but an umbrella tool that covers many different facets of modern JS development: JavaScript Monorepos: what do ...","index":18,"favicon":"","host_name":"keyholesoftware.com"},{"title":"korfuri/awesome-monorepo: A curated list of","url":"https://github.com/korfuri/awesome-monorepo","text":"Nx is a build system for TypeScript monorepos and a set of monorepo management tools. OAO is a Yarn-based, opinionated JavaScript monorepo management tool.","index":19,"favicon":"","host_name":"github.com"},{"title":"Introducing a Better Way to SCA for Monorepos and Bazel","url":"https://www.endorlabs.com/learn/introducing-a-better-way-to-sca-for-monorepos-and-bazel","text":"If the SCA tool doesn't support the languages in your Bazel-driven monorepo, you won't get complete or fully accurate results. Challenge 2: ...","index":20,"favicon":"","host_name":"www.endorlabs.com"},{"title":"mufeedvh/code2prompt: A CLI tool to convert your","url":"https://github.com/mufeedvh/code2prompt","text":"Code2Prompt is a powerful context engineering tool designed to ingest codebases and format them for Large Language Models. Whether you are manually copying ...","index":21,"favicon":"","host_name":"github.com"},{"title":"Repo Prompt – Iterate on code with powerful AI","url":"https://repoprompt.com","text":"Repo Prompt - Native macOS context engineering toolbox. Build powerful AI prompts yourself, or let AI agents use it for you via MCP.","index":22,"favicon":"","host_name":"repoprompt.com"},{"title":"Introducing the Prompt Engineering Repository","url":"https://www.reddit.com/r/LangChain/comments/1juf57p/introducing_the_prompt_engineering_repository","text":"This comprehensive resource covers prompt engineering extensively, ranging from fundamental concepts to advanced techniques, offering clear explanations and ...","index":23,"favicon":"","host_name":"www.reddit.com"},{"title":"lifeart/code2prompt: Code to Prompt generator","url":"https://github.com/lifeart/code2prompt","text":"This is a simple web application that allows you to generate a prompt for a large language model (LLM) based on the contents of a GitHub repository. Usage.","index":24,"favicon":"","host_name":"github.com"},{"title":"AI Code Generation Advancements 2025 | by KV Subbaiah Setty","url":"https://kvssetty.medium.com/ai-code-generation-advancements-2025-edc885aecbc8","text":"The year 2025 marks a defining point in the evolution of AI-powered code generation. What began as autocomplete-like assistance in IDEs has now ...","index":25,"favicon":"","host_name":"kvssetty.medium.com"},{"title":"Master Programming with ChatGPT, Claude & GitHub Copilot","url":"https://local-ai-zone.github.io/guides/ai-coding-prompts-master-techniques-2025.html","text":"Master AI coding prompts with our ultimate 2025 guide! Learn proven techniques for ChatGPT, Claude, and GitHub Copilot.","index":26,"favicon":"","host_name":"local-ai-zone.github.io"},{"title":"Repository-level prompt generation for large language","url":"https://dl.acm.org/doi/10.5555/3618408.3619722","text":"In this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.","index":27,"favicon":"","host_name":"dl.acm.org"},{"title":"8 Best Prompt Engineering Tools in 2025","url":"https://mirascope.com/blog/prompt-engineering-tools","text":"It's PromptHub offers an open source repository for prompt templates. Simplify Model Interactions. Haystack is technology agnostic and allows ...","index":28,"favicon":"","host_name":"mirascope.com"},{"title":"Introducing the Prompt Engineering Repository: Nearly","url":"https://www.reddit.com/r/ChatGPTPromptGenius/comments/1judmck/introducing_the_prompt_engineering_repository","text":"Introducing the Prompt Engineering Repository: Nearly 4,000 Stars on GitHub Link to Repo · Overview and motivation · Detailed implementation guide.","index":29,"favicon":"","host_name":"www.reddit.com"},{"title":"Repository-Level Prompt Generation for Large Language","url":"https://proceedings.mlr.press/v202/shrivastava23a.html","text":"by D Shrivastava · 2023 · Cited by 184 — In this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.","index":30,"favicon":"","host_name":"proceedings.mlr.press"}]},"metadata":{"arguments":"{\"query\":\"code to prompt generation repository 2025\"}","display_result":"","duration":"3s","id":"call_tTbxScTInn","is_error":false,"mcp_server":{"name":"mcp-server"},"name":"search","result":"【20†mufeedvh/code2prompt: A CLI tool to convert your†https://github.com/mufeedvh/code2prompt】\nCode2Prompt is a powerful context engineering tool designed to ingest codebases and format them for Large Language Models. Whether you are manually copying ...\n\n【21†Repo Prompt – Iterate on code with powerful AI†https://repoprompt.com】\nRepo Prompt - Native macOS context engineering toolbox. Build powerful AI prompts yourself, or let AI agents use it for you via MCP.\n\n【22†Introducing the Prompt Engineering Repository†https://www.reddit.com/r/LangChain/comments/1juf57p/introducing_the_prompt_engineering_repository】\nThis comprehensive resource covers prompt engineering extensively, ranging from fundamental concepts to advanced techniques, offering clear explanations and ...\n\n【23†lifeart/code2prompt: Code to Prompt generator†https://github.com/lifeart/code2prompt】\nThis is a simple web application that allows you to generate a prompt for a large language model (LLM) based on the contents of a GitHub repository. Usage.\n\n【24†AI Code Generation Advancements 2025 | by KV Subbaiah Setty†https://kvssetty.medium.com/ai-code-generation-advancements-2025-edc885aecbc8】\nThe year 2025 marks a defining point in the evolution of AI-powered code generation. What began as autocomplete-like assistance in IDEs has now ...\n\n【25†Master Programming with ChatGPT, Claude & GitHub Copilot†https://local-ai-zone.github.io/guides/ai-coding-prompts-master-techniques-2025.html】\nMaster AI coding prompts with our ultimate 2025 guide! Learn proven techniques for ChatGPT, Claude, and GitHub Copilot.\n\n【26†Repository-level prompt generation for large language†https://dl.acm.org/doi/10.5555/3618408.3619722】\nIn this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.\n\n【27†8 Best Prompt Engineering Tools in 2025†https://mirascope.com/blog/prompt-engineering-tools】\nIt's PromptHub offers an open source repository for prompt templates. Simplify Model Interactions. Haystack is technology agnostic and allows ...\n\n【28†Introducing the Prompt Engineering Repository: Nearly†https://www.reddit.com/r/ChatGPTPromptGenius/comments/1judmck/introducing_the_prompt_engineering_repository】\nIntroducing the Prompt Engineering Repository: Nearly 4,000 Stars on GitHub Link to Repo · Overview and motivation · Detailed implementation guide.\n\n【29†Repository-Level Prompt Generation for Large Language†https://proceedings.mlr.press/v202/shrivastava23a.html】\nby D Shrivastava · 2023 · Cited by 184 — In this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.\n","status":"completed"}},"type":"mcp"}</glm_block>
+
+
+<details type="reasoning" done="true" duration="16" view="" last_tool_call_name="search">
+> AIとの協業プロセスを6つのフェーズ（把握→設計→分割→実装→検証→統合）に分け、各フェーズでの具体的な手順とAIへの指示テンプレートを提案。  
+> 1. **把握**: リポジトリの構造、依存関係、影響範囲をドキュメント化。  
+> 2. **設計**: 要求仕様から設計書を作成し、既存コードとの整合性を確認。  
+> 3. **分割**: タスクを30〜60分単位の小さなチャンクに分割。  
+> 4. **実装**: 各チャンクをAIに実装させ、単体テストを追加。  
+> 5. **検証**: レビューや静的解析で品質を確認。  
+> 6. **統合**: 全体を結合し、E2Eテストやドキュメント更新を実施。  
+> 各フェーズでAIに投げる指示のテンプレートも提供し、効率的な進行を支援。
+</details>
+
+<glm_block view="" tool_call_name="search">{"data":{"browser":{"search_result":[{"title":"20 Best AI Coding Assistant Tools [Updated Aug 2025]","url":"https://www.qodo.ai/blog/best-ai-coding-assistant-tools","text":"Explore our list of the 20 best AI coding assistant tools in 2025, boosting productivity and code quality for developers.","index":1,"favicon":"","host_name":"www.qodo.ai"},{"title":"Anyone found the best AI coding assistant 2025 for large/","url":"https://www.reddit.com/r/ExperiencedDevs/comments/1oxx4tc/anyone_found_the_best_ai_coding_assistant_2025","text":"Anyone found the best AI coding assistant 2025 for large/older codebases? ... I'm working in a mid-sized codebase with years of mixed coding ...","index":2,"favicon":"","host_name":"www.reddit.com"},{"title":"Best AI Coding Assistants 2025: Tools for Developers","url":"https://replit.com/discover/best-ai-coding-assistant","text":"Best AI coding assistants of 2025 compared. See how tools like Replit, Cursor, and Copilot automate coding, testing, and deployment.","index":3,"favicon":"","host_name":"replit.com"},{"title":"Top 7 AI Code Assistants for Navigating Large Codebases","url":"https://www.secondtalent.com/resources/ai-code-assistants-for-codebases","text":"1. Understand the Whole Project · 2. Follow the Thread Across Files · 3. Adapt to Your Codebase · 4. Stay in Your Editor · 5. Handle Big Changes · 6.","index":4,"favicon":"","host_name":"www.secondtalent.com"},{"title":"The Top Ten GitHub Agentic AI Repositories in 2025 | by ODSC","url":"https://odsc.medium.com/the-top-ten-github-agentic-ai-repositories-in-2025-1a1440fe50c5","text":"The year 2025 has seen an explosion of open-source projects aimed at building and enhancing AI agents. GitHub's latest Octoverse report ...","index":5,"favicon":"","host_name":"odsc.medium.com"},{"title":"12 AI Code Generators Tested: Which Is Best? (2025)","url":"https://prismic.io/blog/ai-code-generators","text":"We compared 12 AI code generators, like Cursor, Claude Code, Windsurf, and more! This is our honest review to help you choose the right tool ...","index":6,"favicon":"","host_name":"prismic.io"},{"title":"13 Best AI Coding Tools for Complex Enterprise","url":"https://www.augmentcode.com/guides/13-best-ai-coding-tools-for-complex-codebases","text":"This guide breaks down 13 tools, from Augment Code's 400,000+ file indexing to Tabnine's air-gapped deployment, helping you match enterprise ...","index":7,"favicon":"","host_name":"www.augmentcode.com"},{"title":"The Best AI Coding Tools for Developers in 2025 (That I","url":"https://www.youtube.com/watch?v=YESrXVkcCHY","text":"In this video I want to talk to you about which ones I actually use on a day-by-day basis as a developer.","index":8,"favicon":"","host_name":"www.youtube.com"},{"title":"Best AI coding tool in 2025—thoughts? : r/nocode","url":"https://www.reddit.com/r/nocode/comments/1n8zylf/best_ai_coding_tool_in_2025thoughts","text":"Let's see what tool is best for you based on your skilled level and use the same prompt for all three of these tools and see where we get all right.","index":9,"favicon":"","host_name":"www.reddit.com"},{"title":"20 Best AI-Powered Coding Assistant Tools in 2026","url":"https://spacelift.io/blog/ai-coding-assistant-tools","text":"See our list of 20 best AI coding assistant tools that can improve your programming workflow with bug fixing, code generation, and more.","index":10,"favicon":"","host_name":"spacelift.io"},{"title":"Monorepo Tools","url":"https://2024.stateofjs.com/en-US/libraries/monorepo_tools","text":"Monorepo Tools. Tools used to manage JavaScript monorepos.","index":11,"favicon":"","host_name":"2024.stateofjs.com"},{"title":"Semgrep Quarterly Launch: scaling your AppSec impact","url":"https://semgrep.dev/blog/2024/may-quarterly-launch","text":"Once this requirement is met (and frequently before), teams will attempt to roll out their security tooling more broadly, which is another process that can also ...","index":12,"favicon":"","host_name":"semgrep.dev"},{"title":"Nx monorepo toolkit","url":"https://graphite.com/guides/nx-monorepo-toolkit","text":"Nx is an advanced set of development tools that enables efficient management of monorepos. It is created and maintained by Nrwl, a company known for its ...","index":13,"favicon":"","host_name":"graphite.com"},{"title":"11 Monorepo Build Tools You Should Know - ITNEXT","url":"https://itnext.io/11-monorepo-build-tools-you-should-know-35b83738b95f","text":"So, here are useful monorepo build tools for 2024. I hope it helps. 1. Bit. Bit is a unique tool in the software development landscape ...","index":14,"favicon":"","host_name":"itnext.io"},{"title":"Super 7 JavaScript Monorepo Tools 2024","url":"https://themeselection.com/javascript-monorepo-tools/?srsltid=AfmBOoriNANfZ4RIDtwSj-jYg-3lvg7ehOPVUSQ3osqyUjhjoErt5os4","text":"What Is Javascript Monorepo Tools? A Javascript monorepo tool is a software tool that helps developers manage a monorepo, which is a single ...","index":15,"favicon":"","host_name":"themeselection.com"},{"title":"10 Common monorepo problems and how your team can","url":"https://digma.ai/10-common-problems-of-working-with-a-monorepo","text":"Tooling for clarity: Use tools like Nx or CodeSee to visualize dependencies and enforce bounded contexts between projects. 7. Technical Debt and ...","index":16,"favicon":"","host_name":"digma.ai"},{"title":"AI & Monorepos","url":"https://monorepo.tools/ai","text":"AI can automate tooling modernization across projects, updating configurations and handling dependency conflicts when upgrading build tools, linters, or testing ...","index":17,"favicon":"","host_name":"monorepo.tools"},{"title":"JavaScript Monorepos in 2024: Legit or Sus?","url":"https://keyholesoftware.com/javascript-monorepos-in-2024-legit-or-sus","text":"NX is not simply a monorepo tool but an umbrella tool that covers many different facets of modern JS development: JavaScript Monorepos: what do ...","index":18,"favicon":"","host_name":"keyholesoftware.com"},{"title":"korfuri/awesome-monorepo: A curated list of","url":"https://github.com/korfuri/awesome-monorepo","text":"Nx is a build system for TypeScript monorepos and a set of monorepo management tools. OAO is a Yarn-based, opinionated JavaScript monorepo management tool.","index":19,"favicon":"","host_name":"github.com"},{"title":"Introducing a Better Way to SCA for Monorepos and Bazel","url":"https://www.endorlabs.com/learn/introducing-a-better-way-to-sca-for-monorepos-and-bazel","text":"If the SCA tool doesn't support the languages in your Bazel-driven monorepo, you won't get complete or fully accurate results. Challenge 2: ...","index":20,"favicon":"","host_name":"www.endorlabs.com"},{"title":"mufeedvh/code2prompt: A CLI tool to convert your","url":"https://github.com/mufeedvh/code2prompt","text":"Code2Prompt is a powerful context engineering tool designed to ingest codebases and format them for Large Language Models. Whether you are manually copying ...","index":21,"favicon":"","host_name":"github.com"},{"title":"Repo Prompt – Iterate on code with powerful AI","url":"https://repoprompt.com","text":"Repo Prompt - Native macOS context engineering toolbox. Build powerful AI prompts yourself, or let AI agents use it for you via MCP.","index":22,"favicon":"","host_name":"repoprompt.com"},{"title":"Introducing the Prompt Engineering Repository","url":"https://www.reddit.com/r/LangChain/comments/1juf57p/introducing_the_prompt_engineering_repository","text":"This comprehensive resource covers prompt engineering extensively, ranging from fundamental concepts to advanced techniques, offering clear explanations and ...","index":23,"favicon":"","host_name":"www.reddit.com"},{"title":"lifeart/code2prompt: Code to Prompt generator","url":"https://github.com/lifeart/code2prompt","text":"This is a simple web application that allows you to generate a prompt for a large language model (LLM) based on the contents of a GitHub repository. Usage.","index":24,"favicon":"","host_name":"github.com"},{"title":"AI Code Generation Advancements 2025 | by KV Subbaiah Setty","url":"https://kvssetty.medium.com/ai-code-generation-advancements-2025-edc885aecbc8","text":"The year 2025 marks a defining point in the evolution of AI-powered code generation. What began as autocomplete-like assistance in IDEs has now ...","index":25,"favicon":"","host_name":"kvssetty.medium.com"},{"title":"Master Programming with ChatGPT, Claude & GitHub Copilot","url":"https://local-ai-zone.github.io/guides/ai-coding-prompts-master-techniques-2025.html","text":"Master AI coding prompts with our ultimate 2025 guide! Learn proven techniques for ChatGPT, Claude, and GitHub Copilot.","index":26,"favicon":"","host_name":"local-ai-zone.github.io"},{"title":"Repository-level prompt generation for large language","url":"https://dl.acm.org/doi/10.5555/3618408.3619722","text":"In this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.","index":27,"favicon":"","host_name":"dl.acm.org"},{"title":"8 Best Prompt Engineering Tools in 2025","url":"https://mirascope.com/blog/prompt-engineering-tools","text":"It's PromptHub offers an open source repository for prompt templates. Simplify Model Interactions. Haystack is technology agnostic and allows ...","index":28,"favicon":"","host_name":"mirascope.com"},{"title":"Introducing the Prompt Engineering Repository: Nearly","url":"https://www.reddit.com/r/ChatGPTPromptGenius/comments/1judmck/introducing_the_prompt_engineering_repository","text":"Introducing the Prompt Engineering Repository: Nearly 4,000 Stars on GitHub Link to Repo · Overview and motivation · Detailed implementation guide.","index":29,"favicon":"","host_name":"www.reddit.com"},{"title":"Repository-Level Prompt Generation for Large Language","url":"https://proceedings.mlr.press/v202/shrivastava23a.html","text":"by D Shrivastava · 2023 · Cited by 184 — In this work, we propose a framework called Repo-Level Prompt Generator that learns to generate example-specific prompts using prompt proposals.","index":30,"favicon":"","host_name":"proceedings.mlr.press"},{"title":"The 6 Best AI Code Review Tools for Pull Requests in 2025","url":"https://dev.to/heraldofsolace/the-6-best-ai-code-review-tools-for-pull-requests-in-2025-4n43","text":"They provide context-aware analysis that can summarize changes, catch subtle bugs, verify architectural alignment, and even suggest fixes, all ...","index":31,"favicon":"","host_name":"dev.to"},{"title":"Best AI pull request reviewers in 2025 - Graphite","url":"https://graphite.com/guides/best-ai-pull-request-reviewers-2025","text":"Qodo (formerly Codium) is an AI-driven code review tool that assists developers in maintaining code quality by providing automated feedback on pull requests.","index":32,"favicon":"","host_name":"graphite.com"},{"title":"Best Pull Request Review Tools to Boost Code Quality 2025","url":"https://www.getpanto.ai/blog/best-pull-request-review-tools","text":"Explore top pull request review tools of 2025 to boost code quality, speed up reviews, and enhance developer productivity with AI insights.","index":33,"favicon":"","host_name":"www.getpanto.ai"},{"title":"Best Automated Code Review Tools for Enterprises (2026)","url":"https://www.qodo.ai/blog/best-automated-code-review-tools-2026","text":"Discover the best automated code review tools for 2026. Compare AI-driven review, context depth, policy enforcement, and enterprise ...","index":34,"favicon":"","host_name":"www.qodo.ai"},{"title":"Best AI Code Review Tools 2025","url":"https://www.augmentcode.com/tools/best-ai-code-review-tools-2025","text":"CodeRabbit delivers AI-powered code reviews across pull requests, IDEs, and command-line interfaces. The platform combines AST (Abstract Syntax ...","index":35,"favicon":"","host_name":"www.augmentcode.com"},{"title":"Top 10 AI Code Review Tools of 2025 Every Dev Should Try","url":"https://www.mavlers.com/blog/top-ai-code-review-tools-2025","text":"1. Codacy – The developer-friendly quality gate · 2. DeepCode by Snyk – Security meets smart code analysis · 3. Amazon CodeWhisperer – The AWS ...","index":36,"favicon":"","host_name":"www.mavlers.com"},{"title":"1 in 7 PRs now involve AI agents | State of AI Code Review","url":"https://pullflow.com/state-of-ai-code-review-2025","text":"Agent identification. An AI code review agent is a bot account that uses an LLM to analyze code or diffs and creates review or issue comments on pull requests.","index":37,"favicon":"","host_name":"pullflow.com"},{"title":"Top 10 Code Analysis Tools in 2025","url":"https://cycode.com/blog/top-10-code-analysis-tools","text":"Qwiet AI also includes an AutoFix feature, which generates fixes or recommendations directly in pull requests. While its focus on accuracy ...","index":38,"favicon":"","host_name":"cycode.com"},{"title":"9 Crazy GitHub AI Code Review Tools in 2025","url":"https://medium.com/@sonalisood0/9-crazy-github-ai-code-review-tools-in-2025-a8ce557930a6","text":"9 Crazy GitHub AI Code Review Tools in 2025 Code reviews are supposed to catch mistakes before they hit production.","index":39,"favicon":"","host_name":"medium.com"},{"title":"Top 11 AI Code Review Tools | early Blog","url":"https://www.startearly.ai/post/top-11-ai-code-review-tools","text":"Sweep.dev turns bug reports or feature requests into pull requests with the necessary code changes and tests. Reviewers can then focus on ...","index":40,"favicon":"","host_name":"www.startearly.ai"}]},"metadata":{"arguments":"{\"query\":\"AI pull request impact analysis tool 2025\"}","display_result":"","duration":"3s","id":"call_Zkqa9onMgI","is_error":false,"mcp_server":{"name":"mcp-server"},"name":"search","result":"【30†The 6 Best AI Code Review Tools for Pull Requests in 2025†https://dev.to/heraldofsolace/the-6-best-ai-code-review-tools-for-pull-requests-in-2025-4n43】\nThey provide context-aware analysis that can summarize changes, catch subtle bugs, verify architectural alignment, and even suggest fixes, all ...\n\n【31†Best AI pull request reviewers in 2025 - Graphite†https://graphite.com/guides/best-ai-pull-request-reviewers-2025】\nQodo (formerly Codium) is an AI-driven code review tool that assists developers in maintaining code quality by providing automated feedback on pull requests.\n\n【32†Best Pull Request Review Tools to Boost Code Quality 2025†https://www.getpanto.ai/blog/best-pull-request-review-tools】\nExplore top pull request review tools of 2025 to boost code quality, speed up reviews, and enhance developer productivity with AI insights.\n\n【33†Best Automated Code Review Tools for Enterprises (2026)†https://www.qodo.ai/blog/best-automated-code-review-tools-2026】\nDiscover the best automated code review tools for 2026. Compare AI-driven review, context depth, policy enforcement, and enterprise ...\n\n【34†Best AI Code Review Tools 2025†https://www.augmentcode.com/tools/best-ai-code-review-tools-2025】\nCodeRabbit delivers AI-powered code reviews across pull requests, IDEs, and command-line interfaces. The platform combines AST (Abstract Syntax ...\n\n【35†Top 10 AI Code Review Tools of 2025 Every Dev Should Try†https://www.mavlers.com/blog/top-ai-code-review-tools-2025】\n1. Codacy – The developer-friendly quality gate · 2. DeepCode by Snyk – Security meets smart code analysis · 3. Amazon CodeWhisperer – The AWS ...\n\n【36†1 in 7 PRs now involve AI agents | State of AI Code Review†https://pullflow.com/state-of-ai-code-review-2025】\nAgent identification. An AI code review agent is a bot account that uses an LLM to analyze code or diffs and creates review or issue comments on pull requests.\n\n【37†Top 10 Code Analysis Tools in 2025†https://cycode.com/blog/top-10-code-analysis-tools】\nQwiet AI also includes an AutoFix feature, which generates fixes or recommendations directly in pull requests. While its focus on accuracy ...\n\n【38†9 Crazy GitHub AI Code Review Tools in 2025†https://medium.com/@sonalisood0/9-crazy-github-ai-code-review-tools-in-2025-a8ce557930a6】\n9 Crazy GitHub AI Code Review Tools in 2025 Code reviews are supposed to catch mistakes before they hit production.\n\n【39†Top 11 AI Code Review Tools | early Blog†https://www.startearly.ai/post/top-11-ai-code-review-tools】\nSweep.dev turns bug reports or feature requests into pull requests with the necessary code changes and tests. Reviewers can then focus on ...\n","status":"completed"}},"type":"mcp"}</glm_block>
+
+
+<details type="reasoning" done="true" duration="12" view="" last_tool_call_name="search">
+> 大規模リポジトリ（50フォルダ以上）での開発を想定し、各フェーズごとのチェックリストを作成。  
+> 影響範囲、依存関係、設定、テスト、移行、ドキュメントの6項目を中心に、具体的な確認事項をリストアップ。  
+> タスク分割では「Why-What-How」のフレームワークを活用し、30〜60分単位のチャンクに分割。  
+> 1イテレーションの基本ループとして「計画→実装→テスト→レビュー」のサイクルを提案。  
+> 最後に、プロジェクトの概要、優先順位、技術スタック、AIツール、品質基準、コード規約、チーム体制に関する7つの質問を用意。
+</details>
+
+<glm_block view="" tool_call_name="finish">{"data":{"metadata":{"arguments":"{}","display_result":"","duration":"0s","id":"call_6LFmonFItB","is_error":false,"mcp_server":{"name":"mcp-server"},"name":"finish","result":"","status":"completed"}},"type":"mcp"}</glm_block>
+
+# 大規模リポジトリにおけるAI支援開発の精度保証戦略
+
+## 序論：大規模開発とAIの新たなパラダイム
+
+ソフトウェア開発の領域は、常にその規模と複雑さを増してきた。特に、50以上のフォルダから成る大規模なリポジトリ、いわゆるモノレポ（monorepo）環境においては、その複雑性は頂点に達する。これらの巨大なコードベースは、複数のプロジェクトやサービスが単一のリポジトリに共存する形を取り、コードの共有や依存関係の管理に利点がある一方で、開発プロセス全体にわたって計り知れない挑戦をもたらす。新規機能の開発や既存コードの改修といった日常的なタスクでさえ、システムの他の部分に予期せぬ影響を及ぼす可能性があり、その影響範囲を正確に把握すること自体が困難な作業となる。このような環境では、開発者の認知負荷が極限まで高まり、些細な見落としが深刻なバグやシステム全体の不安定性を引き起こす原因となる。まさに、巨大な歯車が一つでも噛み合わなければ、全体の動作が停止する精密機械のようなものである。
+
+こうした課題に対し、近年、AI（人工知能）を用いたコーディング支援ツールが急速に進化し、開発者の生産性向上に大きく貢献している。オートコンプリートから始まり、コード生成、リファクタリングの提案、さらには単体テストの自動作成まで、その適用範囲は日々拡大している。2025年現在、AIコーディングアシスタンツはもはや開発者の間で必須のツールとなりつつあり、多くの開発者がその恩恵を受けている[[0](https://www.qodo.ai/blog/best-ai-coding-assistant-tools)]。しかし、大規模リポジトリという特殊なコンテキストにおいて、AIの能力を安直に適用することは、時に新たなリスクを生み出す。AIは、与えられたコンテキスト（文脈）に基づいて最適なコードを生成しようとするが、そのコンテキストが巨大なコードベースの全体像を正確に反映していない場合、AIの出力は部分的には正しくても、システム全体としては不適切、あるいは有害ですらある結果をもたらしかねない。これは、AIが「森を見て木を見ず」状態に陥りやすいことを意味する。特定の関数やファイルの最適化は得意でも、その変更がモノレポ全体の依存関係グラフやアーキテクチャに与える波及効果を完全に理解することは、依然として人間の領域であることが多い。
+
+本稿の目的は、このような大規模リポジトリとAI支援開発が交差する領域における核心的な課題、すなわち「精度の低下」を体系的に分析し、それを最小化するための総合的な戦略を提示することである。ここで言う「精度の低下」とは、影響範囲の見落とし、設計意図からの乖離（かいり）、実装の不完全性といった、品質に直結する問題を指す。AIを単なるコード生成ツールとしてではなく、シニアテックリード兼QA（品質保証）として振る舞うパートナーとして活用するための、実践的なフレームワークとワークフローを提案する。これは、AIが生成したコードを盲目的に信頼するのではなく、人間がその出力を適切に評価、修正、統合するための「ガードレール」を設けることを意味する。具体的には、開発プロセスを「把握→設計→分割→実装→検証→統合」の6つのフェーズに分け、各フェーズでAIと人間がどのように協業すべきか、そしてそのためにどのようなツールやチェックリストを活用すべきかを詳述する。最終的な目標は、AIの圧倒的な生産性と、人間の持つ大局的な視点や深いドメイン知見を融合させ、両者の強みを最大限に引き出すことで、複雑さを乗り越え、高品質なソフトウェアを継続的にデリバリーできる開発体制を構築することにある。本稿が提示するのは、単なるツールの紹介ではなく、AIと共に進化するソフトウェア開発の未来を形作るための思考法と実践の指針である。
+
+## 精度低下の要因分析と対策方針
+
+大規模なリポジトリ、特に複数の技術スタックが混在するモノレポ環境において、新規開発と既存改修を並行して進める際に精度が低下する原因は多岐にわたる。これらの要因を深く理解し、体系的な対策を講じることが、AIを活用した開発プロセスで品質を維持・向上させるための第一歩となる。精度低下は、しばしば開発者のスキル不足や注意力の欠如に帰結されがちであるが、その根底には、システムの複雑さが人間の認知能力を超えているという構造的な問題が存在する。AIの導入は、この認知負荷を軽減する可能性を秘めている一方で、その使い方を誤れば、複雑さによって引き起こされる問題を増幅させる危険性もはらんでいる。したがって、対策を考える上では、人間とAIの両方の特性を考慮に入れる必要がある。
+
+精度低下の主要な原因として、まず**「影響範囲の特定漏れ」**が挙げられる。大規模なコードベースでは、一見局所的なように見えるコードの変更が、予期せぬ遠隔のモジュールやサービスに波及効果を及ぼすことが珍しくない。これは、モジュール間の依存関係が複雑に絡み合い、その全体像を人間が完全に把握することが困難になるために発生する。特に、動的な依存関係や、設定ファイルを介した間接的な依存関係は、見落とされやすく、デグレード（品質劣化）の温床となる。AIもまた、与えられたコンテキスト内の情報しか処理できないため、影響範囲の全体像を正確に理解することは不得手である。AIがコードを生成する際、直接的な依存先は考慮しても、間接的または実行時にしか明らかにならない依存関係まで考慮することは難しい。この問題に対処するためには、静的解析ツールを駆使して依存関係グラフを可視化し、変更による影響を受ける可能性のあるコンポーネントを機械的に特定する仕組みが不可欠である。ツールとしては、NxやCodeSeeのように、モノレポ内の依存関係を理解し、プロジェクト間の境界を強制するための可視化機能を提供するものが有効である[[15](https://digma.ai/10-common-problems-of-working-with-a-monorepo)]。これにより、開発者は変更を加える前に、どの部分が影響を受けるかを予測し、重点的にテストやレビューを行うことができる。
+
+次に、**「設計のブレ（設計意図からの乖離）」**は、開発プロジェクトが長期化するにつれて深刻化する問題である。時間の経過とともに、当初定められたアーキテクチャや設計原則が徐々に侵食され、コードベースの一貫性が失われていく現象を指す。これは、複数の開発者が関わる中で、それぞれが異なる解釈でコードを追加・修正したり、短期的な問題解決を優先するあまり、長期的な設計目標を見失ったりすることによって発生する。AIを利用する場合も同様で、AIは過去のコードパターンを学習するため、既に「ブレ」が存在するコードベースでは、そのブレたパターンをさらに増幅させてしまう可能性がある。つまり、AIは悪しき慣習を学習し、それを再生产してしまうのだ。この問題を防ぐためには、設計意図を明確に文書化し、AIにその文脈を与えることが重要である。アーキテクチャ決定記録（ADR, Architecture Decision Records）のような形式で、なぜその設計を選択したのかという背景を記録しておくことで、AIはより適切なコードを生成できるようになる。また、AIが生成したコードが既存のアーキテクチャと整合性を保っているかを確認するために、定期的なコードレビューや、アーキテクチャに準拠しているかをチェックする静的解析ルールの導入が有効である。AIによるコードレビーツールの中には、コードの変更を要約し、アーキテクチャ上の整合性を検証するものも登場している[[30](https://dev.to/heraldofsolace/the-6-best-ai-code-review-tools-for-pull-requests-in-2025-4n43)]。
+
+三つ目の原因は、**「実装漏れ」**である。これは、設計書や要件定義で意図された機能が、実際のコードとして完全に実装されていない状態を指す。特に、エラーハンドリング、ログ出力、境界値のチェックといった、本質的なロジックではないが堅牢性に必要な部分が省略されがちである。AIに機能実装を依頼した場合、AIは与えられたプロンプトに基づいてコードを生成するが、プロンプトが曖昧だったり、考慮すべきケースが網羅されていなかったりすると、AIはそれらの部分を省略してしまう。人間の開発者も同様に、タスクが複雑になると、実装すべき項目を見落とすことがある。この問題を解決するためには、まず要件定義を可能な限り具体化し、AIへの指示（プロンプト）を詳細に作成する必要がある。さらに、単体テストをコードと同時に生成・実行することで、実装漏れを早期に発見できる。テスト駆動開発（TDD）の考え方を取り入れ、テストコードを先に書かせることで、実装すべき仕様が明確になり、実装漏れを大幅に削減できる。
+
+その他にも、**「テスト不足」**、**「ドキュメントの陳腐化」**、**「依存関係の複雑さ」**、**「設定ファイルの不整合」**、そして**「チーム内コミュニケーションの不足」**など、多くの要因が精度低下を引き起こす。これらの問題は相互に関連しており、一つの問題が別の問題を誘発する連鎖反応を起こしやすい。例えば、ドキュメントが古いままになると、新規メンバーやAIがシステムの正しい動作を理解できず、誤った実装を引き起こす。設定ファイルの不整合は、開発環境と本番環境での動作不一致を生み、デバッグを困難にする。これらの複合的な問題に対処するためには、個別の対策だけでなく、開発プロセス全体を見直す体系的なアプローチが求められる。
+
+これらの原因を踏まえ、精度を最大化するための対策方針は、「**自動化による負荷軽減**」と「**人間によるガバナンスの強化**」の二本柱で構成されるべきである。自動化によって、人間が苦手とする反復作業や大規模データの解析をAIやツールに任せ、人間はより創造的で戦略的なタスクに集中できるようにする。一方で、AIの出力を無条件に信頼するのではなく、人間が最終的な品質保証の責任を担う。AIはあくまで強力なアシスタントであり、意思決定の主体は人間であるという原則を徹底する。具体的な対策としては、静的解析やテスト自動化の導入、依存関係の可視化、ドキュメントの自動生成とその維持、設定ファイルの一元管理などが挙げられる。また、AIを活用したコードレビューツールを導入し、人間のレビューを補完することで、コード品質をさらに高めることができる[[31](https://graphite.com/guides/best-ai-pull-request-reviewers-2025)]。これらの対策を組み合わせることで、大規模リポジトリという困難な環境下でも、AIとの協業によって高品質な開発を継続的に行うことが可能になる。
+
+## AI支援開発のための6フェーズワークフロー
+
+大規模リポジトリにおける開発プロセスで、AIの能力を最大限に引き出しつつ、品質の低下を防ぐためには、体系的なワークフローが不可欠である。ここでは、開発プロジェクトを「把握→設計→分割→実装→検証→統合」の6つのフェーズに分け、各フェーズで人間とAIがどのように協業すべきか、そしてそのために具体的にどのような手順を踏むべきかを詳述する。このワークフローの目的は、開発プロセスを管理可能な単位に分割し、各段階で適切なチェックとフィードバックを行うことで、最終的なアウトプットの品質を保証することにある。AIを単なるコード生成器として扱うのではなく、対話的なパートナーとして活用することで、開発の効率と品質を同時に高めることを目指す。
+
+### フェーズ1：把握 (Comprehend)
+
+最初のフェーズ「把握」は、開発を始める前に、ターゲットとなるリポジトリの現状を正確に理解することを目的とする。大規模で複雑なコードベースでは、このフェーズを疎かにすることが、後の工程での大きな手戻りや品質問題の直接的な原因となる。AIを活用することで、この情報収集と分析のプロセスを大幅に加速できるが、その出力を鵜呑みにするのではなく、人間が批判的に評価し、必要なコンテキストを補うことが重要である。このフェーズのゴールは、リポジトリの全体像、依存関係、変更の影響範囲、そして暗黙的な開発規約などを可視化・文書化し、チーム全体で共有することである。
+
+具体的な手順は以下の通りである。
+1.  **リポジトリ構造の可視化**: まず、AIを用いてリポジトリ全体のディレクトリ構造や主要なファイルの一覧を生成させる。これにより、プロジェクトの物理的なレイアウトを把握する。
+2.  **依存関係グラフの生成**: 次に、静的解析ツールやAIを活用して、モジュール間やフォルダ間の依存関係を分析し、グラフとして可視化する。特に、モノレポではこの依存関係が複雑になりがちなため、NxやBazelといった専用ツールの出力をAIに解説させることで、どのコンポーネントが他のコンポーネントに依存しているかを明確にする[[12](https://graphite.com/guides/nx-monorepo-toolkit)]。
+3.  **影響範囲の特定**: 開発対象となる機能や修正箇所が、リポジトリ内のどの部分に影響を与える可能性があるかを特定する。変更対象のファイルや関数をAIに与え、「この変更の影響を受ける可能性のあるファイルをリストアップしてください」と指示することで、影響範囲の予測を助けることができる。
+4.  **既存ドキュメントとコード規約の収集**: README、APIドキュメント、ADR（Architecture Decision Records）、コーディング規約などのドキュメントを集め、AIに要約させる。これにより、プロジェクトの背景や開発の指針を理解する。
+5.  **コンテキスト情報のパッケージ化**: 上記で収集した情報（リポジトリ構造、依存関係グラフ、主要な設定ファイル、ドキュメントなど）を、AIが後の工程で参照しやすいように一つのパッケージにまとめる。Code2Promptのようなツールは、コードベースをLLM（大規模言語モデル）が処理しやすい形式に変換するのに役立つ[[20](https://github.com/mufeedvh/code2prompt)]。
+
+このフェーズで人間が担うべき役割は、AIが生成した情報の正確性を検証し、不足しているコンテキストを補完することである。AIは過去のコードからパターンを学習するが、プロジェクト特有の歴史的経緯や、ドキュメント化されていない暗黙知を完全に理解することはできない。したがって、シニアテックリードは、AIのアウトプットを精査し、必要に応じて修正や追加を行い、チームが正しい認識を共有できるようにリードする必要がある。
+
+**AIへの指示テンプレート（フェーズ1：把握）**
+```prompt
+# 役割
+あなたはシニアソフトウェアアーキテクトです。以下のリポジトリに関する分析を行い、開発チームが全体像を理解できるように情報を整理してください。
+
+# タスク
+1.  提供されたリポジトリの主要なディレクトリ構造と、各ディレクトリの役割を推測して要約してください。
+2.  依存関係解析ツール（例: `npm ls`, `go mod graph`, または専用ツールの出力）の結果を基に、主要なモジュール間の依存関係を説明してください。特に、循環依存や不審な依存関係がないか注意深く調査してください。
+3.  変更対象となるファイル/関数 [具体的なファイル名や関数名をここに入力] を与えます。この変更が、他のどのファイルや機能に影響を与える可能性があるか、依存関係グラフとコードの内容を基に予測し、リストアップしてください。
+4.  リポジトリ内にある主要なドキュメント（README.md, CONTRIBUTING.md, 設計書など）の要点を要約してください。
+5.  このプロジェクトで使用されている主要な技術スタック（言語、フレームワーク、ライブラリなど）を特定してください。
+
+# 出力形式
+出力はMarkdown形式とし、見出しを使って各タスクの結果を明確に区切ってください。コードブロックを用いて、具体的なファイルパスやコード例を示してください。
+
+# 提供するコンテキスト
+[ここに、リポジトリの主要なファイルの内容、設定ファイル、ドキュメントのテキストなどを貼り付ける]
+```
+
+### フェーズ2：設計 (Design)
+
+「把握」フェーズでリポジトリの現状を理解したら、次に「設計」フェーズに移る。ここでは、実装すべき機能の要件定義を、具体的な設計書に落とし込んでいく。AIは、この設計プロセスにおいて強力なブレインストーミングパートナーとなる。AIに要件を与えることで、複数の設計案を生成させたり、既存のコードベースとの整合性をチェックさせたりすることができる。このフェーズの目的は、実装フェーズで迷わずに作業を進められるように、詳細かつ一貫性のある設計を完成させることである。
+
+具体的な手順は以下の通りである。
+1.  **要件定義の明確化**: まず、実装したい機能の要件を自然言語で具体的に記述する。入力、出力、処理の流れ、エラーケースなどを可能な限り詳細に定義する。
+2.  **設計案の生成**: 明確化した要件をAIに与え、複数の設計案（例：クラス図、シーケンス図、疑似コードなど）を提案させる。AIに対して、「既存の[関連するモジュール名]の設計パターンに倣って、設計案を作成してください」と指示することで、コードベースとの一貫性を保つことができる。
+3.  **設計のレビューと選定**: AIが生成した複数の設計案を人間がレビューし、最も適切な案を選定する。レビューの観点としては、拡張性、保守性、テストのしやすさ、そして既存アーキテクチャとの整合性などが挙げられる。
+4.  **インターフェースの定義**: 選定した設計案に基づき、新規に作成する関数やクラスのシグネチャ（入出力の型やメソッド名）を定義する。このインターフェース定義は、次の「分割」フェーズでのタスク分割と、「実装」フェーズでのAIへの実装指示の基礎となる。
+5.  **設計意図の文書化**: 最終的に決定した設計案と、なぜその設計を選択したのかという背景（設計意図）をドキュメントに記録する。このドキュメントは、後のフェーズでのAIへの指示や、チームメンバーとの共有に役立つ。
+
+このフェーズで人間が担うべき役割は、AIが生成した設計案を評価し、プロジェクトの長期的な目標に合致しているかを判断することである。AIは論理的な設計案を生成できるが、ビジネス上の制約やチームのスキルセット、将来のロードマップといった、より広範なコンテキストを考慮することはできない。シニアテックリードは、これらの要素を総合的に判断し、最適な設計を導き出す責任を負う。
+
+**AIへの指示テンプレート（フェーズ2：設計）**
+```prompt
+# 役割
+あなたは経験豊富なソフトウェア設計者です。以下の要件に基づいて、具体的な設計案を作成してください。
+
+# 要件
+[ここに、実装したい機能の詳細な要件を記述する]
+
+# 設計の前提条件
+- この機能は、既存の[関連するモジュール名]に追加されるものです。
+- 既存の設計パターン（例：[具体的なデザインパターン名]）に準拠してください。
+- 使用する技術スタックは、[言語名]と[フレームワーク名]です。
+
+# タスク
+1.  要件を満たすためのクラス図や主要な関数のシグネチャを提案してください。
+2.  主要な処理の流れを説明するシーケンス図、または疑似コードを生成してください。
+3.  考慮すべきエラーケースや例外処理について、具体的なシナリオを挙げてください。
+4.  この設計が、既存のコードベース（特に[関連するファイル名]）に与える影響を分析してください。
+
+# 出力形式
+出力はMarkdown形式とし、設計の意図を説明する文章と、必要に応じてMermaid記法による図を含めてください。
+```
+
+### フェーズ3：分割 (Decompose)
+
+設計が完了したら、その設計を実装可能な小さなタスク単位に分解する「分割」フェーズに進む。大規模な機能を一度に実装しようとすると、作業が複雑になりすぎて、品質の低下や進捗管理の困難を招く。タスクを適切なサイズに分割することで、各タスクの目的が明確になり、AIへの指示も具体的になりやすい。また、小さなタスク単位で実装とテストを繰り返すことで、フィードバックサイクルを短縮し、問題を早期に発見・修正することができる。
+
+具体的な手順は以下の通りである。
+1.  **機能の分解**: 設計書を基に、実装すべき機能を、独立した小さなチャンク（30分から60分程度で実装できる単位）に分解する。各チャンクは、単一の責務を持つように設計する。
+2.  **タスクカードの作成**: 分解した各チャンクに対して、タスクカード（例：GitHubのIssueやJIRAのチケット）を作成する。タスクカードには、そのタスクの目的（Why）、具体的な作業内容（What）、そして完了の定義（Definition of Done）を明確に記述する。
+3.  **依存関係の整理**: タスク間の依存関係を整理し、実行順序を決定する。依存関係がないタスクは、並行して作業を進めることができる。
+4.  **AIへの実装指示のドラフト作成**: 各タスクカードの内容を基に、AIへの実装指示（プロンプト）のドラフトを作成する。この段階でプロンプトを準備しておくことで、実装フェーズでの作業をスムーズに進めることができる。
+
+このフェーズで人間が担うべき役割は、タスクの粒度を適切に保ち、各タスクが明確な目標を持つようにすることである。タスクが大きすぎるとAIの生成品質が低下し、小さすぎるとオーバーヘッドが増大する。シニアテックリードは、プロジェクトの全体像を踏まえ、最適なタスク分割を行うことが求められる。また、各タスクの「完了の定義」を明確にすることで、品質基準をチーム全体で共有し、手戻りを防ぐことができる。
+
+**迷走しないタスク分割のやり方**
+タスク分割で迷走しないためには、「Why-What-How」のフレームワークを各タスクに適用すると効果的である。
+*   **Why（なぜ）**: このタスクは、全体のどの価値に貢献するのか？ このタスクを完了させることで、何が解決するのか？
+*   **What（何を）**: このタスクで、具体的に何を作成・変更するのか？ 入力と出力は何か？
+*   **How（どのように）**: どのように実装するか（設計の概要）。どのファイルを触るか。どんなテストが必要か。
+
+このフレームワークに沿ってタスクを定義することで、目的と手段が明確になり、実装中に迷うことが少なくなる。
+
+### フェーズ4：実装 (Implement)
+
+タスクの分割が完了したら、いよいよ「実装」フェーズに移る。このフェーズでは、分割された各タスクをAIに実装させる。AIに与えるプロンプトの品質が、生成されるコードの品質を直接左右するため、具体的かつ十分なコンテキストを含んだ指示を与えることが極めて重要である。また、AIが生成したコードをそのまま採用するのではなく、必ず人間がレビューし、必要に応じて修正を加えるプロセスを挟む。
+
+具体的な手順は以下の通りである。
+1.  **プロンプトの最終化**: 「分割」フェーズで作成したプロンプトのドラフトを、実装に必要な全てのコンテキスト（関連するコード、設計図、インターフェース定義など）を含めて最終化する。
+2.  **AIによるコード生成**: 最終化したプロンプトをAIに与え、コードを生成させる。生成されたコードには、関数やクラスの本体だけでなく、それに対応する単体テストコードも含めて生成させるように指示する。
+3.  **コードのレビューと修正**: AIが生成したコードを人間がレビューする。レビューの観点としては、設計との整合性、コードの可読性、エラーハンドリングの妥当性、テストカバレッジなどが挙げられる。指摘事項があれば、AIに修正を依頼するか、人間が直接修正する。
+4.  **コミット**: レビューを通過したコードを、バージョン管理システムにコミットする。コミットメッセージには、関連するタスクカードへの参照を含める。
+
+このフェーズで人間が担うべき役割は、AIの生成物に対する品質保証である。AIは時に、論理的に正しくても、プロジェクトのコーディング規約に従っていなかったり、非効率なコードを生成したりすることがある。人間のレビューは、そうした問題点を洗い出し、コードベースの品質を維持するための最後の砦となる。シニアテックリードは、チーム全体で一貫したレビュー基準を適用し、品質のバロメーターを保つ責任がある。
+
+**AIへの指示テンプレート（フェーズ4：実装）**
+```prompt
+# 役割
+あなたは熟練した[言語名]エンジニアです。以下の指示に従って、コードを実装してください。
+
+# タスク
+[ここに、タスクカードの「What」と「How」を具体的に記述する]
+
+# 設計の詳細
+- 実装する関数/クラスのシグネチャ:
+  ```[言語のシグネチャ記法]
+  [関数やクラスの定義]
+  ```
+- 処理の概要: [処理の流れを簡潔に記述]
+
+# 関連ファイル
+- 実装を追加するファイル: `[ファイルパス]`
+- 参照すべき既存のコード: `[ファイルパス]` の `[関数名]`
+
+# コーディング規約
+- このプロジェクトでは、[具体的なコーディング規約やスタイルガイドの名前]に従ってください。
+- エラーハンドリングは、[プロジェクトで採用している方法、例：例外を投げる、Result型を返すなど]で実装してください。
+- ログ出力には、[使用しているロギングライブラリ名]を使用してください。
+
+# 依存関係
+- このコードは、[ライブラリ名] バージョン [バージョン番号] に依存しています。
+
+# テスト
+- 実装したコードに対する単体テストを、[テストフレームワーク名] を用いて同時に生成してください。
+- 正常系と異常系の主要なシナリオをカバーするテストケースを作成してください。
+- テストのカバレッジは、少なくとも80%を目指してください。
+
+# 出力形式
+出力は、実装コードとテストコードを別々のコードブロックとして提示してください。各コードブロックには、ファイルパスを明記してください。
+```
+
+### フェーズ5：検証 (Verify)
+
+「実装」フェーズで生成されたコードは、次の「検証」フェーズでより厳密な品質チェックを受ける。このフェーズの目的は、実装されたコードが単に動くだけでなく、設計通りに動作し、既存のシステムに悪影響を与えないことを確認することである。AIによる自動チェックと人間による手動チェックを組み合わせることで、多角的な品質保証を行う。
+
+具体的な手順は以下の通りである。
+1.  **自動テストの実行**: 単体テスト、統合テストなどの自動テストスイートを実行し、すべてのテストがパスすることを確認する。テストが失敗した場合は、実装に戻って修正を行う。
+2.  **静的コード解析の実行**: SonarQube、ESLint、Semgrepといった静的コード解析ツールを実行し、コードのバグ、セキュリティ脆弱性、コーディング規約からの逸脱などを検出する[[11](https://semgrep.dev/blog/2024/may-quarterly-launch)]。
+3.  **AIによるコードレビュー**: AIを活用したコードレビューツール（例：CodeRabbit, Qodo）を使い、プルリクエスト（PR）を自動的にレビューさせる[[31](https://graphite.com/guides/best-ai-pull-request-reviewers-2025)]。AIは、人間のレビューアが見落としがちな微妙なバグや、コードの重複などを指摘してくれることがある。
+4.  **人間によるコードレビュー**: 最終的に、シニアテックリードまたはチームメンバーがコードをレビューする。レビューでは、コードのロジックだけでなく、アーキテクチャとの整合性、可読性、保守性といったより広い視点での評価を行う。
+5.  **フィードバックと修正**: レビューで指摘された項目に基づき、コードを修正する。この「修正→再レビュー」のサイクルを、コードが品質基準を満たすまで繰り返す。
+
+このフェーズで人間が担うべき役割は、品質の最終承認者である。自動化されたチェックは強力であるが、それだけで全ての品質問題を検出できるわけではない。特に、ビジネスロジックの妥当性や、ユーザビリティといった、コードの静的な解析だけでは分からない品質面については、人間の経験と洞察が不可欠である。シニアテックリードは、品質基準を守り、プロジェクトの成功を左右する重要な判断を下す責任を担う。
+
+### フェーズ6：統合 (Integrate)
+
+個々のタスクが実装・検証されると、最後の「統合」フェーズに移る。このフェーズでは、全ての変更をメインの開発ブランチに統合し、システム全体として正しく動作することを確認する。また、開発プロセスで生じた知見をドキュメントに反映し、次回の開発に活かすためのクロージング作業を行う。
+
+具体的な手順は以下の通りである。
+1.  **機能ブランチへのマージ**: 全てのタスクブランチを、一つの機能ブランチ（feature branch）にマージする。
+2.  **E2E（End-to-End）テストの実行**: システム全体を通したE2Eテストを実行し、新規機能が期待通りに動作し、既存機能にデグレードがないことを確認する。
+3.  **ドキュメントの更新**: 開発した機能に関するドキュメント（APIドキュメント、ユーザーマニュアルなど）を更新する。また、開発プロセスで得られた知見（例：特定のライブラリの注意点、複雑な部分の実装方法など）をチームのナレッジベースに共有する。
+4.  **リリース準備**: 全ての検証が完了し、リリース準備が整ったら、メインブランチ（例：mainやdevelop）にマージする。
+
+このフェーズで人間が担うべき役割は、プロジェクトの完了を宣言し、次のステップへの橋渡しをすることである。統合は、多くの場合、複雑なマージコンフリクトを伴ったり、予期せぬ相互作用が発覚したりする。シニアテックリードは、これらの問題を解決し、プロジェクトを無事に完了させるためのリーダーシップを発揮する必要がある。また、開発の振り返りを行い、プロセスの改善点を洗い出すことで、チームの成熟度を高めていくことが重要である。
+
+**1イテレーションの基本ループ（例：30〜60分単位）**
+このワークフローを効果的に運用するためには、短いイテレーション（反復）サイクルを回すことが推奨される。特に「実装→検証」のサイクルを30分から60分単位で繰り返すことで、フィードバックを迅速に得られ、開発の進捗と品質を両立できる。
+1.  **計画 (5分)**: 次の30〜60分で実装するタスク（チャンク）を選び、AIへのプロンプトを準備する。
+2.  **実装 (15-45分)**: AIにコードを生成させ、人間がレビュー・修正する。
+3.  **テスト (5-10分)**: 単体テストを実行し、基本的な品質を確認する。
+4.  **レビュー/コミット (5分)**: 簡単なレビュー（またはセルフレビュー）を行い、バージョン管理システムにコミットする。
+
+この短いループを繰り返すことで、常に小さなステップで確実に前に進むことができ、大きな失敗を防ぐことができる。
+
+## 大規模リポジトリのための包括的チェックリスト
+
+大規模で複雑なリポジトリ、特に50以上のフォルダから成るモノレポ環境での開発においては、些細な見落としが深刻な問題を引き起こす可能性がある。品質を保証し、AIとの協業を成功させるためには、各開発フェーズで確認すべき項目を網羅したチェックリストが不可欠である。ここでは、影響範囲、依存関係、設定、テスト、移行、ドキュメントという6つの重要なカテゴリーに分け、大規模リポジトリで必ず実施すべきチェック項目を提示する。このチェックリストは、シニアテックリード兼QAとしての役割を担う者が、開発プロセス全体を通じて品質のガバナンスを徹底するための実践的なツールとなる。
+
+### 影響範囲 (Impact Scope)
+
+大規模なコードベースでは、一つの変更がシステム全体にどのような影響を与えるかを正確に予測することが最も重要かつ困難な課題の一つである。このカテゴリーのチェック項目は、意図しないデグレードを防ぎ、変更の安全性を確保することを目的とする。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **依存関係グラフの更新** | 変更によって、モジュール間の依存関係グラフがどのように変化するかを可視化・確認する。新しい依存関係が意図しないものではないか、循環依存が発生していないかをチェックする。 | 設計、実装後 | Nx, Bazel, CodeSee |
+| **影響を受けるファイルのリストアップ** | 静的解析ツールやAIを活用し、変更対象のコードを直接・間接的に利用している全てのファイルをリストアップする。 | 設計、実装後 | grep, エディタの検索機能, AI |
+| **公開APIの変更確認** | 変更が公開API（関数シグネチャ、データ構造など）に影響を与える場合、その変更が下位互換性を損なっていないか、利用者側に必要な修正は何かを特定する。 | 設計、実装後 | APIドキュメント, コード差分 |
+| **設定ファイルの影響範囲** | 設定ファイルの変更が、どのコンポーネントや環境（開発、ステージング、本番）に影響を与えるかを確認する。 | 設定変更時 | 設定管理ツール |
+| **データベーススキーマ変更の影響** | データベースのスキーマ変更（テーブル追加、カラム変更など）を行う場合、その変更がアクセスする全てのクエリやマイグレーションスクリプトに影響がないかを確認する。 | データベース変更時 | スキーマ管理ツール |
+
+### 依存関係 (Dependencies)
+
+複数の技術スタックが混在するモノレポでは、ライブラリやパッケージの依存関係管理が極めて複雑になる。このカテゴリーのチェック項目は、依存関係に関連する問題を未然に防ぎ、システムの安定性を保つことを目的とする。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **ライブラリバージョンの整合性** | モノレポ内の複数プロジェクトで使用している同じライブラリのバージョンに不整合がないかを確認する。バージョンを一元管理する仕組みが望ましい。 | 新規ライブラリ追加時、定期的なメンテナンス時 | Renovate, Dependabot |
+| **ライセンスの互換性** | 新しく追加するライブラリのライセンスが、プロジェクトのライセンスポリシーと互換性があるかを確認する。 | 新規ライブラリ追加時 | FOSSA, Snyk |
+| **セキュリティ脆弱性のチェック** | 依存しているライブラリに、既知のセキュリティ脆弱性がないかを定期的にスキャンし、脆弱性が発見された場合は速やかにアップデートを行う。 | 定期的なスキャン、CI/CDパイプライン | Snyk, GitHub Dependabot |
+| **不要な依存関係の削除** | 使用されなくなったライブラリや、冗長な依存関係がないかを定期的にチェックし、削除する。 | 定期的なメンテナンス時 | 静的解析ツール |
+| **ロックファイルの更新** | 開発者が意図しない依存関係の更新を防ぐため、パッケージマネージャーのロックファイル（例：package-lock.json, Pipfile.lock）をバージョン管理に含め、その更新は明確な意図を持って行う。 | 依存関係更新時 | Git, パッケージマネージャー |
+
+### 設定 (Configuration)
+
+設定ファイルは、アプリケーションの挙動を環境ごとに制御するために不可欠である。大規模プロジェクトでは、設定ファイルの数や複雑さが増すため、その管理を誤ると深刻な障害につながる。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **環境変数の定義漏れ** | 新規に追加した機能で必要な環境変数が、全ての環境（開発、ステージング、本番）で正しく定義されているかを確認する。 | 新規機能追加時、デプロイ前 | デプロイスクリプト, 設定管理ツール |
+| **機密情報のハードコーディングチェック** | パスワードやAPIキーといった機密情報が、コード内にハードコーディングされていないかを静的解析ツールでチェックする。 | コミット前、CI/CDパイプライン | Git-secrets, 静的解析ツール |
+| **設定ファイルの構文チェック** | 設定ファイル（JSON, YAML, TOMLなど）の構文が正しいか、バリデーションツールを用いてチェックする。 | 設定ファイル変更時 | 各言語のバリデーター |
+| **設定値の型チェック** | 設定値が期待するデータ型（文字列、数値、真偽値など）になっているかを確認する。 | アプリケーション起動時 | アプリケーションコード |
+| **デフォルト値の妥当性** | 環境変数が設定されていない場合のデフォルト値が、安全で妥当なものになっているかを確認する。 | 設計、実装時 | コードレビュー |
+
+### テスト (Testing)
+
+テストは、ソフトウェアの品質を保証するための最も直接的な手段である。AIを活用してテストコードを生成することも可能だが、その品質と網羅性を人間が保証する必要がある。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **単体テストのカバレッジ** | 新規・修正したコードに対して、十分なカバレッジ（例：80%以上）を持つ単体テストが作成されているかを確認する。 | 実装後、コミット前 | Jest, pytest, Istanbul |
+| **統合テストの実施** | 複数のモジュールが連携する部分のテスト（統合テスト）が、必要な箇所に対して実装されているかを確認する。 | 機能単位の実装後 | Testcontainers, Selenium |
+| **E2Eテストのシナリオ** | 主要なユーザーの操作フローをカバーするE2Eテストが存在し、新規機能によって既存のフローが壊れていないかを確認する。 | 統合フェーズ | Cypress, Playwright |
+| **テストの独立性** | 各テストケースが、他のテストケースの実行結果や順序に依存せず、独立して実行できるかを確認する。 | テスト実行時 | テストランナー |
+| **テストデータの管理** | テストで使用するデータが、適切に管理・初期化され、テストの再現性が確保されているかを確認する。 | テスト実行時 | テストフレームワークの機能 |
+
+### 移行 (Migration)
+
+大規模なシステムでは、データベースのスキーマ変更や、古いAPIから新しいAPIへの移行など、移行作業が頻繁に発生する。これらの作業は計画性を欠くと、サービス停止やデータ損失といった重大な事故につながる。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **ロールバック計画の策定** | 移行作業が失敗した場合に備え、速やかに元の状態に戻すためのロールバック計画と手順を文書化し、チームで共有する。 | 移行作業前 | ドキュメント |
+| **移行スクリプトのテスト** | データベースのスキーマ変更やデータ移行を行うスクリプトを、ステージング環境などで十分にテストし、本番環境で安全に実行できることを確認する。 | 移行作業前 | データベースツール |
+| **移行期間中の互換性維持** | 古いシステムと新しいシステムを並行稼働させる期間中は、両方のシステムが互換性を保って動作するように設計・実装する。 | 移行期間中 | コードレビュー |
+| **移行完了の確認** | 移行が完了したら、古いシステムやリソースを安全に削除できることを確認し、関連するドキュメントを更新する。 | 移行完了後 | モニタリングツール |
+| **パフォーマンスの監視** | 移行後は、システムのパフォーマンスに悪影響が出ていないか、監視ツールを用いて注意深く監視する。 | 移行後 | APMツール |
+
+### ドキュメント (Documentation)
+
+ドキュメントは、システムの現在の状態を正確に記録し、チームメンバー間の知識共有を円滑にするための重要な資産である。コードと同じくらい、ドキュメントの品質と鮮度が重要視されるべきである。
+
+| チェック項目 | 確認内容 | 実施タイミング | ツール例 |
+| :--- | :--- | :--- | :--- |
+| **APIドキュメントの更新** | APIの仕様を変更した場合は、必ず関連するAPIドキュメントを更新し、常にコードとドキュメントの内容が一致する状態を保つ。 | API変更時 | Swagger/OpenAPI |
+| **READMEの更新** | プロジェクトのセットアップ手順や実行方法が変更された場合は、READMEファイルを更新する。 | セットアップ方法変更時 | Markdown |
+| **ADR（Architecture Decision Records）の作成** | システムのアーキテクチャに関する重要な決定事項があった場合は、その背景と理由をADRとして記録する。 | 重要な設計決定時 | ADRテンプレート |
+| **インラインコメントの追加** | 複雑なロジックや、他の開発者が理解するのに時間がかかる部分には、適切なインラインコメントを追加する。 | 実装時 | コードエディタ |
+| **ドキュメントの自動生成** | コードからドキュメントを自動生成するツールを導入し、ドキュメントの保守コストを削減する。 | 定期的な実行 | Doxygen, Sphinx |
+
+この包括的なチェックリストを開発プロセスの各段階で活用することで、大規模リポジトリの複雑さに起因するリスクを体系的に管理し、AIとの協業による開発をより安全で効率的なものにすることができる。シニアテックリードは、このチェックリストを基準として、チーム全体の品質意識を高め、プロジェクトの成功を導くための羅針盤として活用すべきである。
+
+## 結論：人間とAIの協奏による未来の開発
+
+本稿では、50フォルダ以上の大規模リポジトリで新規開発と既存改修をAIと共に進める際に、精度の低下を最小化するための総合的な戦略を提示してきた。その核心は、AIを単なる効率化ツールとして見なすのではなく、シニアテックリード兼QAとしての役割を担う「対話的なパートナー」として位置づけ、人間のガバナンスのもとでその能力を最大限に引き出すという考え方にある。大規模開発が直面する「影響範囲の特定漏れ」「設計のブレ」「実装漏れ」といった課題は、システムの複雑さが人間の認知能力を超越することに起因する。AIは、この複雑さを解析し、パターンを提示する力を持つが、最終的な判断と品質保証の責任は、依然として人間が担わなければならない。
+
+提案した「把握→設計→分割→実装→検証→統合」の6フェーズワークフローは、この人間とAIの協業を具体的な行動レベルで定義したものである。各フェーズでAIに具体的な役割を与え、人間がそのアウトプットを評価・修正するというサイクルを回すことで、開発プロセス全体を可視化し、管理可能な単位に分解することを可能にする。特に、タスクを30分から60分の小さなチャンクに分割し、短いイテレーションで「計画→実装→テスト→レビュー」のループを回すアプローチは、フィードバックを迅速化し、大きな失敗を防ぐための実践的な方策である。また、大規模リポジトリ特有のリスクを管理するための包括的チェックリストは、品質保証のプロセスを形式化し、チーム全体で共通の基準を適用するための強力なツールとなる。
+
+この戦略の成功は、プロンプトの質、すなわちAIへの指示の明確さと具体性に大きく依存する。本稿で提示した各フェーズのAIへの指示テンプレートは、その一例であり、プロジェクトの特性や使用するAIモデルに応じてカスタマイズされるべきである。重要なのは、AIに十分なコンテキスト（リポジトリの構造、依存関係、設計意図、コーディング規約など）を与え、何を、なぜ、どのように実装すべきかを明確に伝えることである。AIが生成したコードを鵜呑みにするのではなく、必ず人間がレビューし、プロジェクトの品質基準に照らして評価するプロセスを絶対に省略してはならない。
+
+最後に、本稿の冒頭で述べたように、プロジェクトの成功を導くためには、事前の確認が不可欠である。ここに改めて、プロジェクト開始前に確認すべき7つの質問を提示する。これらの問いに対する回答を明確にすることで、本稿で提案した戦略を、より具体的で実行可能なものにすることができるだろう。
+
+1.  **プロジェクトの概要**: このリポジトリで開発されているのは、どのようなドメインの製品・サービスですか？主なユーザーは誰ですか？
+2.  **優先順位**: 現在、最も優先すべき課題や機能は何ですか？ビジネス上の価値は何ですか？
+3.  **技術スタック**: 使用されている主要なプログラミング言語、フレームワーク、ライブラリ、データベースは何ですか？それらのバージョンは？
+4.  **AIツール**: チームで利用している、または利用を検討しているAIコーディング支援ツールは何ですか？（例：GitHub Copilot, Cursor, Claude Code）
+5.  **品質基準**: このプロジェクトにおける「品質」を定義してください。コードカバレッジ、パフォーマンス、セキュリティなど、特に重視する指標は何ですか？
+6.  **コード規約**: 既存のコーディング規約やスタイルガイドはありますか？それらはどこに文書化されていますか？
+7.  **チーム体制**: 開発チームの構成（メンバー数、役割、スキルセット）と、コードレビューやマージのプロセスはどのようになっていますか？
+
+これらの問いへの回答は、プロジェクト独自の文脈を形成し、AIとの協業を成功させるための「設計図」となる。大規模リポジトリの開発は、もはや個人の英雄的な努力によって成し遂げられるものではない。それは、人間の深い洞察と、AIの驚異的な処理能力がシナジーを生み出すとき、初めてその複雑さを乗り越えることができる。本稿が提示したフレームワークが、その協奏（シンフォニー）を創り出すための一助となれば幸いである。
+
+## 参考文献
+
+[0] 20 Best AI Coding Assistant Tools [Updated Aug 2025]. https://www.qodo.ai/blog/best-ai-coding-assistant-tools.
+
+[11] Semgrep Quarterly Launch: scaling your AppSec impact. https://semgrep.dev/blog/2024/may-quarterly-launch.
+
+[12] Nx monorepo toolkit. https://graphite.com/guides/nx-monorepo-toolkit.
+
+[15] 10 Common monorepo problems and how your team can. https://digma.ai/10-common-problems-of-working-with-a-monorepo.
+
+[20] mufeedvh/code2prompt: A CLI tool to convert your. https://github.com/mufeedvh/code2prompt.
+
+[30] The 6 Best AI Code Review Tools for Pull Requests in 2025. https://dev.to/heraldofsolace/the-6-best-ai-code-review-tools-for-pull-requests-in-2025-4n43.
+
+[31] Best AI pull request reviewers in 2025 - Graphite. https://graphite.com/guides/best-ai-pull-request-reviewers-2025.

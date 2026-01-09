@@ -1,0 +1,862 @@
+VCG/VIBE 2026 AI統合運用マスタードキュメント（最終系・設計書）
+Version: v2026-01-09-FINAL-TXT
+Generated: 2026-01-09 20:18:03 UTC+09:00
+Status: SSOT（唯一の真実） / 運用設計書（規約＝実装）
+
+このTXTは、VCG/VIBEプロジェクトの「理想版（フル運用）」と「LITE版（毎日回せる運用）」を統合し、
+個人が50+フォルダ級の大規模開発でも、迷いなく・事故なく・トップクラス精度でバイブコーディングを完走するための
+“運用OS”として、具体的なフォルダ設計・状態機械・ゲート・テンプレ・自動化・セキュリティ・証跡を定義する。
+
+【規範キーワード】
+  MUST  : 絶対に守る。違反は即停止。
+  SHOULD: 原則守る。例外は明文化し、期限と責任者と検証条件を持つ。
+  MAY   : 任意。採用する場合は本書の整合条件を満たす。
+
+====================================================================================================
+Part 0：憲法（SSOT・優先順位・更新規約・禁止事項・読み方）
+====================================================================================================
+
+0.1 本ドキュメントの位置付け（設計書＝法規）
+  - 本書は『運用の法規』であり、手順の最上位。
+  - 口頭合意やチャット上の“OK”は無効。完了はファイルとVerify結果でのみ成立する。
+  - 本書に反する運用は、例外制度を通してパッチとして追加しない限り採用不可。
+
+0.2 優先順位（衝突時は上が勝つ）
+  1) Safety（事故防止）: 破壊・漏洩・不可逆を回避
+  2) Reproducibility（再現性）: Verify + Evidence + Release
+  3) Machine-decidable（機械判定）: Doneを0/1に落とす
+  4) Small Patch（小パッチ）: 原因切り分け可能にする
+  5) Speed（速度）: 最後。Turboは既定OFF
+
+0.3 非交渉コア（削除禁止・改変はパッチ運用のみ）
+  - SSOT → WORK → PATCHSET → VERIFY → EVIDENCE → RELEASE の一方向（逆流禁止）
+  - SSOT/RELEASE 直編集禁止（ReadOnly運用）
+  - Verifyを通さずに『完了』禁止（人間の感想でDoneにしない）
+  - 成果物はファイル納品（証跡付き）
+  - 変更は差分（diff）で可視化（diffが出ない変更＝原則禁止）
+
+0.4 更新規約（本書の改版手順）
+  MUST:
+    - 変更はPATCHSETとして作成し、VERIFYを通し、EVIDENCEを残してRELEASEする
+    - CHANGELOGに (What/Why/How Verified/Risk) を必ず追記
+  SHOULD:
+    - 大きい変更はADR（意思決定記録）を付ける
+    - 互換性を壊す場合は移行手順を同梱し、ロールバックも定義する
+
+0.5 禁止事項（破ったら即停止）
+  - 破壊系コマンドの無承認実行（例: rm -rf / del /s / format / diskpart など）
+  - SSOT/RELEASE/VAULT（不変証跡）を直接編集して改ざんする行為
+  - 10+ファイル一括置換を“計画なし”で実行（事故率が跳ねるため）
+  - 機密/個人情報を外部へ貼る（後述のデータ分類違反）
+  - Verify不合格のまま次フェーズへ進む（Gate迂回）
+
+0.6 読み方（迷いゼロ運用のための“参照順”）
+  - まずPart 4（状態機械）を読む → 次にPart 9/10（コマンドとVerify） → Part 5/6（チケットとSpec）
+  - 実運用では『読む』より『コマンドで回す』。本書は参照辞書。
+
+0.7 用語（最小の定義）
+  - SSOT: Single Source of Truth。仕様・原典・参照を置く不変領域
+  - WORK: 作業領域。唯一編集が許される場所
+  - PATCHSET: 最小差分束。レビュー/検証の単位
+  - VERIFY: 機械判定ゲート（Fast/Full）
+  - EVIDENCE: 証跡パック（再現性のための束）
+  - RELEASE: 不変成果物（manifest/sha256/SBOM等を同梱）
+  - VIBEKANBAN: 状態機械に基づくタスク管理（外部ツールでも概念は固定）
+  - LITE: 毎日回すための簡略運用（理想版の80%を20%で）
+  - Core Agents: 高精度・中核役割を担うAI群（役割固定、モデル差替可）
+
+0.8 最終監査観点（本書が“実用的で理想的か”の判定軸）
+  - (A) 迷いが発生しない: 次の行動が状態とファイルで一意に決まるか
+  - (B) 事故りにくい: 破壊/漏洩のガードレールが“強制力”として存在するか
+  - (C) 修理が収束する: 失敗分類・小パッチ・3ループ制限があるか
+  - (D) 将来再現できる: Evidence/Releaseが十分か（他AIでも再生可能か）
+  - (E) 毎日回る: LITE運用が現実に回る粒度か（コマンド数・思考量が適正か）
+  - (F) 2026実情: MCP/Agentic IDE/サプライチェーン/秘密情報対策が組み込まれているか
+
+====================================================================================================
+Part 1：目的・成功条件・失敗定義（トップクラス精度を運用で定義）
+====================================================================================================
+
+1.1 目的（運用ゴール）
+  - 個人でも巨大コードベースを安全に変更し続けられる
+  - AI支援でも仕様逸脱が混入しない（Spec Freeze + Gate）
+  - 変更が原因不明にならない（小パッチ + 収束ループ + Evidence）
+
+1.2 成功条件（SLO/SLI：0/1で判定可能にする）
+  A) 品質（Correctness）
+    - Acceptance（受入基準）が全てGreen（自動テスト/静的解析/ビルド等）
+    - 回帰がReleaseに混入しない（Verify Gateがブロック）
+  B) 安全（Safety）
+    - 破壊事故ゼロ（データ消失・不可逆変更ゼロ）
+    - 漏洩ゼロ（秘密情報・個人情報・顧客情報など）
+  C) 再現性（Reproducibility）
+    - Release成果物が“後日・別環境”でも再現できる（manifest/sha256/SBOM/ログ）
+  D) 運用（Operability）
+    - 1チケットがテンプレ＋コマンドで開始でき、状態遷移が一意
+    - 迷いが発生したら“状態機械の欠落”として検知して修正できる
+
+1.3 失敗定義（赤信号：出たら運用停止→原因修正）
+  - Verify不合格のまま進行（Gate迂回）
+  - SSOT/RELEASE直編集で証跡が崩壊
+  - 変更が大きすぎて切り分け不能（Repairが収束しない）
+  - AI入力に機密が混入（分類と検査の欠落）
+  - 証跡が不足し、同じ失敗を繰り返す
+
+====================================================================================================
+Part 2：フォルダ/レーン設計（50+フォルダでも迷いを消す物理構造）
+====================================================================================================
+
+2.1 標準ルート（必須：この構造が“運用OS”の実体）
+  PROJECT_ROOT/
+    SSOT/        # 唯一の真実（仕様・原典・参照物）※原則ReadOnly
+    WORK/        # 作業領域（チケット単位）※ここだけ編集OK
+    PATCHSET/    # 差分束（PR前の最小単位）※生成物
+    VAULT/       # 証跡（ログ、調査メモ、学び、スナップショット）
+    RELEASE/     # 不変成果物（manifest/sha256/SBOM/notes/署名）
+    TEMPLATES/   # チケット/Spec/Evidenceテンプレ
+    OPS/         # 自動化スクリプト（run_verify等）
+    LOGS/        # 自動生成ログ（人間編集禁止）
+
+2.2 権限設計（推奨：OS/ACLで強制力を作る）
+  MUST:
+    - SSOT/ と RELEASE/ は原則ReadOnly（解除は例外制度）
+    - 作業はWORKのみ
+  SHOULD:
+    - VAULTはAppend-Only（既存証跡ファイルは不変、追記で残す）
+    - PATCHSETは人間が手編集しない（生成に統一）
+
+2.3 命名規約（事故率を下げる）
+  - チケットID: TKT_YYYYMMDD_HHMMSS__slug
+  - WORKフォルダ: WORK/TKT_.../
+  - Patchset: PATCHSET/TKT_....diff（またはpatch）
+  - Evidence: VAULT/TKT_.../EVIDENCE_PACK.zip
+  - Release: RELEASE/REL_YYYYMMDD_HHMMSS__shortsha/
+
+2.4 50+フォルダ級の“索引”
+  MUST:
+    - SSOT/INDEX.txt（SSOT全体の目次。追加したら必ず追記）
+    - STATUS.txt（現在のVIBEKANBAN状態とNext Actionを出力）
+    - OPS/COMMANDS.txt（運用コマンド一覧。迷いゼロのための索引）
+  SHOULD:
+    - CODEMAP.txt（主要モジュールの地図：入口・依存・テスト位置）
+
+2.5 レーン分岐（将来拡張含む）
+  - ai_readyレーン（標準）: テキスト/コード/仕様/ログ
+  - pdf_ocr_readyレーン（予定）: raw_pdf, ocr_text, manifest.jsonl（画像/表の取り扱いを分離）
+
+====================================================================================================
+Part 3：AI統合（Core＋周辺）と役割設計（ツール固定ではなく“役割固定”）
+====================================================================================================
+
+3.1 前提（2026の実情）
+  - エージェント型のAI開発が主流化し、IDE/CLI/ツール接続（MCP）が標準化しつつある。
+  - 重要なのは『モデル名』ではなく、『役割とガードレールと証跡』。
+
+3.2 役割（Role）固定：モデル差替可能にする
+  Conductor（司令塔）
+    - タスク分割、状態機械運用、ハンドオフ設計、最終統合、例外判定
+  Builder（実装）
+    - コード変更、最小パッチ作成、局所テスト、修理
+  Auditor（監査）
+    - 仕様逸脱、リスク、テスト漏れ、セキュリティ、運用不整合の指摘
+  Investigator（調査）
+    - 既存コード理解、外部仕様調査、代替案、PoC
+  Cheap Hands（反復/手足）
+    - テンプレ生成、単純修正、ログ整理、ドキュメント整形
+
+3.3 永続指示ファイル（MUST）
+
+
+3.3.1 AGENTS.md（Codex/エージェント向け）設計原則（MUST）
+  - 目的: “このレポではこう動け”を機械に誤解なく伝える
+  - 置き方:
+      (a) repo ルートに必ず置く（全体方針）
+      (b) 役割が明確に分かれる巨大レポはサブディレクトリにも置く（局所ルール）
+  - 含める内容（最低要件）:
+      - 作業可能範囲: WORK/ のみ（SSOT/RELEASE/VAULT直編集禁止）
+      - 破壊コマンド禁止
+      - 変更単位: 小パッチ（1チケット＝1目的）
+      - 実装前にSPECを読み、Acceptance/Invariantを壊さない
+      - 変更後は必ず ops/run_verify を実行し、ログを保存する
+      - 出力はPATCHSET(diff)と、必要ならTICKET/SPEC/REPAIR/DONE更新
+
+3.3.2 CLAUDE.md（Claude Code向け）設計原則（MUST）
+  - 目的: Claude Codeがレポ規約を守り、同じ失敗を繰り返さないための“固定指示”
+  - 含める内容:
+      - 変更禁止領域、Verify必須、出力形式（diff/パッチ）、秘密情報取り扱い
+      - 依頼が曖昧な時の行動: “確認質問”より先に「仮説と安全な最小提案」を出す
+      - 失敗時の行動: Repair分類→最小修正→再Verify
+
+3.3.3 Skills（スキル）運用（SHOULD：大規模では強力）
+  - “テンプレ作成”“Verify実行”“Evidence生成”などをスキル化すると、AIが手順を安定して再現しやすい
+  - スキルは以下の3点セットで管理する:
+      (1) 手順（人間が読める）
+      (2) 入力/出力（機械が判断できる）
+      (3) テスト（スキル自体の検証）
+
+
+  - AGENTS.md: Codex等のエージェント向け規約（repoルート＋必要なら階層配置）
+  - CLAUDE.md: Claude Code向け規約（repoルート）
+  - （IDE側設定）: Antigravity/他IDEでも同等のガードレール（作業領域・禁止事項・Verify）を設定
+
+3.4 AI出力の採用条件（MUST：Gateで統制）
+  - AI提案は“採用前提”ではない。必ずPATCHSET化し、VERIFYを通し、EVIDENCEに残して初めて採用。
+  - 口頭説明・推論は参考であり、完了判定ではない。
+
+3.5 外部ツール接続（MCP採用方針）
+  - MCPはAIアプリと外部ツール/データを標準化して接続するためのプロトコル。
+  - 便利だが攻撃面も増えるため、Permission Tier・監査ログ・最小権限が必須。
+
+====================================================================================================
+Part 4：VIBEKANBAN（状態機械）— 迷いゼロの導線（最重要）
+====================================================================================================
+
+4.1 状態機械（理想版：8ステージ）
+  INBOX → TRIAGE → SPEC → BUILD → VERIFY → REPAIR → EVIDENCE → RELEASE
+
+4.2 状態定義（MUST：それぞれ“入出力ファイル”で定義する）
+  INBOX
+    - 入力: アイデア/バグ報告/要求/ログ/リンク/スクショ
+    - 出力: TRIAGE用メモ（最低限: 何が起きてる/どこ/緊急度）
+  TRIAGE
+    - 目的: 目的/範囲/サイズ/リスク/期限/権限ティアを確定
+    - 出力: WORK/<ticket>/TICKET.md（必須項目埋める）
+  SPEC（Spec Freeze）
+    - 目的: 受入基準と不変条件を凍結し、AI暴走を防ぐ
+    - 出力: WORK/<ticket>/SPEC.md（凍結）
+  BUILD
+    - 目的: 最小差分で実装（Small Patch）
+    - 出力: PATCHSET/<ticket>.diff + ローカルFast Verifyログ
+  VERIFY
+    - 目的: 機械判定で合否
+    - 出力: LOGS/<ticket>/verify_fast.log / verify_full.log
+  REPAIR
+    - 目的: 失敗分類→修理→再Verify（最大3ループ）
+    - 出力: WORK/<ticket>/REPAIR.md（何を直したか、なぜか）
+  EVIDENCE
+    - 目的: 証跡パック作成（将来再現できる束）
+    - 出力: VAULT/<ticket>/EVIDENCE_PACK.zip + DONE.md
+  RELEASE
+    - 目的: 不変成果物化（hash/manifest/SBOM/notes/署名）
+    - 出力: RELEASE/REL_.../ 一式
+
+4.3 状態遷移の強制（MUST：ファイル存在とVerify結果で“自動判定”）
+  - 次に進む条件を“チェックリスト”ではなく“存在とコマンド結果”で決める。
+  例:
+    SPECへ進む: WORK/<ticket>/TICKET.md が必須項目を満たす + WORK/<ticket>/SPEC.md が存在
+    VERIFYへ進む: PATCHSET/<ticket>.diff が存在
+    RELEASEへ進む: Evidence Packが存在 + Full VerifyがGreen
+
+4.4 VIBEKANBANとMCP統合（採用方針）
+  - VIBEKANBANを使う場合でも、概念は本書の状態機械がSSOT。
+  - VIBEKANBANのMCPサーバーを併用する場合、タスク管理とツール連携を一体化できるが、
+    書き込み権限・外部連携権限はTier制御で最小化する。
+
+4.5 監査（実用性チェック）
+
+
+4.6 VIBEKANBAN運用ルール（MUST：ボードがSSOTではなく“表示”であることを忘れない）
+  - タスクの真実はWORK配下のファイル（TICKET/SPEC/LOGS）である。
+  - ボードは状態の“表示”と“トリガー”であり、監査はファイルとVerifyログで行う。
+
+4.7 ボード設計（推奨）
+  - Columns（理想版8ステージ）:
+      INBOX | TRIAGE | SPEC | BUILD | VERIFY | REPAIR | EVIDENCE | RELEASE
+  - WIP制限（SHOULD）:
+      BUILD/VERIFY/REPAIR は合計WIP=1（個人は並列を増やすと事故る）
+      INBOX/TRIAGE はWIP=無制限（アイデア溜め）
+  - Labels（例）:
+      risk:security / risk:data-loss / size:S/M/L/XL / tier:A-E / area:<module>
+
+4.8 Vibe Kanban MCP Server を使う場合の最小運用（推奨）
+  - Planning Taskを作る → SPEC/DONEテンプレをWORKへ生成 → Verifyコマンドを呼ぶ
+  - 注意: MCP経由で“書き込み”ができるため、WORK以外への書き込みを物理的にブロックすること。
+
+
+  - 状態が多いと運用が回らない問題 → Part 16でLITE運用（4ステージ統合）を定義し、毎日の回転率を担保。
+  - 状態遷移が曖昧だと迷いが出る問題 → 各状態の入出力をファイルで固定し、コマンドで判定。
+
+====================================================================================================
+Part 5：チケット設計（S/M/L/XL）とテンプレ（必須フィールド）
+====================================================================================================
+
+5.1 チケットサイズ（目安：運用で迷わないための分類）
+  S: 1ファイル/数行、Verifyは1コマンドで足りる
+  M: 標準。テンプレ標準（TICKET_M）
+  L: 複数モジュール。Context Pack必須。ADR/追加テスト必須
+  XL: Epic。Lの集合として分割管理（単発でやらない）
+
+5.2 チケット必須項目（MUST：全サイズ共通）
+  - What: 何をやるか（作業内容）
+  - Why: なぜやるか（目的・背景）
+  - Where: 影響範囲（フォルダ/モジュール/機能）
+  - Acceptance: 受入基準（機械判定できる形で）
+  - Invariants: 不変条件（壊してはいけない仕様/性能/セキュリティ）
+  - Risks: 重大リスク最大3（対策付き）
+  - Permission Tier: 実行権限段階
+  - Verify Plan: Fast/Full（どのコマンドで判定するか）
+  - Rollback: 戻し方（最低1手順）
+
+5.3 受入基準（Acceptance）の書き方（MUST：0/1）
+  - 『動いた』禁止。必ずコマンド結果・ログ・閾値・ファイル生成で判定できる言葉にする。
+  例:
+    - [ ] unit test: <command> がexit code 0
+    - [ ] build: <command> がexit code 0
+    - [ ] secret scan: gitleaks が検出0
+    - [ ] vulnerability: trivy critical=0
+    - [ ] SBOM: sbomファイルが生成され、差分がEvidenceに含まれる
+
+5.4 テンプレ運用（MUST）
+  - TEMPLATES/ にS/M/L/XL用のTICKET.md, SPEC.md, DONE.mdを保持
+  - ops/new_ticket で複製し、WORKに作成する（手作業で作らない）
+
+====================================================================================================
+Part 6：Spec Freeze（仕様凍結）— 個人の精度を爆上げする核心
+====================================================================================================
+
+6.1 SPEC.mdの位置付け（MUST：契約書）
+  - SPECは“設計メモ”ではなく、Gateの前提条件を固定する契約書。
+  - AIの提案が魅力的でもSPECを破るなら別チケット。
+
+6.2 SPEC.md 必須項目（MUST）
+  Goals / Not Goals
+  Scope / Impact（影響範囲）
+  Acceptance（0/1）
+  Invariants（不変条件）
+  Test Strategy（Fast/Full）
+  Security Notes（入力検証、秘密情報、依存）
+  Alternatives（>=2） + Decision（採用理由）
+  Rollback Plan（戻し方）
+
+6.3 Acceptanceを機械判定に落とす方法（SHOULD）
+  - acceptance.json（またはyaml）で、必要コマンド/生成物/閾値を定義し、CIが評価する。
+  - これにより、人間が“見た目”で判断する余地を減らす。
+
+6.4 ADR（意思決定記録）（L以上でMUST）
+  - 変更が『なぜそうした？』になりそうならADRを書く。
+  - ADRは将来の修理速度を上げ、再議論コストを減らす。
+
+====================================================================================================
+Part 7：Context Engineering（コンテキスト設計）とRAG（大規模の生命線）
+====================================================================================================
+
+7.1 セッション断捨離原則（MUST）
+  - 長いチャット履歴で精度が落ちるのを前提にし、
+    セッション開始時は『Context Pack + 索引 + RAG検索』で復元する。
+
+7.2 Context Pack（L以上MUST）
+  CONTEXT_PACK.txt には以下を必ず含める：
+    - チケット目的/受入基準/不変条件（SPECから抜粋）
+    - 重要ファイルのパスと役割（CODEMAP的な地図）
+    - 主要ログ全文（必要部分だけ。秘密情報はマスク）
+    - 既に試したこと（NG集）
+    - 最新Patchset（diff）
+
+7.3 RAGの役割（MUST：答えではなく根拠供給）
+  - RAGは“正しい根拠をAIに渡す”ための仕組みであり、AIの正しさを保証しない。
+  - 最終判定は必ずVerify。
+
+7.4 RAG索引の最低要件（SHOULD）
+  - SSOT/VAULT/RELEASE を全文検索可能にする（FTS/ベクトルどちらでもよい）
+  - 索引には：ファイルパス、更新日時、hash、チケットID、タグ（領域/モジュール）を持たせる
+
+====================================================================================================
+Part 8：IDE/エージェント実行環境（Antigravity / CLI / MCP）
+====================================================================================================
+
+8.1 Agent-first IDE（Antigravity等）の位置付け
+  - IDEは“編集器”ではなく、エージェントのミッション管理（Mission Control）として扱う。
+  - ただし、エージェントが強力になるほど事故も増えるため、
+    WORK限定・権限ティア・監査ログが必須。
+
+8.2 Gemini CLI（調査/生成の高速レーン）
+  - 調査、テンプレ生成、軽作業（Cheap Hands）を高速に回す。
+  - 原則として破壊コマンド実行や鍵操作はさせない（Tierで禁止）。
+
+8.3 MCP統合（MUST：最小権限）
+
+
+8.3.1 MCPサーバーを入れるときの“最初の構成”（推奨）
+  - Filesystem(ReadOnly): 読み取り専用で、SSOT/VAULT/RELEASEは参照のみ
+  - Git(ReadOnly): status/diff/log 取得のみ
+  - Search(ReadOnly): ripgrep/fts 等の検索のみ
+  - Writer(Scoped): WORK/ 直下のみ書き込み許可（denylistで防御）
+  - Executor(Scoped): ops/run_verify 等の安全コマンドのみ実行許可
+
+8.3.2 監査ログ（MUST）
+  - MCPで“呼ばれたツール/引数/戻り値（要約）/実行時刻/実行者（AI or Human）”をLOGSへ保存
+  - 監査ログ自体はAppend-Only（改ざん防止）
+
+8.3.3 Allowlist/Denylist（MUST）
+  - Network: ドメインAllowlist（公式ドキュメント、依存の公式、社内Gitのみ）から開始
+  - Execute: コマンドAllowlist（test/build/scan）で固定し、rm/del/format等はdeny
+
+
+  - MCPサーバーはReadOnly Filesystem/Git Status/Diff/Searchなどから開始。
+  - Write/Execute/Networkは段階解放（Tier制御）
+
+8.4 実行環境ドリフト対策（SHOULD）
+  - devcontainer / docker / lockfile / toolchain version を固定し、
+    VerifyがローカルとCIで一致することを優先する。
+
+====================================================================================================
+Part 9：自動化コマンド（OPS）— 正しい手順以外が物理的に通らない
+====================================================================================================
+
+9.1 最小自動化セット（MUST：MVP）
+  ops/new_ticket
+    - TEMPLATES複製 → WORK/<ticket>/ 作成 → STATUS更新
+  ops/make_patchset
+    - git diffを固定形式でPATCHSETへ出力（人間編集禁止）
+  ops/run_verify
+    - Fast/Full Verifyの統一入口（ログをLOGSへ保存）
+  ops/make_evidence
+    - SPEC/PATCHSET/LOGS/ADR/決定記録を束ねてEVIDENCE_PACK生成
+  ops/make_release
+    - manifest/sha256/SBOM/notes/署名（任意）を生成しRELEASEへ格納
+
+9.2 コマンドは“迷いゼロの導線”である（設計判断）
+  - UIより先にCLIを整える。CLIが固まればUIは薄くできる。
+  - ‘人が迷う’箇所はコマンド化して固定する。
+
+9.3 監査（実用性チェック）
+
+
+9.4 vibekanban-* コマンドの内部仕様（設計として固定する）
+  vibekanban-new:
+    - 入力: <name> <size>
+    - 処理:
+        1) ticket_id採番（timestamp + slug）
+        2) WORK/<ticket_id>/ にテンプレ生成（TICKET/SPEC）
+        3) STATUS.txt更新（Next Action: PLAN）
+        4) ボード（任意）にカード作成/ラベル付け
+    - 出力: ticket_id
+
+  vibekanban-verify:
+    - 入力: ticket_id, [-Full]
+    - 処理:
+        1) PATCHSET生成（未生成なら）
+        2) Verify実行（Fast or Full）
+        3) LOGSに保存、STATUS更新
+    - 出力: PASS/FAIL
+
+  vibekanban-done:
+    - 入力: ticket_id
+    - 条件: 最低Fast VerifyがPASS（Fullが必要なチケットはFull PASS）
+    - 処理:
+        1) Evidence最小セット生成
+        2) DONE.txt 生成/更新
+        3)（必要なら）Release生成
+        4) STATUS更新（Next Action: INBOX or 次チケット）
+
+
+  - 自動化がないと運用は破綻する（Part 16のLITEでも3コマンドを必須にする）。
+  - コマンドが増えすぎると回らないため、入口は少なく、内部で分岐する。
+
+====================================================================================================
+Part 10：Verify Gate（機械判定）— Green以外は進めない
+====================================================================================================
+
+10.1 Verifyレベル
+
+
+10.1.1 Verifyコマンドの“固定化”例（採用するなら必ずOPSに封じる）
+  - Fast Verify（例）
+      - format/lint        : ops/verify_fast --lint
+      - unit tests(short)  : ops/verify_fast --unit
+      - type check         : ops/verify_fast --type
+  - Full Verify（例）
+      - build              : ops/verify_full --build
+      - integration/e2e    : ops/verify_full --e2e
+      - secret scan        : ops/verify_full --secrets
+      - vuln scan          : ops/verify_full --vuln
+      - sbom               : ops/verify_full --sbom
+  重要:
+    - 人間が都度コマンドを思い出す運用は破綻する。入口を固定し、内部で分岐させる。
+
+10.1.2 閾値（しきい値）を“仕様”として固定する（MUST）
+  - 例:
+      - gitleaks: findings == 0
+      - trivy   : CRITICAL == 0 （or HIGH <= N）
+      - performance: p95 <= X ms
+  - 閾値は SPEC.md に書き、Verifyが読む（SPEC→Gateの直結）
+
+
+  Fast Verify（頻繁に回す）
+    - lint/format
+    - unit tests（短）
+    - type check
+    - 主要モジュールのビルド（軽）
+  Full Verify（マージ/リリース前）
+    - full build
+    - integration/e2e
+    - SAST
+    - dependency vulnerability scan
+    - secret scan
+    - SBOM生成
+    - （必要なら）性能テスト（閾値）
+
+10.2 Gateの強制（MUST）
+  - CIでブロック（必須）
+  - ローカルも同一コマンドで再現できること（環境差事故を減らす）
+  - 失敗時はFail Summaryを生成し、Repairへ遷移させる
+
+10.3 推奨ツール（例：採用する場合はコマンドを固定する）
+  - secret scan: gitleaks
+  - vuln scan : trivy
+  - SBOM      : CycloneDX（ツールは言語に合わせる）
+  - signing   : sigstore/cosign（任意。Release不変性を強化）
+
+====================================================================================================
+Part 11：Repair（VRループ）— 失敗を分類し、収束させる
+====================================================================================================
+
+11.1 失敗分類（MUST）
+  - SPEC違反（Acceptance/Invariant不足）
+  - 実装ミス（Code）
+  - テスト不足/誤り（Test）
+  - 環境差（Env）
+  - 依存/セキュリティ（Deps/Sec）
+
+11.2 収束ルール（MUST）
+  - Repairループは最大3回。
+  - 3回超える場合は以下のいずれかを必ず実施：
+    (a) チケット分割（小パッチ化）
+    (b) SPEC再凍結（Acceptance/Invariant/テスト戦略の見直し）
+    (c) 例外制度（期限付き）を適用して運用リスクを可視化
+
+11.3 Repairログ（MUST）
+  - WORK/<ticket>/REPAIR.txt に、
+    何が失敗し、原因仮説は何で、何を直し、どのVerifyで直ったかを記録。
+
+====================================================================================================
+Part 12：Evidence（証跡）— 将来の自分/AIが再現できる形にする
+====================================================================================================
+
+12.1 Evidence Pack（MUST：最低要件）
+  - TICKET.txt（目的/受入基準/リスク）
+  - SPEC.txt（凍結した契約）
+  - PATCHSET.diff（最小差分）
+  - verify_fast.log / verify_full.log
+  - 主要エラー全文（必要部分）
+  - ADR（ある場合）
+  - SBOM/manifest/sha256（生成した場合）
+  - DONE.txt（最終結果、学び、次回短縮ポイント）
+
+12.2 Evidence Ladder（根拠品質ルール：MUST）
+  A: 一次情報（公式仕様/コード/ログ）
+  B: 信頼できる二次情報（公式ブログ/著名ベンダ）
+  C: コミュニティ情報（検証必要）
+  D: AI生成のみ（根拠にならない）
+
+12.3 監査（実用性チェック）
+  - Evidenceが薄いと同じ失敗を繰り返す。
+  - 逆にEvidenceが重すぎると回らない → Part 16でLITE Evidence（最小）も定義する。
+
+====================================================================================================
+Part 13：Release（不変成果物）— “永続KB” と整合する
+====================================================================================================
+
+13.1 Releaseに入れるもの（MUST）
+
+
+13.1.1 manifest.jsonl / sha256.csv の最小仕様（推奨）
+  - manifest.jsonl（1行1ファイルのJSON）
+      {"path":"artifact/bin/app.exe","bytes":123456,"mtime":"2026-01-09T20:00:00+09:00"}
+  - sha256.csv（CSV: sha256,path）
+      0123abcd...,artifact/bin/app.exe
+
+13.1.2 Release Notes の必須フォーマット（MUST）
+  - WHAT（何を変えた）
+  - WHY（なぜ）
+  - HOW VERIFIED（Fast/Fullの結果とログ）
+  - RISK（残リスクと緩和）
+  - ROLLBACK（戻し方）
+
+
+  - artifact（成果物）
+  - manifest.jsonl（ファイル一覧/サイズ/mtime）
+  - sha256.csv（ハッシュ）
+  - release_notes.txt（What/Why/How Verified/Risks）
+  SHOULD:
+    - sbom.json（CycloneDX等）
+    - provenance（SLSA/in-toto等。可能なら）
+    - signature（cosign等。可能なら）
+
+13.2 不変性の担保（MUST）
+  - Releaseは追記禁止。新Releaseを作る。
+  - Release ID（timestamp + hash）で参照する。
+
+13.3 ロールバック（MUST）
+  - “直近の安定Release”へ戻す手順を、release_notesに必ず書く。
+
+====================================================================================================
+Part 14：セキュリティ/サプライチェーン（2026必須要件）
+====================================================================================================
+
+14.1 SSDF（Secure Software Development Framework）準拠方針（SHOULD→可能ならMUST）
+  - セキュリティを“あとで”にしない。Verify Gateに組み込む。
+  - 開発・運用・保守の標準作業として定義する。
+
+14.2 SLSA（Supply-chain Levels for Software Artifacts）採用方針
+  - 目標: 個人運用で現実的な範囲（例：SLSA L2相当）から始め、必要に応じて上げる。
+  - provenance（生成過程の証明）をEvidence/Releaseに含めると、改ざん検知が容易になる。
+
+14.3 SBOM（CycloneDX）
+  - ReleaseごとにSBOMを生成し、依存を固定し、脆弱性対応をやりやすくする。
+
+14.4 Secrets / Vulnerability（MUST）
+
+
+14.4.1 代表コマンド例（採用する場合はOPSへ）
+  - gitleaks:
+      gitleaks detect --source . --no-git --redact --report-path LOGS/<ticket>/gitleaks.json
+  - trivy（filesystemスキャン例）:
+      trivy fs --format json --output LOGS/<ticket>/trivy.json .
+  - sbom（言語別にツールは異なるため“出力形式”だけ固定）:
+      sbom.json をReleaseに同梱（CycloneDX JSON推奨）
+
+14.4.2 依存混乱（typosquatting等）対策（SHOULD）
+  - lockfileの厳格運用
+  - 依存追加/更新は専用チケット化し、SLSA/SBOM/Vuln Scanを必ずFullで回す
+
+
+  - secret scan: gitleaks等で“検出0”をGateに入れる
+  - vulnerability scan: trivy等でCritical=0などの閾値をGateに入れる
+
+14.5 署名（任意だが強力）
+  - cosignでartifact/SBOM/attestationを署名し、Releaseの信頼性を上げる。
+
+====================================================================================================
+Part 15：観測可能性（Tracing/メトリクス/アラート）— “迷い” を計測して潰す
+====================================================================================================
+
+15.1 観測対象（MUST：改善の入口）
+  - 状態ごとの滞留時間（INBOX/TRIAGE/SPEC/...）
+  - Verify失敗率（種類別）
+  - Repairループ回数
+  - 変更規模（diff lines / files）
+  - 危険操作試行回数（破壊コマンド、秘密情報混入など）
+
+15.2 最小ダッシュボード（MUST）
+  - VAULT/metrics.jsonl に集約
+  - STATUS.txt を自動生成（今日のNext Actionを一行で出す）
+
+15.3 アラート（SHOULD）
+  - Repairループが3を超えそう → 自動で分割提案
+  - Verify失敗が連続 → 環境ドリフト疑いとして診断
+
+====================================================================================================
+Part 16：LITE運用（毎日回す版）— 理想版を壊さず“回転率”を確保する
+====================================================================================================
+
+16.1 LITEの目的（MUST：現実に回す）
+  - 理想版（8ステージ）は強いが、毎日全部回すと疲弊する。
+  - LITEは理想版の80%効果を20%労力で得るための設計。
+
+16.2 LITEの状態（4ステージ統合）
+
+
+16.2.1 LITE↔理想版 対応表（運用者が迷わないため）
+  - PLAN  : TRIAGE + SPEC（ここで受入基準と不変条件を“最小でも凍結”）
+  - BUILD : BUILD（小パッチ）
+  - VERIFY: VERIFY + REPAIR（最大3ループ、超えたら分割 or SPEC見直し）
+  - DONE  : EVIDENCE + RELEASE（最小Evidence→必要ならフルRelease）
+
+16.2.2 LITEの危険領域（MUST：ここだけは削れない）
+  - SPECのAcceptance/Invariant
+  - Verifyのログ保存
+  - Patchset(diff)の保存
+
+
+  PLAN（= TRIAGE + SPEC）
+  BUILD（= BUILD）
+  VERIFY（= VERIFY + REPAIR）
+  DONE（= EVIDENCE + RELEASE の最低限）
+
+16.3 LITEの3コマンド（MUST）
+  1) vibekanban-new <name> [S|M|L|XL]   : 新規チケット作成（テンプレ生成）
+  2) vibekanban-verify [-Full]         : Fast/Full Verify実行
+  3) vibekanban-done <name>            : 完了（Evidence最小セット作成）
+
+16.4 LITE Evidence（最小セット：MUST）
+  - SPEC（簡易でも受入基準と不変条件は必須）
+  - PATCHSET
+  - verifyログ（Fast、必要ならFull）
+  - DONE（何を変えたか/なぜ/どう検証したか）
+
+16.5 LITE→理想版への昇格条件（MUST）
+  次のいずれかに該当したら理想版へ昇格（EVIDENCE/RELEASEをフルにする）：
+    - 影響範囲が広い（複数モジュール/複数フォルダ）
+    - セキュリティ/秘密情報/認証/課金/外部APIが絡む
+    - データ破壊リスクがある
+    - 変更がロールバック困難
+    - 依存更新（大量）
+
+16.6 監査（実用性チェック）
+  - LITEは“サボり”ではなく“回るように設計した強制縮約”。
+  - ただしSpec FreezeとVerify Gateだけは削れない。
+
+====================================================================================================
+Part 17：データガバナンス（漏洩防止・ローカル優先・AI投入制御）
+====================================================================================================
+
+17.1 データ分類（MUST：Tierで扱いを決める）
+  Tier 0: 公開可（OSS/一般情報）
+  Tier 1: 個人/社内（外部貼付禁止。マスキングして要約）
+  Tier 2: 機密（ローカルLLM/オフラインのみ。ログ暗号化推奨）
+  Tier 3: 極秘（AI投入禁止。手作業のみ）
+
+17.2 AI投入前チェック（MUST）
+  - secret scan（キー/トークン/パスワードの検出）
+  - 個人情報/顧客情報のマスキング
+  - ログは必要部分だけ抜粋（全文投げ禁止）
+
+17.3 権限ティア（Permission Tier：MUST）
+  Tier A: ReadOnly（読むだけ。ネット/実行/書き込み禁止）
+  Tier B: Write WORK only（WORK内のファイル生成は可。ネット禁止）
+  Tier C: Network allowed（調査用。ドメイン許可リスト制）
+  Tier D: Execute allowed（テスト/ビルド等の実行。破壊コマンドは禁止）
+  Tier E: Admin（例外制度でのみ。SSOT/RELEASEの解除など）
+
+17.4 ログ/証跡の保持（SHOULD）
+  - VAULTは改ざんされないことが価値。Append-Only、バックアップ、暗号化を検討。
+
+====================================================================================================
+Part 18：運用Playbook（例外制度・事故対応・オンボーディング・継続改善）
+====================================================================================================
+
+18.1 例外制度（MUST：例外は必ず条件と期限と検証を持つ）
+  例外には必ず以下を付与：
+    - 適用条件（なぜ例外が必要か）
+    - 責任者（人間）
+    - 期限（いつまで）
+    - 最低限のVerify条件（何をGreenにするか）
+    - Evidence（事後に残す）
+
+18.2 事故対応（MUST：即時）
+  - 破壊疑い: 作業停止 → スナップショット → 復旧手順 → 再発防止（Playbook更新）
+  - 漏洩疑い: ログ隔離 → キー無効化 → 影響範囲調査 → 報告書 → Gate強化
+  - Verify崩壊: 直近安定Releaseへロールバック → 原因切り分け → 小パッチ修理
+
+18.3 初回導入（最短で“1周”させる）（MUST）
+  Phase 0: フォルダ作成（SSOT/WORK/PATCHSET/VAULT/RELEASE/TEMPLATES/OPS/LOGS）
+  Phase 1: テンプレ配置（TICKET/SPEC/DONE）
+  Phase 2: ops/new_ticketでSチケットを作成し、LITE 3コマンドで1周
+  Phase 3: 実運用で詰まった点をVAULTに記録し、Playbookをパッチ更新
+
+18.4 継続改善（MUST）
+  - “迷った場所”は仕様の欠落。必ず次回のためにルール/コマンド/テンプレに落とす。
+  - 運用の負債（未実装/手作業）は一覧化し、Sチケットで潰す。
+
+====================================================================================================
+Appendix：テンプレ（コピペ用・TXT）
+====================================================================================================
+
+A1: TICKET_S.txt
+------------------------------------------------------------
+TICKET: <name>
+SIZE: S
+WHAT:
+WHY:
+ACCEPTANCE (0/1):
+  - [ ] 
+
+A2: TICKET_M.txt
+------------------------------------------------------------
+TICKET: <name>
+SIZE: M
+WHAT:
+WHY:
+WHERE (impact):
+ACCEPTANCE (0/1):
+  - [ ] 
+INVARIANTS:
+  - 
+RISKS (max 3):
+  1)  / mitigation:
+  2)  / mitigation:
+  3)  / mitigation:
+PERMISSION TIER: <A|B|C|D|E>
+VERIFY PLAN:
+  FAST: <command>
+  FULL: <command>
+ROLLBACK:
+  - 
+
+A3: SPEC.txt
+------------------------------------------------------------
+SPEC: <ticket>
+GOALS:
+NOT GOALS:
+SCOPE/IMPACT:
+ACCEPTANCE (0/1):
+INVARIANTS:
+TEST STRATEGY (FAST/FULL):
+SECURITY NOTES:
+ALTERNATIVES (>=2) + DECISION:
+ROLLBACK PLAN:
+
+A4: DONE.txt
+------------------------------------------------------------
+DONE: <ticket>
+DATE:
+CHANGED:
+WHY:
+VERIFIED:
+  - FAST: PASS/FAIL (log path)
+  - FULL: PASS/FAIL (log path)
+EVIDENCE PACK:
+LESSONS / NEXT TIME:
+
+====================================================================================================
+Appendix：参照（公式・一次情報中心）
+====================================================================================================
+※URLは運用者が参照するために記載（ドキュメント更新時は差分管理する）
+  - OpenAI Codex / AGENTS.md / Agents SDK (MCP)
+  - Anthropic Claude Code / CLAUDE.md / best practices
+  - Model Context Protocol (MCP) Specification
+  - Google Gemini CLI / Google Antigravity
+  - Vibe Kanban / Vibe Kanban MCP Server
+  - NIST SSDF (SP 800-218 Rev.1 IPD)
+  - SLSA
+  - OWASP CycloneDX (SBOM)
+  - Sigstore/Cosign
+  - Gitleaks
+  - Trivy
+
+
+参照URL（一次情報中心）
+```text
+OpenAI Codex
+  https://developers.openai.com/codex/
+AGENTS.md ガイド
+  https://developers.openai.com/codex/guides/agents-md/
+Codex + Agents SDK（Codex CLI を MCP server 化）
+  https://developers.openai.com/codex/guides/agents-sdk/
+
+Anthropic Claude Code Best Practices
+  https://www.anthropic.com/engineering/claude-code-best-practices
+
+Model Context Protocol (MCP) Spec (2025-03-26)
+  https://modelcontextprotocol.io/specification/2025-03-26
+
+Vibe Kanban MCP Server docs
+  https://www.vibekanban.com/docs/integrations/vibe-kanban-mcp-server
+
+Google Gemini 3 for developers（Antigravity / Gemini CLI 言及）
+  https://blog.google/innovation-and-ai/technology/developers-tools/gemini-3-developers/
+
+NIST Publications（SP 800-218 Rev.1 SSDF v1.2 IPD, 2025-12-17）
+  https://csrc.nist.gov/publications
+
+OWASP CycloneDX（SBOM）
+  https://cyclonedx.org/
+Sigstore Cosign Quickstart
+  https://docs.sigstore.dev/quickstart/quickstart-cosign/
+
+Gitleaks
+  https://github.com/gitleaks/gitleaks
+Trivy
+  https://aquasecurity.github.io/trivy/
+```
