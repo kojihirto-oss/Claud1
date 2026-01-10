@@ -539,7 +539,7 @@ PROJECT_ROOT/
 
 **Allowlist（許可コマンド）**:
 - 許可: pytest, npm test, pnpm lint, ruff, mypy, docker compose up など
-- 禁止: rm -rf, git push --force, curl | sh など（HumanGateのみ）
+- 禁止: `rm -rf`, `git push --force`, `curl | sh` など（HumanGateのみ）
 
 **根拠**: MASTER L512, L655-665
 **関連用語**: Permission Tier, HumanGate, Allowlist
