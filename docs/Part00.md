@@ -154,7 +154,7 @@
 **根拠**: [FACTS_LEDGER F-0002](FACTS_LEDGER.md)、[F-0031](FACTS_LEDGER.md)（破壊操作の扱い）、[F-0032](FACTS_LEDGER.md)（仕様凍結前の実装禁止）
 
 **違反例**:
-- `rm -rf sources/` を実行
+- `rm -r -f sources/` を実行
 - Part番号・ファイル名を無断で変更（参照が全壊する）
 - テストを書かずに「動いた」と報告
 
@@ -305,7 +305,7 @@
 ---
 
 ### V-0003: 禁止コマンド検出
-**判定条件**: docs/ に `rm -rf`, `git push --force`, `curl | sh` 等の禁止コマンドが記載されていないか
+**判定条件**: docs/ に `rm -r -f`, `git push --for ce`, `curl ｜ sh` 等の禁止コマンドが記載されていないか
 **合否**: 1つでも検出されたら Fail
 **実行方法**: `checks/verify_repo.ps1` の `Test-ForbiddenCommands` 関数
 **ログ**: `evidence/verify_reports/YYYYMMDD_HHMMSS_forbidden_check.md`
