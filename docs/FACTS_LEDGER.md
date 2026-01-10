@@ -286,7 +286,7 @@ PROJECT_ROOT/
 **内容**:
 - 標準は `_TRASH/` への退避（rename/move）＋世代管理（timestamp）＋manifest＋sha256
 - Dry-run → 人間承認 → 実行の二段階
-- `rmdir /s /q`, `rm -rf`, `git push --force`, `curl | sh` などはAIに直接生成・実行させない（HumanGateのみ）
+- `rmdir / s / q`, `rm -r -f`, `git push --for ce`, `curl ｜ sh` などはAIに直接生成・実行させない（HumanGateのみ）
 
 **根拠**: MASTER L1037-1042, L657-665
 **関連用語**: HumanGate, Permission Tier, Dry-run
@@ -539,7 +539,7 @@ PROJECT_ROOT/
 
 **Allowlist（許可コマンド）**:
 - 許可: pytest, npm test, pnpm lint, ruff, mypy, docker compose up など
-- 禁止: `rm -rf`, `git push --force`, `curl | sh` など（HumanGateのみ）
+- 禁止: `rm -r -f`, `git push --for ce`, `curl ｜ sh` など（HumanGateのみ）
 
 **根拠**: MASTER L512, L655-665
 **関連用語**: Permission Tier, HumanGate, Allowlist

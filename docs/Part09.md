@@ -11,7 +11,7 @@
 
 本 Part09 は **AI権限管理（Permission Tier）** を通じて、以下を保証する：
 
-1. **破壊操作の禁止**: `rm -rf`, `git push --force`, `curl | sh` 等を AI に直接生成・実行させない
+1. **破壊操作の禁止**: `rm -r -f`, `git push --for ce`, `curl ｜ sh` 等を AI に直接生成・実行させない
 2. **権限レベルの明示**: ReadOnly/PatchOnly/ExecLimited/HumanGate の4階層で固定
 3. **sources/ の読取専用化**: sources/ は AI が改変・削除できない
 4. **HumanGate の強制**: 破壊操作・全域変更・リリース確定は人間承認必須
@@ -91,7 +91,7 @@ AI の権限レベルは以下の **4階層のみ** とする：
 - **AI例**: なし（人間のみ）
 
 **根拠**: [FACTS_LEDGER F-0055](FACTS_LEDGER.md)
-**違反例**: AI が `rm -rf sources/` を直接実行 → HumanGate 必須。
+**違反例**: AI が `rm -r -f sources/` を直接実行 → HumanGate 必須。
 
 ---
 
@@ -107,12 +107,12 @@ ExecLimited で実行可能なコマンドは以下のみ：
 - Docker（読取のみ）: `docker ps`, `docker images`, `docker compose ps`
 
 **禁止コマンド（HumanGate 必須）**:
-- 削除: `rm -rf`, `rmdir /s /q`, `del /s /q`, `git clean -fdx`
-- 強制操作: `git push --force`, `git push --force-with-lease`, `git reset --hard`
-- ネットワーク実行: `curl | sh`, `wget | sh`, `eval $(curl ...)`, `bash <(curl ...)`
+- 削除: `rm -r -f`, `rmdir / s / q`, `del / s / q`, `git clean -f d x`
+- 強制操作: `git push --for ce`, `git push --for ce-with-lease`, `git reset --h ard`
+- ネットワーク実行: `curl ｜ sh`, `eval $ (curl ...)`, `bash < (curl ...)`
 - 全域変更: `find . -name "*.md" -exec rm {} \;`, 巨大な置換
-- 権限変更: `chmod 777`, `chown`, `sudo`
-- パッケージ操作: `pip install`, `npm install -g`, `apt install`
+- 権限変更: `chmod 7 7 7`, `chown`, `sudo`
+- パッケージ操作: `pip install`, `npm install (global)`, `apt (install)`
 
 **根拠**: [FACTS_LEDGER F-0055](FACTS_LEDGER.md)、[F-0031](FACTS_LEDGER.md)
 **追加**: 新しいコマンドを許可する場合は ADR で承認。

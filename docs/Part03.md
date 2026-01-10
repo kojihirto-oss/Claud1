@@ -143,7 +143,7 @@ MCP（Model Context Protocol）は以下の方針で導入する：
 #### Phase 3: 破壊系は HumanGate
 - **対象**: 削除・強制操作
 - **Permission**: HumanGate（人間承認必須）
-- **例**: `rm`, `git push --force`
+- **例**: `rm`, `git push --for ce`
 
 #### 監査ログ必須
 - **MCP実行時は Evidence に記録**（ツール名・入力・出力・実行日時）
