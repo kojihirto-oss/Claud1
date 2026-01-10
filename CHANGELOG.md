@@ -14,15 +14,15 @@ The format is based on Part14 (変更管理) R-1403 specification.
 - **[Part14]** 変更管理（PATCHSET/RFC/ADR・例外ルート・互換/移行・凍結解除ルール）を追加
   - 担当: Claude Code
   - ADR: decisions/0001-ssot-governance.md
-  - Commit: (pending)
+  - Commit: ac73628
 - **[CHANGELOG]** CHANGELOGファイルを作成（Part14 R-1403に準拠）
   - 担当: Claude Code
-  - Commit: (pending)
+  - Commit: ac73628
 
 ### Fixed
 - **[Part03]** L146の禁止コマンド例をバッククオートで囲み、Verify除外対象に修正
   - 担当: Claude Code
-  - Commit: (pending)
+  - Commit: ac73628
 - **[Part10]** Verify Gate の V-0901 でバッククオート内の禁止コマンドを除外
   - 担当: Claude Code
   - Commit: b375057
