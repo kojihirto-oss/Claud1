@@ -15,6 +15,10 @@ The format is based on Part14 (変更管理) R-1403 specification.
   - 担当: Claude Code
   - ADR: decisions/0001-ssot-governance.md
   - Commit: ac73628
+- **[Part11]** Repair（VRループ）運用（失敗分類・収束戦略・ループ制限）を追加
+  - 担当: Claude Code
+  - ADR: decisions/0001-ssot-governance.md
+  - Commit: (pending)
 - **[CHANGELOG]** CHANGELOGファイルを作成（Part14 R-1403に準拠）
   - 担当: Claude Code
   - Commit: ac73628
