@@ -15,6 +15,10 @@ The format is based on Part14 (変更管理) R-1403 specification.
   - 担当: Claude Code
   - ADR: decisions/0001-ssot-governance.md
   - Commit: ac73628
+- **[Part14]** Change management として完成（運用の改訂手順、PATCHSET、Verify証跡、例外手続き、承認フロー、ロールバック、CHANGELOG運用、監査）
+  - 担当: Claude Code
+  - Verify証跡（`evidence/verify_reports/*.md`）を PATCHSET と同一コミットに含める方針を追加
+  - Commit: 9469ee2
 - **[Part11]** Repair（VRループ）運用（失敗分類・収束戦略・ループ制限）を追加
   - 担当: Claude Code
   - ADR: decisions/0001-ssot-governance.md
