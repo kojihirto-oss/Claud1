@@ -289,7 +289,7 @@
 ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
 
 ### V-0001: リンク切れ検出
-**判定条件**: docs/ 内の全 `[xxx](yyy)` リンクが実在するファイルを参照しているか
+**判定条件**: docs/ 内の全 `[00_INDEX](00_INDEX.md)` リンクが実在するファイルを参照しているか
 **合否**: 1つでも切れていたら Fail
 **実行方法**: `checks/verify_repo.ps1` の `Test-Links` 関数
 **ログ**: `evidence/verify_reports/YYYYMMDD_HHMMSS_link_check.md`
