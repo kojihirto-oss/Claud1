@@ -11,7 +11,7 @@ param(
     [switch]$Parallel = $false,
 
     [Parameter()]
-    [switch]$Verbose = $false
+    [switch]$LogVerbose = $false
 )
 
 # Initialize
@@ -387,3 +387,4 @@ if ($AllPassed) {
     Write-Log "Please fix the issues above and re-run verification" -Level 'ERROR'
     exit 1
 }
+
