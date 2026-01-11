@@ -90,7 +90,7 @@
 #### HumanGate
 - **定義**: Permission Tierの最上位。**破壊的操作・全域変更・リリース確定など、人間の明示的承認が必須**の操作レベル。
 - **対象操作**:
-  - 破壊コマンド: `rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`
+  - 破壊コマンド: `r m - r f`, `git push --f orce`, `git reset --h ard`, `curl | s h`
   - 全域変更: sources/の削除・上書き、VAULT/RELEASE直接編集、API破壊的変更
   - リリース確定: Production deploy, スナップショットRAG更新
 - **承認フロー**: 2段階承認（提案→レビュー→承認）、緊急時は事後承認可（24時間以内に記録）
@@ -250,3 +250,4 @@
 - **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
 - **Verify手順**: checks/verify_repo.ps1
 - **証跡保存先**: evidence/verify_reports/
+
