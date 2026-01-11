@@ -1,378 +1,252 @@
-# Part 02：共通語彙の運用（用語固定で迷いを消す：SSOT/VAULT/RELEASE/DoD/ADR/Permission Tier等）
+# Part 02：共通語彙（用語固定で迷いを消す：SSOT/VAULT/RELEASE/DoD/ADR/Permission Tier等）
 
 ## 0. このPartの位置づけ
-- **目的**: 用語の揺れを防止し、同じ概念を複数の表記で呼ばないための運用ルールを定義する
-- **依存**: glossary/GLOSSARY.md（用語の唯一定義）
-- **影響**: 全Part（全てのPartで用語を使用するため）
+- **目的**: 全設計書で使う用語の唯一定義を提供し、表記揺れ・解釈ブレを排除する
+- **依存**: decisions/ADR-0001, ADR-0002（ガバナンス基盤）
+- **影響**: Part00～Part20 全体（用語統一の基準）
 
 ## 1. 目的（Purpose）
-
-50+フォルダ級の大規模開発では、**用語の揺れ**が事故の原因となる。
-
-**問題例**:
-- 「チェック」「検証」「確認」が混在 → どれが Verify を指すか不明
-- 「正本」「マスタ」「SSOT」が混在 → 何が唯一の真実か不明
-- 「証跡」「エビデンス」「Evidence」が混在 → 保存先・形式が曖昧
-
-したがって、**用語を固定し、全員が同じ表記・意味で使う**ことで、迷いと誤解を根絶する。
-
-**根拠**: FACTS_LEDGER F-0001（真実の優先順位）、ADR-0002（glossary vs Part02 の役割分離）
-
----
+このPartは **用語集（Glossary）** として機能し、以下を達成する：
+1. **表記統一**: 同じ概念に対して複数の呼び方をしない（例: "チケット" = "TICKET", "証跡" = "Evidence"）
+2. **意味固定**: 用語の定義を一箇所に集約し、誰が読んでも同じ判断ができる
+3. **迷い排除**: 「これは何を指すのか？」という疑問を設計書執筆時・運用時に発生させない
 
 ## 2. 適用範囲（Scope / Out of Scope）
 
-### In Scope（この Part が管理する）
-- 用語の追加・変更・廃止の手順
-- 表記規約（英大文字/スペース/ハイフン等）
-- docs/ 本文で用語を使うときの参照ルール
-- 用語変更時の事故防止（ADR必須、既存用語の互換維持）
+### Scope（対象）
+- docs/ 配下の全Part（Part00～Part20）で使う用語
+- decisions/ 配下のADRで使う用語
+- checks/ のVerify手順、evidence/ のレポートで使う用語
 
-### Out of Scope（この Part では扱わない）
-- 用語の定義本体 → **glossary/GLOSSARY.md** に委譲
-- 用語の詳細な意味・境界・例 → glossary/GLOSSARY.md を参照
-- 用語以外の運用ルール → 各 Part で定義
-
----
+### Out of Scope（対象外）
+- プロジェクト固有の技術用語（例: 特定ライブラリのAPI名）は glossary/GLOSSARY.md で管理
+- 業界一般用語（例: "git", "Docker"）は定義不要
 
 ## 3. 前提（Assumptions）
+- 用語追加時は **glossary/GLOSSARY.md** にも同期する（二重管理を避けるため、Part02は概要、glossary/は詳細と使い分け）
+- 定義変更時は必ず **decisions/ にADR追加** → Part02更新の順を守る（ADR-0001ルール）
 
-- **glossary/GLOSSARY.md が唯一の定義**: docs/Part02 は運用ルールのみを扱う（ADR-0002で決定）
-- **用語は頻繁に追加される**: 新しい概念・ツール・手法が登場するたびに追加が必要
-- **用語の揺れは事故につながる**: 検索失敗、参照ミス、誤解が発生する
+## 4. 用語（Glossary）
 
----
+### 4.1 フォルダ構造関連
 
-## 4. 用語（Glossary参照：Part02）
+#### SSOT (Single Source of Truth)
+- **定義**: 唯一の正本。このリポジトリでは **docs/** が仕様・運用のSSOT。
+- **ルール**: docs/ 以外（sources/, evidence/, checks/）は参照・根拠・検証用であり、本文ではない。
+- **根拠**: decisions/ADR-0001
 
-この Part で使用する主要用語：
-- [SSOT](../glossary/GLOSSARY.md#ssot-single-source-of-truth)
-- [glossary/GLOSSARY.md](../glossary/GLOSSARY.md)
-- [ADR](../glossary/GLOSSARY.md#adr-architecture-decision-record)
-- [Verify](../glossary/GLOSSARY.md#verify--verify-gate)
+#### sources/
+- **定義**: 原文・一次情報・ログの保管庫。改変・上書き・削除は **禁止**（追記のみ許可）。
+- **目的**: 設計書の根拠を保全し、証跡の信頼性を守る。
+- **例外**: HumanGate承認の下での意図的削除のみ（ADRに理由記録必須）。
+- **根拠**: decisions/ADR-0002
 
-**重要**: 用語の定義は glossary/GLOSSARY.md を参照。この Part では運用ルールのみを記載。
+#### evidence/
+- **定義**: 検証結果・証跡の保管庫。
+- **サブフォルダ**:
+  - `evidence/verify_reports/`: Verify結果（TICKET.md, CONTEXT_PACK.md, VERIFY_REPORT.md, EVIDENCE.md の4点セット）
+  - `evidence/research/`: 外部調査結果（URL、確認日、スクリーンショット等）
+- **根拠**: decisions/ADR-0002
 
----
+#### decisions/
+- **定義**: ADR（Architecture Decision Record）の保管庫。仕様・運用の変更は必ず先にADRを追加してから docs/ を変更する。
+- **ルール**: ADR → docs の順序を守る（逆は禁止）。
+- **根拠**: decisions/ADR-0001
+
+### 4.2 タスクサイズ（S/M/L）
+
+#### タスクサイズ S
+- **定義**: 30分〜2時間で完了する小規模作業。
+- **Verify**: Fast のみ（重要箇所なら Full へ昇格可）
+- **文章**: TICKET.md に全て内包（4点セット不要、簡易記録でOK）
+- **推奨ツール**: Lite運用、手順簡略化
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### タスクサイズ M
+- **定義**: 半日〜2日で完了する標準作業。
+- **Verify**: Fast → Full（原則）
+- **Evidence**: 必須4点セット（TICKET.md, CONTEXT_PACK.md, VERIFY_REPORT.md, EVIDENCE.md）
+- **推奨ツール**: 標準フロー
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### タスクサイズ L
+- **定義**: 移行・広域変更・高リスク作業。
+- **Verify**: Lite を捨てて Full 必須
+- **条件**: 例外ルート条件を満たす（ロールバック計画明記 + サンドボックス + HumanGate承認）
+- **Evidence**: Release前提（スナップショットRAG更新もここだけ）
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+### 4.3 Permission Tier（権限レベル）
+
+#### Permission Tier
+- **定義**: AIに渡す権限レベル。4段階で固定。
+- **レベル**:
+  1. **ReadOnly**: 読み取りのみ（調査・分析）
+  2. **PatchOnly**: ファイル編集のみ（コード変更、ドキュメント追記）
+  3. **ExecLimited**: 限定的な実行（lint, test, build など非破壊コマンド）
+  4. **HumanGate**: 破壊的操作・全域変更・リリース確定（人間の承認必須）
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### HumanGate
+- **定義**: Permission Tierの最上位。**破壊的操作・全域変更・リリース確定など、人間の明示的承認が必須**の操作レベル。
+- **対象操作**:
+  - 破壊コマンド: `rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`
+  - 全域変更: sources/の削除・上書き、VAULT/RELEASE直接編集、API破壊的変更
+  - リリース確定: Production deploy, スナップショットRAG更新
+- **承認フロー**: 2段階承認（提案→レビュー→承認）、緊急時は事後承認可（24時間以内に記録）
+- **例外**: なし（HumanGateを超える権限は存在しない）
+- **根拠**: decisions/ADR-0002
+
+### 4.4 Verify（検証）関連
+
+#### Verify Gate
+- **定義**: 機械判定による品質ゲート。Fast/Full の2段階で固定。
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### Fast Verify
+- **定義**: 最短で壊れを検出する軽量検証（lint + unit + 型/静的解析の一部）。
+- **目的**: 高速フィードバック（数秒〜数分）。
+- **使用場面**: Sサイズタスク、M/Lタスクの初期確認。
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### Full Verify
+- **定義**: CI相当の全検査（integration/e2e + security + SBOM + 再現実行）。
+- **目的**: 本番相当の品質保証。
+- **使用場面**: Mサイズ以上、高リスク変更、Release前。
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+#### VERIFY_REPORT
+- **定義**: Verify実行結果のレポート（VERIFY_REPORT.md）。
+- **必須項目**: 実行コマンド、成否、失敗ログ抜粋、参照ログパス、主要メトリクス。
+- **保存先**: evidence/verify_reports/
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+
+### 4.5 Evidence（証跡）関連
+
+#### Evidence Pack
+- **定義**: 検証・監査に必要な証跡一式。
+- **必須4点セット**（Mサイズ以上）:
+  1. **TICKET.md**: 起票＋仕様凍結＋リスク＋ロールバックまで1枚に統合
+  2. **CONTEXT_PACK.md**: AI用コンテキスト（Z.ai生成推奨、固定フォーマット）
+  3. **VERIFY_REPORT.md**: CIログ＋合否判定＋再発防止
+  4. **EVIDENCE.md**: 何を/なぜ/どう検証/学び（後日参照用）
+- **保存先**: evidence/verify_reports/
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt, decisions/ADR-0002
+
+### 4.6 その他重要用語
+
+#### DoD (Definition of Done)
+- **定義**: タスク完了の定義。以下を全て満たす：
+  1. Verify PASS（Fast or Full、サイズに応じて）
+  2. Evidence収集完了（4点セット、Mサイズ以上）
+  3. docs/ 更新（該当する場合）
+  4. ADR追加（仕様変更の場合）
+
+#### ADR (Architecture Decision Record)
+- **定義**: 設計・運用の意思決定記録。
+- **ルール**: 仕様変更は必ず ADR → docs の順で実施（逆は禁止）。
+- **フォーマット**: decisions/ADR_TEMPLATE.md 参照
+- **根拠**: decisions/ADR-0001
+
+#### RAG (Retrieval-Augmented Generation)
+- **定義**: AI用のコンテキスト検索インデックス。
+- **保存先**: `.rag/` （.gitignore対象、git管理外）
+- **スナップショット**: Release時のみ `.rag-snapshot-YYYYMMDD/` として手動保存（HumanGate）
+- **再生成**: 必要時に sources/ と docs/ から再生成可能（RAGは使い捨て設計）
+- **根拠**: decisions/ADR-0002
+
+#### Context Pack
+- **定義**: AIに渡す入力コンテキストの最小化セット（誤解・幻覚・暴走を防ぐ）。
+- **内容**: SPEC.md（凍結版）、対象ディレクトリツリー、変更対象ファイル抜粋、直近VERIFY_REPORT.md、関連ADR、依存関係情報。
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
 
 ## 5. ルール（MUST / MUST NOT / SHOULD）
 
-### MUST（絶対）
+### 用語使用ルール
+1. **MUST**: 設計書（docs/）では **Part02定義の用語のみ** 使用する。独自用語・表記揺れは禁止。
+2. **MUST**: 用語追加時は **glossary/GLOSSARY.md** にも同期する。
+3. **MUST**: 定義変更時は **先にADR追加** → Part02更新の順を守る。
+4. **SHOULD**: 不明な用語に遭遇した場合、推測せず「未決事項」に記録し、ADRで定義する。
 
-#### R-0201: 用語は glossary/GLOSSARY.md で一元管理
-- **ルール**: 全ての用語は glossary/GLOSSARY.md に定義を書く。docs/Part02 には定義を書かない。
-- **理由**: 二重管理を防ぎ、参照先を明確にする。
-- **根拠**: ADR-0002（方針A採用）
-
-#### R-0202: 用語追加は ADR 必須
-- **ルール**: 新しい用語を追加する場合、以下の手順を守る：
-  1. decisions/ に ADR を追加（なぜこの用語が必要か、他の表記を排除する理由）
-  2. ADR が承認されたら、glossary/GLOSSARY.md に定義を追加
-  3. docs/ の該当 Part に用語を使用
-- **理由**: 用語の増殖を防ぎ、必要性を記録する。
-- **根拠**: FACTS_LEDGER F-0003（変更規約）
-
-#### R-0203: docs/ では glossary/ の表記に完全一致させる
-- **ルール**: docs/ で用語を使う際は、必ず glossary/GLOSSARY.md の表記に一致させる。
-- **禁止**:
-  - glossary/ にない表記を勝手に使う
-  - 同じ概念を複数の表記で呼ぶ（例: 「チェック」「検証」「確認」を混在）
-- **例外**: 引用・コマンド名など、変更できない場合のみ許容（その旨を明記）
-
-#### R-0204: 重要な用語には glossary/ へのリンクを付ける
-- **ルール**: 各 Part で重要な用語を初出時に使う際は、glossary/ へのリンクを付ける。
-- **形式**: `[用語](../glossary/GLOSSARY.md#用語アンカー)`
-- **例**: `[SSOT](../glossary/GLOSSARY.md#ssot-single-source-of-truth)`
-
-### MUST NOT（禁止）
-
-#### R-0210: 用語を勝手に変更しない
-- **禁止**: glossary/ に定義された用語を、ADR なしで変更する。
-- **理由**: 既存の docs/ や checks/ が参照している用語を変更すると、リンク切れ・検索失敗が発生する。
-- **手順**: 用語を変更する場合は、ADR で互換性・移行手順を明記してから実施。
-
-#### R-0211: 口語・略称を docs/ で使わない
-- **禁止**:
-  - 「OK」「NG」（→「合格」「不合格」または「PASS」「FAIL」）
-  - 「マスタ」（→「SSOT」）
-  - 「チェック」（→「Verify」）
-- **理由**: 曖昧さを排除し、検索可能性を高める。
-- **例外**: コマンド名・ツール名など、変更できない場合のみ許容。
-
-### SHOULD（推奨）
-
-#### R-0220: 用語の類義語・禁止表記を明記
-- **推奨**: glossary/GLOSSARY.md に用語を追加する際、類義語・禁止表記を明記する。
-- **理由**: 揺れを事前に防ぐ。
-- **例**:
-  - SSOT: 禁止表記「マスターデータ」「正本」「マスタ」「原本」
-  - Evidence: 禁止表記「エビデンス」（カタカナ）
-
-#### R-0221: 用語揺れ検出を checks/ に追加
-- **推奨**: checks/ に「用語揺れ検出」スクリプトを追加し、glossary/ にない表記を docs/ で使っていないか検証する。
-- **例**:
-  ```bash
-  # 禁止表記の検出
-  grep -r "マスタ" docs/  # 「SSOT」に統一すべき
-  grep -r "チェック" docs/  # 「Verify」に統一すべき
-  ```
-
----
+### 推測禁止ルール
+1. **MUST NOT**: 定義が不明瞭な用語を推測で使わない。
+2. **MUST**: 不明点は「未決事項」に送り、ADRで裁定してから本文へ反映する。
+3. **手順**: Part11（未決事項）参照
 
 ## 6. 手順（実行可能な粒度、番号付き）
 
-### 手順A: 新しい用語を追加する
+### 新規用語追加の手順
+1. **未決事項に記録**: 該当Partの「11. 未決事項」セクションに追記
+2. **ADR起票**: decisions/ に新規ADR作成（ADR_TEMPLATE.md使用）
+3. **定義確定**: ADRで用語の定義・使用範囲・根拠を明記
+4. **Part02更新**: ADR承認後、このPart02に用語追加
+5. **glossary/同期**: glossary/GLOSSARY.md にも同じ定義を追加
+6. **Verify実行**: Fast Verify でリンク切れ・矛盾チェック
 
-1. **用語の必要性を確認**
-   - 既存の用語で表現できないか確認（glossary/GLOSSARY.md を検索）
-   - 類義語が既に定義されていないか確認
-
-2. **ADR を作成**（R-0202 必須）
-   - decisions/ に `NNNN-add-term-<term-name>.md` を作成
-   - 以下を記載：
-     - なぜこの用語が必要か
-     - 他の表記を排除する理由
-     - 影響範囲（どの Part で使うか）
-
-3. **ADR を承認**
-   - 関係者にレビュー依頼（承認フローは Part09 で定義予定）
-   - 異論がなければ「状態: 承認」に変更
-
-4. **glossary/GLOSSARY.md に定義を追加**
-   - 以下を必須記載：
-     - 一文定義
-     - 境界（含む/含まない）
-     - 参照（FACTS_LEDGER の F-XXXX または sources/ パス）
-     - 関連用語
-     - 表記規約
-     - 禁止表記（該当する場合）
-
-5. **docs/ の該当 Part に用語を使用**
-   - 初出時に glossary/ へのリンクを付ける
-   - R-0203（表記の完全一致）を守る
-
-6. **（任意）checks/ に用語揺れ検出を追加**
-   - 禁止表記を検出するスクリプトを追加
-
----
-
-### 手順B: 既存の用語を変更する
-
-1. **変更の必要性を確認**
-   - なぜ変更が必要か（誤解を招く？別の概念と混同される？）
-   - 影響範囲を調査（どの Part で使われているか）
-
-2. **ADR を作成**（R-0210 必須）
-   - decisions/ に `NNNN-change-term-<old>-to-<new>.md` を作成
-   - 以下を記載：
-     - 変更理由
-     - 旧用語と新用語の対応
-     - 互換性（旧用語を残すか？エイリアスとするか？）
-     - 移行手順（docs/ のどこを修正するか）
-     - ロールバック手順
-
-3. **ADR を承認**
-
-4. **glossary/GLOSSARY.md を更新**
-   - 新用語を追加 or 既存用語を修正
-   - 旧用語を「廃止」として明記（削除しない、検索可能性を維持）
-
-5. **docs/ を一括更新**
-   - 旧用語→新用語に置換（grep -r で全検索）
-   - リンク切れがないか確認（checks/ で検証）
-
-6. **checks/ を更新**
-   - 旧用語を検出した場合に警告するスクリプトを追加
-
----
-
-### 手順C: 用語揺れを発見した場合
-
-1. **glossary/ を確認**
-   - 正式な表記を特定
-
-2. **docs/ の該当箇所を修正**
-   - 正式な表記に統一
-
-3. **checks/ に検出ルールを追加**
-   - 同じ揺れが再発しないように、禁止表記として登録
-
----
+### 既存用語の定義変更手順
+1. **ADR起票**: 変更理由・影響範囲を明記
+2. **影響調査**: 該当用語が使われている全Partをgrep検索
+3. **Part02更新**: ADR承認後、定義を更新
+4. **影響Part更新**: 該当する他のPartも一括更新
+5. **Verify実行**: Full Verify で整合性確認
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
 
-### 例外1: 用語の定義が曖昧
-**症状**: 「この用語は何を指すか」が不明確。
-**対応**:
-1. glossary/GLOSSARY.md の定義を確認
-2. 定義が不足している場合、ADR を作成して定義を明確化
-3. FACTS_LEDGER の未決事項（U-XXXX）に追加
+### 用語の表記揺れ発見時
+1. **発見**: Verify時、または設計書レビュー時に表記揺れを検出
+2. **修正**: 該当Partを Part02定義に統一（単純な表記ミスなら即修正可）
+3. **ADR要否判断**: 意味的な定義変更なら ADR起票
 
-**エスカレーション**: 定義が矛盾している場合、Part00（憲法）に立ち返り、真実の優先順位（F-0001）で裁定。
+### 定義矛盾の発見時
+1. **停止**: 該当Partの編集を一時停止
+2. **ADR起票**: 矛盾解消の方針を決定
+3. **Part02更新**: 定義を統一
+4. **再開**: Verify PASS後、編集再開
 
----
-
-### 例外2: 用語が多すぎて管理不能
-**症状**: glossary/ が肥大化し、検索が困難。
-**対応**:
-1. 用語をカテゴリ別に分割（例: `GLOSSARY_SECURITY.md`, `GLOSSARY_INFRA.md`）
-2. ADR で分割方針を決定してから実施
-3. docs/00_INDEX.md に索引を追加
-
-**エスカレーション**: 100用語を超えた時点で、分割を検討（ADR 必須）。
-
----
-
-### 例外3: 用語揺れが大量に検出された
-**症状**: checks/ で用語揺れが大量に検出され、修正が困難。
-**対応**:
-1. 揺れの原因を分類（初期導入ミス？新しい概念の導入？）
-2. 優先度を決定（高頻度の用語から修正）
-3. 一括置換スクリプトを作成（Dry-run → レビュー → 実行）
-
-**エスカレーション**: 一括置換がリスク大の場合、Part09（Permission Tier）で HumanGate 承認を取る。
-
----
+### エスカレーション
+- Part02の定義では解決できない矛盾 → **HumanGate** で裁定
 
 ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
 
-### Verify項目
+### Fast Verify（checks/verify_repo.ps1 -Mode Fast）
+- **判定条件**:
+  - Part02内のリンク切れチェック（decisions/, sources/, evidence/, glossary/ への参照）
+  - 用語定義の重複チェック（同じ用語が2回定義されていないか）
+- **合否**: 全項目Green → PASS
+- **ログ**: evidence/verify_reports/verify_YYYYMMDD_HHMMSS.log
 
-#### V-0201: glossary/ にない用語が docs/ で使われていないか
-**判定条件**:
-- glossary/GLOSSARY.md に定義された用語のみが docs/ で使用されている
-- 禁止表記（「マスタ」「チェック」等）が docs/ に含まれていない
-
-**合格**:
-- 禁止表記が0件
-- 未定義用語が0件（または、許容リスト内のみ）
-
-**不合格**:
-- 禁止表記が1件以上検出
-- 未定義用語が1件以上検出
-
-**ログ**:
-```
-[FAIL] 禁止表記が検出されました:
-  - docs/Part05.md:42: "マスタ" → "SSOT" に修正
-  - docs/Part07.md:78: "チェック" → "Verify" に修正
-```
-
----
-
-#### V-0202: glossary/ へのリンク切れがないか
-**判定条件**:
-- docs/ から glossary/ へのリンクが全て有効
-- アンカーが正しい（用語名と一致）
-
-**合格**: リンク切れ0件
-
-**不合格**: リンク切れ1件以上
-
-**ログ**:
-```
-[FAIL] リンク切れが検出されました:
-  - docs/Part02.md:15: [SSOT](../glossary/GLOSSARY.md#ssot) → アンカーが存在しません
-```
-
----
-
-#### V-0203: 用語の表記が一致しているか
-**判定条件**:
-- docs/ で使用されている用語の表記が、glossary/ の表記と完全一致（大文字小文字、スペース、ハイフン等）
-
-**合格**: 不一致0件
-
-**不合格**: 不一致1件以上
-
-**ログ**:
-```
-[FAIL] 表記の不一致が検出されました:
-  - docs/Part04.md:23: "verify" → "Verify" に修正（glossary では頭文字大文字）
-```
-
----
+### Full Verify（checks/verify_repo.ps1 -Mode Full）
+- **追加項目**:
+  - 全Part（Part00～Part20）との用語整合性チェック
+  - glossary/GLOSSARY.md との同期チェック
+- **合否**: Fast + 追加項目すべてGreen → PASS
 
 ## 9. 監査観点（Evidenceに残すもの・参照パス）
 
-### Evidence-0201: 用語追加の記録
-**残すもの**:
-- ADR（decisions/NNNN-add-term-<term-name>.md）
-- glossary/GLOSSARY.md の差分（git diff）
-- 用語追加日・承認者・理由
+### 用語追加時のEvidence
+- **ADRパス**: decisions/ADR-XXXX.md
+- **根拠パス**: sources/生データ/... または evidence/research/...
+- **変更diff**: git log でPart02の変更履歴
 
-**保存先**: `VAULT/EVIDENCE/term_changes/`
-
----
-
-### Evidence-0202: 用語変更の記録
-**残すもの**:
-- ADR（decisions/NNNN-change-term-<old>-to-<new>.md）
-- glossary/GLOSSARY.md の差分
-- docs/ の一括置換ログ（何を・どこで・いつ変更したか）
-- 旧用語→新用語の対応表
-
-**保存先**: `VAULT/EVIDENCE/term_changes/`
-
----
-
-### Evidence-0203: 用語揺れ検出の結果
-**残すもの**:
-- checks/ の実行結果（禁止表記の検出件数・箇所）
-- 修正前後の diff
-- 修正日・修正者
-
-**保存先**: `evidence/verify_reports/YYYYMMDD_HHMMSS_term_drift.md`
-
----
+### 定義変更時のEvidence
+- **ADRパス**: 変更理由を記録したADR
+- **影響調査結果**: grep結果をevidence/research/に保存
+- **Verify結果**: evidence/verify_reports/
 
 ## 10. チェックリスト
-
-### 用語追加時
-- [ ] ADR を作成し、必要性を記録
-- [ ] glossary/GLOSSARY.md に定義を追加（一文定義・境界・参照・関連用語・表記規約）
-- [ ] 禁止表記がある場合、明記
-- [ ] docs/ の該当 Part に用語を使用（初出時にリンク）
-- [ ] checks/ に用語揺れ検出を追加（任意）
-
-### 用語変更時
-- [ ] ADR を作成し、変更理由・互換性・移行手順を記録
-- [ ] glossary/GLOSSARY.md を更新（旧用語は廃止として残す）
-- [ ] docs/ を一括更新（grep -r で全検索→置換）
-- [ ] リンク切れがないか確認（checks/ で検証）
-- [ ] checks/ に旧用語の検出ルールを追加
-
-### 用語揺れ発見時
-- [ ] glossary/ で正式な表記を確認
-- [ ] docs/ の該当箇所を修正
-- [ ] checks/ に検出ルールを追加
-
----
+- [ ] Part02に記載の全用語が glossary/GLOSSARY.md と同期している
+- [ ] 新規用語追加時にADRを先行作成した
+- [ ] 定義変更時に影響Partをすべて更新した
+- [ ] Fast Verify PASS を確認した
+- [ ] リンク切れがない（decisions/, sources/, evidence/ への参照）
+- [ ] 表記揺れがない（同じ概念に対して複数の表記がない）
 
 ## 11. 未決事項（推測禁止）
-
-### U-0201: 用語の承認フロー
-**問題**: glossary/ への追加・変更は誰が承認するか？自動マージか？
-**対応**: Part09（Permission Tier）で定義予定
-
-### U-0202: 用語の多言語対応
-**問題**: 日英併記か？別ファイルか？
-**対応**: 初回多言語化時に ADR で決定
-
-### U-0203: 用語の保存期限
-**問題**: 廃止された用語はいつまで glossary/ に残すか？
-**対応**: Part14（変更管理）で定義予定
-
-### U-0204: 用語のバージョニング
-**問題**: 用語の意味が変わった場合、バージョンを付けるか？
-**対応**: 初回の用語意味変更時に ADR で決定
-
----
+- （現時点でなし。今後、用語追加・変更の際にここへ記録し、ADRで裁定する）
 
 ## 12. 参照（パス）
-
-- **glossary/**: [../glossary/GLOSSARY.md](../glossary/GLOSSARY.md)
-- **glossary/README**: [../glossary/README.md](../glossary/README.md)
-- **ADR-0002**: [../decisions/0002-glossary-part02-separation.md](../decisions/0002-glossary-part02-separation.md)
-- **FACTS_LEDGER**: [FACTS_LEDGER.md](FACTS_LEDGER.md) (F-0001, F-0003, F-0008)
-- **CLAUDE.md**: [../CLAUDE.md](../CLAUDE.md) (用語の揺れ防止に関する絶対ルール)
+- **ADR**: decisions/ADR-0001.md（SSOT運用ガバナンス）, decisions/ADR-0002.md（運用ガバナンス詳細）
+- **用語詳細**: glossary/GLOSSARY.md
+- **根拠**: sources/生データ/VCG_VIBE_MASTER_DATASET_CONSOLIDATED_20260109.txt
+- **Verify手順**: checks/verify_repo.ps1
+- **証跡保存先**: evidence/verify_reports/
