@@ -41,7 +41,7 @@
 2. **Verify は機械判定可能**である（人間の「たぶん動く」は不可）。
 3. **VRループは3回で収束**を目標とする（3回超えたら設計見直し）。
 4. **Fast Verify は5分以内**、**Full Verify は30分以内**を目標とする。
-5. **Verify レポートは Evidence に保存**される（削除禁止）。
+5. **Verify レポートは Evidence に保存**し、保持ポリシーに従って整理する。
 
 **根拠**: [Part00 R-0001](Part00.md)（Truth Order）、[Part01 R-0103](Part01.md)（失敗定義）
 
@@ -114,6 +114,30 @@ Verify 実行後、以下を **必ず Evidence に保存**する：
 
 **保存先**: `evidence/verify_reports/YYYYMMDD_HHMMSS_<check_name>.md`
 **根拠**: [FACTS_LEDGER F-0056](FACTS_LEDGER.md)、[Part00 R-0005](Part00.md)（Evidence保存義務）
+
+---
+
+### R-1009: Verify スクリプト/証跡形式の統一【MUST】
+Verify は **既存の `checks/verify_repo.ps1` と `checks/verify_repo.sh` を唯一の実行入口**とする。
+重複スクリプトの作成や `.txt` など **形式ズレの証跡は作らない**。
+
+**方針**:
+- 追加の verify スクリプトは作成しない（必要なら既存に追記）。
+- 証跡は **`.md` に統一**し、`evidence/verify_reports/` 配下へ保存する。
+- 形式ズレ（例: `.txt`）は **`.md` に統一して置換**する。
+
+**根拠**: [FACTS_LEDGER F-0056](FACTS_LEDGER.md)
+
+---
+
+### R-1010: Verify 実行回数と証跡整理【MUST】
+Verify は **最後に1回だけ実行**する（失敗時は VRループとして再実行をカウントする）。実行前に **余計な未追跡の証跡を削除**してから進む。
+
+**保持ポリシー**:
+- **最新1件** または **直近3件** を保持する（プロジェクトで選択）。
+- それ以外の古い証跡は整理対象とする。
+
+**根拠**: [FACTS_LEDGER F-0056](FACTS_LEDGER.md)
 
 ---
 
@@ -193,16 +217,18 @@ Verify は **何度実行しても同じ結果**を返す。
 ## 6. 手順（実行可能な粒度、番号付き）
 
 ### 手順A: Fast Verify の実行
-1. タスク（TICKET）の実装完了後、commit 前に実行
-2. `pwsh checks/verify_repo.ps1 -Mode Fast` を実行
-3. Pass なら commit
-4. Fail なら VRループ（手順C）へ
+1. タスク（TICKET）の実装完了後、**最後に1回だけ** commit 前に実行
+2. **未追跡の余計な証跡を削除**し、保持ポリシーに沿う状態にする
+3. `pwsh checks/verify_repo.ps1 -Mode Fast` を実行
+4. Pass なら commit
+5. Fail なら VRループ（手順C）へ
 
 ### 手順B: Full Verify の実行
-1. PR 作成前 or リリース前に実行
-2. `pwsh checks/verify_repo.ps1 -Mode Full` を実行
-3. Pass なら PR 作成 or リリース承認
-4. Fail なら VRループ（手順C）へ
+1. PR 作成前 or リリース前に **最後に1回だけ** 実行
+2. **未追跡の余計な証跡を削除**し、保持ポリシーに沿う状態にする
+3. `pwsh checks/verify_repo.ps1 -Mode Full` を実行
+4. Pass なら PR 作成 or リリース承認
+5. Fail なら VRループ（手順C）へ
 
 ### 手順C: VRループの実行
 1. Verify の失敗ログを確認
@@ -218,9 +244,10 @@ Verify は **何度実行しても同じ結果**を返す。
 7. 3回超えたら HumanGate（設計変更/分割/範囲縮小）
 
 ### 手順D: Verify レポートの保存
-1. Verify 実行結果を markdown で記録
+1. Verify 実行結果を `.md` で記録
 2. 保存先: `evidence/verify_reports/YYYYMMDD_HHMMSS_<check_name>.md`
-3. 記録内容（R-1003 参照）：
+3. 保持ポリシーに沿って **最新1件/直近3件** を維持
+4. 記録内容（R-1003 参照）：
    - 実行コマンド
    - 成否（Pass/Fail）
    - 失敗ログ抜粋
@@ -325,7 +352,7 @@ Verify は **何度実行しても同じ結果**を返す。
 - 主要メトリクス（実行時間・テスト数・カバレッジ等）
 
 **参照パス**: `evidence/verify_reports/YYYYMMDD_HHMMSS_<check_name>.md`
-**保存場所**: `evidence/verify_reports/`（削除禁止）
+**保存場所**: `evidence/verify_reports/`（保持ポリシーに従う）
 
 ---
 
@@ -388,7 +415,7 @@ Verify は **何度実行しても同じ結果**を返す。
 - [x] 各ルールに FACTS_LEDGER への参照が付いているか
 - [x] Verify観点（V-1001〜V-1005）が機械判定可能な形で記述されているか
 - [x] Evidence観点（E-1001〜E-1005）が参照パス付きで記述されているか
-- [ ] checks/verify_repo.ps1 が実装されているか（次タスク）
+- [x] checks/verify_repo.ps1 / checks/verify_repo.sh が存在し、唯一の実行入口になっているか
 - [ ] 本Part10 を読んだ人が「Verify の回し方」を理解できるか
 
 ---
@@ -445,7 +472,8 @@ Verify は **何度実行しても同じ結果**を返す。
 - [glossary/GLOSSARY.md](../glossary/GLOSSARY.md) : 用語の唯一定義
 
 ### checks/
-- `checks/verify_repo.ps1` : Verify 実行スクリプト（次タスクで作成予定）
+- `checks/verify_repo.ps1` : Verify 実行スクリプト（PowerShell）
+- `checks/verify_repo.sh` : Verify 実行スクリプト（bash）
 
 ### evidence/
 - `evidence/verify_reports/` : Verify 実行結果
