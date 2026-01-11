@@ -43,12 +43,21 @@ Verify → Evidence → Release の順序を変更しない。
 ### R-1704: 最小差分【SHOULD】
 運用手順の変更は最小差分で実施する。
 
+### R-1705: sources/ 無改変【MUST NOT】
+sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+
+### R-1706: Fast PASS 必須【MUST】
+Fast検証でPASSした証跡のみを採用する。
+
+### R-1707: 証跡4点の最小セット【MUST】
+link/parts/forbidden/sources の4点を最小セットとして保存する。
+
 ## 6. 手順（実行可能な粒度、番号付き）
-1. 発見：対象の不整合や運用課題を特定する。
-2. 記録：発見内容、根拠、対象ボタンを記録する。
-3. 修正：最小差分で手順を更新する。
-4. 検証：Fast検証でPASSを確認し、Evidenceを整理する。
-5. 監査：実行ログと証跡一覧を残す。
+1. 発見：対象の不整合や運用課題を特定し、影響範囲を確認する。
+2. 記録：発見内容、根拠、対象ボタン、保存先を記録する。
+3. 修正：最小差分で手順を更新し、sources/ 無改変を維持する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+5. 監査：実行ログ、証跡一覧、DoDを点検し、順序違反がないか確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
 ### 例外1: 検証が通らない
@@ -57,15 +66,35 @@ Verify → Evidence → Release の順序を変更しない。
 ### 例外2: ボタンが利用不可
 - 手動実行に切り替え、理由と結果を記録する。
 
+### 例外3: 証跡が欠落
+- 検証を再実行して補完し、理由を記録する。
+
+### 例外4: 差分が過大
+- 変更を分割し、最小差分になるまで手順をやり直す。
+
 ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
 ### V-1701: Release Gateの成立
 **判定条件**:
 1. PASS証跡が evidence/verify_reports/ に存在する
 2. Verify→Evidence→Releaseの実行ログがある
+3. 証跡4点（link/parts/forbidden/sources）が揃っている
+
+**合否**:
+- **PASS**: 1〜3を満たす
+- **FAIL**: 証跡不足、順序違反、証跡4点の欠落
+
+**ログ**: evidence/verify_reports/
+
+### V-1702: Part00 Verify要件との整合
+**判定条件**:
+1. V-0001〜V-0004のログが存在する
+2. sources/ の改変がない
 
 **合否**:
 - **PASS**: 1,2を満たす
-- **FAIL**: 証跡不足、または順序違反
+- **FAIL**: ログ欠落、または sources/ 改変がある
+
+**ログ**: evidence/verify_reports/
 
 ## 9. 監査観点（Evidenceに残すもの・参照パス）
 ### E-1701: 実行ログ
@@ -76,10 +105,17 @@ Verify → Evidence → Release の順序を変更しない。
 **内容**: Fast検証のPASSログ  
 **保存先**: evidence/verify_reports/
 
+### E-1703: 証跡4点（最小セット）
+**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+**保存先**: evidence/verify_reports/
+
 ## 10. チェックリスト
 - [ ] 発見→記録→修正→検証→監査の順序で実施した
 - [ ] PASS証跡が evidence/verify_reports/ に揃っている
 - [ ] Verify→Evidence→Releaseの順序が守られている
+- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 最小差分であり、sources/ 無改変である
+- [ ] Fast検証がPASSしている
 
 ## 11. 未決事項（推測禁止）
 - 運用ボタンの命名規則と粒度
