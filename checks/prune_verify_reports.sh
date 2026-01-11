@@ -1,5 +1,5 @@
 #!/bin/bash
-# prune_verify_reports.sh - 直近3を残して古い Verify レポートを削除
+# prune_verify_reports.sh - 直近3セットを残して古い Verify レポートを削除
 #
 # Usage: ./checks/prune_verify_reports.sh [--dry-run]
 #
@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VERIFY_REPORTS_DIR="${REPO_ROOT}/evidence/verify_reports"
 
 DRY_RUN=false
-if [ "$1" == "--dry-run" ]; then
+if [ "${1:-}" == "--dry-run" ]; then
   DRY_RUN=true
 fi
 
@@ -24,65 +24,96 @@ echo ""
 
 # 1. verify_reports ディレクトリの存在確認
 if [ ! -d "${VERIFY_REPORTS_DIR}" ]; then
-  echo "❌ Error: ${VERIFY_REPORTS_DIR} が存在しません"
+  echo "? Error: ${VERIFY_REPORTS_DIR} が存在しません"
   exit 1
 fi
 
 cd "${VERIFY_REPORTS_DIR}"
 
-# 2. 現在のレポート数を確認
-REPORT_COUNT=$(ls -1 *_verify.txt 2>/dev/null | wc -l)
-echo "📊 現在のレポート数: ${REPORT_COUNT}"
+# 2. 現在のレポートセット数を確認（README.md は除外）
+mapfile -t report_files < <(ls -1 *.md 2>/dev/null | grep -v '^README.md$' || true)
 
-if [ "${REPORT_COUNT}" -eq 0 ]; then
-  echo "⚠️  レポートが1件もありません（削除不要）"
+if [ "${#report_files[@]}" -eq 0 ]; then
+  echo "??  レポートが1件もありません（削除不要）"
   exit 0
 fi
 
-if [ "${REPORT_COUNT}" -le 3 ]; then
-  echo "✅ レポート数が3以下のため、削除不要"
+valid_files=()
+timestamps=()
+for file in "${report_files[@]}"; do
+  if [[ "$file" =~ ^[0-9]{8}_[0-9]{6}_.+\.md$ ]]; then
+    valid_files+=("$file")
+    timestamps+=("${file:0:15}")
+  fi
+done
+
+if [ "${#valid_files[@]}" -eq 0 ]; then
+  echo "??  タイムスタンプ付きのレポートがありません（削除不要）"
+  exit 0
+fi
+
+mapfile -t sorted_timestamps < <(printf '%s\n' "${timestamps[@]}" | sort -r | uniq)
+SET_COUNT=${#sorted_timestamps[@]}
+echo "?? 現在のレポートセット数: ${SET_COUNT}"
+
+if [ "${SET_COUNT}" -le 3 ]; then
+  echo "? レポートセット数が3以下のため、削除不要"
   echo ""
-  echo "現在のレポート:"
-  ls -1t *_verify.txt
+  echo "現在のレポート:" 
+  printf '%s\n' "${valid_files[@]}" | sort -r
   exit 0
 fi
 
-# 3. 削除対象のレポートを特定（最も古いものから）
-DELETE_COUNT=$((REPORT_COUNT - 3))
-echo "🗑️  削除対象: ${DELETE_COUNT} 件"
+# 3. 削除対象のセットを特定（最も古いものから）
+DELETE_SET_COUNT=$((SET_COUNT - 3))
+echo "???  削除対象セット: ${DELETE_SET_COUNT} 件"
 echo ""
+
+keep_timestamps=("${sorted_timestamps[@]:0:3}")
+delete_timestamps=("${sorted_timestamps[@]:3}")
+
+declare -A delete_map=()
+for ts in "${delete_timestamps[@]}"; do
+  delete_map["$ts"]=1
+done
+
+delete_files=()
+keep_files=()
+for file in "${valid_files[@]}"; do
+  ts="${file:0:15}"
+  if [ -n "${delete_map[$ts]:-}" ]; then
+    delete_files+=("$file")
+  else
+    keep_files+=("$file")
+  fi
+done
 
 # 4. 削除対象をリストアップ（確認）
 echo "削除するファイル:"
-DELETE_FILES=$(ls -1t *_verify.txt | tail -n ${DELETE_COUNT})
-echo "${DELETE_FILES}"
+printf '%s\n' "${delete_files[@]}" | sort -r
 echo ""
 
-echo "残すファイル（直近3）:"
-KEEP_FILES=$(ls -1t *_verify.txt | head -n 3)
-echo "${KEEP_FILES}"
+echo "残すファイル（直近3セット）:"
+printf '%s\n' "${keep_files[@]}" | sort -r
 echo ""
 
 # 5. Dry-run モードの場合はここで終了
 if [ "${DRY_RUN}" = true ]; then
-  echo "🔍 Dry-run モード: 実際には削除しません"
-  echo ""
-  echo "実行コマンド:"
-  echo "  ls -1t *_verify.txt | tail -n ${DELETE_COUNT} | xargs git rm -f"
+  echo "?? Dry-run モード: 実際には削除しません"
   exit 0
 fi
 
 # 6. 確認プロンプト（安全のため）
 read -p "上記のファイルを削除してよろしいですか？ [y/N]: " CONFIRM
 if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
-  echo "❌ キャンセルしました"
+  echo "? キャンセルしました"
   exit 0
 fi
 
 # 7. Git で削除（tracked ファイルの場合）
 echo ""
-echo "🗑️  削除実行中..."
-ls -1t *_verify.txt | tail -n ${DELETE_COUNT} | while read file; do
+echo "???  削除実行中..."
+for file in "${delete_files[@]}"; do
   if git ls-files --error-unmatch "${file}" > /dev/null 2>&1; then
     echo "  git rm ${file}"
     git rm -f "${file}"
@@ -94,17 +125,33 @@ done
 
 # 8. 削除結果の確認
 echo ""
-echo "✅ 削除完了"
+echo "? 削除完了"
 echo ""
 echo "残りのレポート:"
-ls -1t *_verify.txt
+mapfile -t remaining_files < <(ls -1 *.md 2>/dev/null | grep -v '^README.md$' || true)
+if [ "${#remaining_files[@]}" -gt 0 ]; then
+  printf '%s\n' "${remaining_files[@]}" | sort -r
+fi
 echo ""
 
-REMAINING_COUNT=$(ls -1 *_verify.txt 2>/dev/null | wc -l)
-echo "📊 残りのレポート数: ${REMAINING_COUNT}"
+remaining_timestamps=()
+for file in "${remaining_files[@]}"; do
+  if [[ "$file" =~ ^[0-9]{8}_[0-9]{6}_.+\.md$ ]]; then
+    remaining_timestamps+=("${file:0:15}")
+  fi
+done
 
-if [ "${REMAINING_COUNT}" -gt 3 ]; then
-  echo "⚠️  警告: まだ ${REMAINING_COUNT} 件のレポートがあります（3を超えています）"
+if [ "${#remaining_timestamps[@]}" -gt 0 ]; then
+  mapfile -t remaining_sets < <(printf '%s\n' "${remaining_timestamps[@]}" | sort -r | uniq)
+  REMAINING_SET_COUNT=${#remaining_sets[@]}
+else
+  REMAINING_SET_COUNT=0
+fi
+
+echo "?? 残りのレポートセット数: ${REMAINING_SET_COUNT}"
+
+if [ "${REMAINING_SET_COUNT}" -gt 3 ]; then
+  echo "??  警告: まだ ${REMAINING_SET_COUNT} セットのレポートがあります（3を超えています）"
   exit 1
 fi
 

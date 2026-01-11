@@ -39,7 +39,7 @@ NC='\033[0m' # No Color
 # 1. Link Check (link_check)
 # ============================================================================
 test_link_integrity() {
-    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_link_check.txt"
+    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_link_check.md"
     local broken_links=()
 
     echo -e "\n${CYAN}[1/4] Checking link integrity in docs/...${NC}"
@@ -107,7 +107,7 @@ test_link_integrity() {
 # 2. Parts Integrity (parts_integrity)
 # ============================================================================
 test_parts_integrity() {
-    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_parts_integrity.txt"
+    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_parts_integrity.md"
     local violations=()
 
     echo -e "\n${CYAN}[2/4] Checking Part structure integrity...${NC}"
@@ -160,7 +160,7 @@ test_parts_integrity() {
 # 3. Forbidden Patterns (forbidden_patterns)
 # ============================================================================
 test_forbidden_patterns() {
-    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_forbidden_patterns.txt"
+    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_forbidden_patterns.md"
     local detections=()
 
     echo -e "\n${CYAN}[3/4] Checking for forbidden patterns in docs/...${NC}"
@@ -217,7 +217,7 @@ test_forbidden_patterns() {
 # 4. Sources Integrity (sources_integrity)
 # ============================================================================
 test_sources_integrity() {
-    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_sources_integrity.txt"
+    local report_path="$EVIDENCE_DIR/${TIMESTAMP}_sources_integrity.md"
     local modifications=()
 
     echo -e "\n${CYAN}[4/4] Checking sources/ modification status...${NC}"
@@ -316,5 +316,6 @@ fi
 
 echo -e "\n${CYAN}Reports generated:${NC}"
 for check in link_check parts_integrity forbidden_patterns sources_integrity; do
-    echo -e "  ${GRAY}- ${TIMESTAMP}_${check}.txt${NC}"
+    echo -e "  ${GRAY}- ${TIMESTAMP}_${check}.md${NC}"
 done
+

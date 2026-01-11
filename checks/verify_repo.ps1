@@ -44,7 +44,7 @@ $Results = @{}
 # 1. Link Check (link_check)
 # ============================================================================
 function Test-LinkIntegrity {
-    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_link_check.txt"
+    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_link_check.md"
     $BrokenLinks = @()
 
     Write-Host "`n[1/4] Checking link integrity in docs/..." -ForegroundColor Cyan
@@ -116,7 +116,7 @@ function Test-LinkIntegrity {
 # 2. Parts Integrity (parts_integrity)
 # ============================================================================
 function Test-PartsIntegrity {
-    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_parts_integrity.txt"
+    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_parts_integrity.md"
     $Violations = @()
 
     Write-Host "`n[2/4] Checking Part structure integrity..." -ForegroundColor Cyan
@@ -187,7 +187,7 @@ function Test-PartsIntegrity {
 # 3. Forbidden Patterns (forbidden_patterns)
 # ============================================================================
 function Test-ForbiddenPatterns {
-    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_forbidden_patterns.txt"
+    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_forbidden_patterns.md"
     $Detections = @()
 
     Write-Host "`n[3/4] Checking for forbidden patterns in docs/..." -ForegroundColor Cyan
@@ -249,7 +249,7 @@ function Test-ForbiddenPatterns {
 # 4. Sources Integrity (sources_integrity)
 # ============================================================================
 function Test-SourcesIntegrity {
-    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_sources_integrity.txt"
+    $ReportPath = Join-Path $EvidenceDir "${Timestamp}_sources_integrity.md"
     $Modifications = @()
 
     Write-Host "`n[4/4] Checking sources/ modification status..." -ForegroundColor Cyan
@@ -363,3 +363,4 @@ foreach ($Check in $Results.Keys | Sort-Object) {
 
 # Exit with appropriate code
 exit $(if ($AllPassed) { 0 } else { 1 })
+
