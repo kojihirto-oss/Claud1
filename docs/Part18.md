@@ -52,25 +52,14 @@ Fast検証でPASSした証跡のみを採用する。
 
 ### R-1806: 最小差分【SHOULD】
 無関係な整理は含めず、最小差分で更新する。
-<<<<<<< HEAD
 
-### R-1807: MCP/ZAI/RAG/VIBEKANBAN/CLI統合の制限【MUST】
-統合は運用ループに沿って実施し、参照根拠と証跡を欠いた更新は禁止する。sources/ 無改変と真実順序の遵守を最優先とする。
-=======
->>>>>>> origin/claude/complete-20260111-clean
 
 ## 6. 手順（実行可能な粒度、番号付き）
 1. 発見：Operation Registryの不足・不整合・状態遷移の誤りを特定する。
 2. 記録：発見内容、参照根拠、対象ファイル、保存先を記録する。
 3. 修正：最小差分で更新し、Busy/NextStep を明示する。sources/ 無改変を維持する。
-<<<<<<< HEAD
-4. 統合運用：MCP/RAGで参照根拠を確認し、ZAIで要約、VIBEKANBANで状態を反映し、CLIでVerify/Evidenceの実施手順を守る。
-5. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
-6. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、状態遷移の整合を確認する。
-=======
 4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、状態遷移の整合を確認する。
->>>>>>> origin/claude/complete-20260111-clean
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
 ### 例外1: 検証が通らない
@@ -128,14 +117,7 @@ Fast検証でPASSした証跡のみを採用する。
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] Busy/NextStep と状態遷移が記録されている
-<<<<<<< HEAD
 
-### DoD（統合観点）
-- [ ] MCP/RAGの参照根拠とZAI要約が記録されている
-- [ ] VIBEKANBANの状態遷移がOperation Registryと一致している
-- [ ] CLI実行はVerify/Evidenceの手順に沿って証跡が揃っている
-=======
->>>>>>> origin/claude/complete-20260111-clean
 
 ## 11. 未決事項（推測禁止）
 - 未決事項なし（現時点）
