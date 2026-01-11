@@ -12,3 +12,7 @@
 
 .DS_Store
 Thumbs.db
+
+# RAG index (regenerate from sources/ and docs/)
+.rag/
+.rag-snapshot-*/
