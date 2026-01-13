@@ -53,6 +53,10 @@ Fast検証でPASSした証跡のみを採用する。
 ### R-1806: 最小差分【SHOULD】
 無関係な整理は含めず、最小差分で更新する。
 
+### R-1816: Gemini MCP Scope【MUST】
+**根拠**: [F-0072](../docs/FACTS_LEDGER.md#F-0072)
+Gemini CLIのMCP設定は、個人実験用 (`user`) とプロジェクト共有用 (`project`) のスコープを明確に分離し、共有設定には機密情報を含めない。
+
 
 ## 6. 手順（実行可能な粒度、番号付き）
 1. 発見：Operation Registryの不足・不整合・状態遷移の誤りを特定する。
@@ -65,7 +69,7 @@ Fast検証でPASSした証跡のみを採用する。
 
 ### 手順2: AI/ツール割当マトリクス（工程別最適AI選択）
 
-#### 完全版AI割当マトリクス【ID: R-1807】
+### R-1807: 完全版AI割当マトリクス【MUST】
 
 以下の工程別AI割当を標準とする（根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md)）。
 
@@ -82,7 +86,7 @@ Fast検証でPASSした証跡のみを採用する。
 | 観点 | MCP（推奨） | RAG（推奨） |
 |------|-----------|-----------|
 | **データ種別** | 構造化データ（JSON/YAML/コード） | 非構造化データ（Markdown/PDF/長文） |
-| **更新頻度** | 高頻度（リアルタイム） | 低頻度（日次〜週次更新） |
+| **更新頻度** | 高頻度（リアルタイム） | 低頻度（日次～週次更新） |
 | **参照パターン** | ピンポイント取得（特定ファイル） | あいまい検索（キーワード/意図） |
 | **データ所在** | ローカルファイルシステム | インデックス化済みKB |
 | **鮮度要件** | 最新必須 | 多少の遅延OK |
@@ -95,15 +99,15 @@ Fast検証でPASSした証跡のみを採用する。
 
 ### 手順3: VIBEKANBAN並列運用標準（1タスク=1worktree=1Verify=1Evidence）
 
-#### 並列運用の安全基準【ID: R-1808】
+### R-1808: 並列運用の安全基準【MUST】
 
-根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-3
+根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-3, [F-0070](../docs/FACTS_LEDGER.md#F-0070)
 
 - **S タスク並列2まで**: 別worktree、証跡は独立保存
 - **M タスク並列1まで**: 単独実行、worktree確保
 - **L タスク並列0**: 他タスク停止、単独集中
 
-#### 1タスク=1物理隔離の原則【ID: R-1809】
+### R-1809: 1タスク=1物理隔離の原則【MUST】
 
 根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-1
 
@@ -112,7 +116,7 @@ Fast検証でPASSした証跡のみを採用する。
 - branch命名: `task/TICKET-{ID}`
 - 証跡保存先: `evidence/tasks/TICKET-{ID}/`
 
-#### 失敗時フォールバック【ID: R-1810】
+### R-1810: 失敗時フォールバック【MUST】
 
 根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-4
 
@@ -122,9 +126,9 @@ Fast検証でPASSした証跡のみを採用する。
 
 ### 手順4: Antigravity安全柵（司令塔の権限境界）
 
-#### Antigravityの役割限定【ID: R-1811】
+### R-1811: Antigravityの役割限定【MUST】
 
-根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-1
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-1, [F-0073](../docs/FACTS_LEDGER.md#F-0073)
 
 Antigravity（IDE/司令塔）は以下の役割に限定する：
 
@@ -134,7 +138,7 @@ Antigravity（IDE/司令塔）は以下の役割に限定する：
 
 **禁止**: 直接のファイル編集・削除・一括置換・git操作（commit/push以外）
 
-#### 削除系操作の安全柵【ID: R-1812】
+### R-1812: 削除系操作の安全柵【MUST】
 
 根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-2
 
@@ -151,7 +155,7 @@ Antigravity（IDE/司令塔）は以下の役割に限定する：
 - 一時ファイル削除（`*.tmp`, `*.log`）はPatchOnly Tierで可
 - 削除前にDry-run表示必須（影響範囲確認）
 
-#### 作業ディレクトリ固定【ID: R-1813】
+### R-1813: 作業ディレクトリ固定【MUST】
 
 根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-3
 
@@ -163,7 +167,7 @@ AIエージェント実行時は以下のディレクトリ固定を強制：
 
 **検証**: Fast Verifyで `sources/` 無改変確認（V-0004）
 
-#### Permission Tier強制【ID: R-1814】
+### R-1814: Permission Tier強制【MUST】
 
 根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-4
 
@@ -176,7 +180,7 @@ Antigravity経由のAI実行は以下のTier制限を強制：
 | Verify実行 | ExecLimited | 実行前確認 |
 | 削除・sources改変・ADR追加 | HumanGate | 明示的承認 |
 
-#### 緊急停止（Emergency Stop）【ID: R-1815】
+### R-1815: 緊急停止（Emergency Stop）【MUST】
 
 根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-5
 
@@ -212,14 +216,14 @@ Antigravity経由のAI実行は以下のTier制限を強制：
 3. 証跡4点（link/parts/forbidden/sources）が揃っている
 
 **合否**:
-- **PASS**: 1〜3を満たす
+- **PASS**: 1～3を満たす
 - **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
 
 **ログ**: evidence/verify_reports/
 
 ### V-1802: Part00 Verify要件との整合
 **判定条件**:
-1. V-0001〜V-0004のログが存在する
+1. V-0001～V-0004のログが存在する
 2. sources/ の改変がない
 
 **合否**:
