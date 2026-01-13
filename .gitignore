@@ -10,5 +10,8 @@
 *.log
 *.tmp
 
+tmpclaude-*
+export/
+
 .DS_Store
 Thumbs.db

@@ -105,6 +105,7 @@
 **例外**:
 - 新規ファイルの追加（Append-only）は可
 - ファイル名の修正は _MANIFEST_SOURCES.md に記録すれば可
+- research_inbox 運用で `10_raw/` から `20_curated/` へコピーすることは可（10_raw は保持する）
 
 **違反例（禁止）**:
 - sources/ 内のファイルを直接編集

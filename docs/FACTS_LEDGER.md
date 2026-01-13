@@ -330,9 +330,9 @@ PROJECT_ROOT/
 ### F-0041: サイズ分類（S/M/L/XL）
 **定義**: タスクのサイズを固定する。
 **内容**:
-- **S（30〜90分）**: 単一ファイルor単一バグ、変更≤50行、Verify≤5分
+- **S（30～90分）**: 単一ファイルor単一バグ、変更≤50行、Verify≤5分
 - **M（半日）**: 複数ファイル、変更≤300行、Verify≤20分
-- **L（1〜3日）**: 設計変更あり、テスト拡充、移行含む
+- **L（1～3日）**: 設計変更あり、テスト拡充、移行含む
 - **XL（1週間+）**: 分割必須（XLは禁止。必ずL以下に割る）
 
 **根拠**: MASTER L177-182
@@ -588,6 +588,83 @@ PROJECT_ROOT/
 
 ---
 
+### F-0070: Vibe Kanban 実行モデル（隔離と並列）
+**定義**: エージェント実行の物理隔離とオーケストレーション。
+**内容**:
+- **Worktree隔離**: 各タスクはGit Worktree上で実行され、依存関係や設定ファイル（.env等）は自動コピーが必要。
+- **並列/順序**: 依存関係のないタスクは並列、あるタスクは順序実行。
+- **起動**: `npx vibe-kanban` を標準とする。
+
+**根拠**: factpack_ai_ops.md (VK-01, VK-03, VK-06)
+**関連用語**: Vibe Kanban, Worktree, Orchestration
+**重要度**: 高（Part04, Part18で明記）
+
+---
+
+### F-0071: Vibe Kanban 機能集約
+**定義**: 開発運用機能の集約ハブ。
+**内容**:
+- レビュー、Dev Server起動、タスク状態追跡を一元管理。
+- **ローカルMCP**: ローカル専用MCPサーバを提供し、外部ツールから操作可能（外部公開は禁止）。
+- **対応エージェント**: Claude Code, Gemini CLI, Cursor等から選定して利用。
+
+**根拠**: factpack_ai_ops.md (VK-02, VK-04, VK-05)
+**関連用語**: Vibe Kanban, MCP Server
+**重要度**: 中（Part02, Part18で明記）
+
+---
+
+### F-0072: Gemini CLI MCP管理
+**定義**: スコープによるMCP設定の分離。
+**内容**:
+- コマンド: `gemini mcp add/list/remove`
+- スコープ: `user`（個人実験）と `project`（チーム共有）を分離。
+- 設定ファイル: `project` スコープは `.gemini/settings.json` に保存（機密情報は環境変数化）。
+
+**根拠**: factpack_ai_ops.md (GEM-01, GEM-02)
+**関連用語**: Gemini CLI, MCP, Scope
+**重要度**: 中（Part04, Part06で明記）
+
+---
+
+### F-0073: Antigravity Mission Control
+**定義**: 自律エージェントの司令塔（計画・実装・検証）。
+**内容**:
+- Editor ViewとManager Surfaceで構成され、ブラウザ・ターミナル・エディタを横断操作。
+- 確認なしで実装に進む場合があり、人間は「停止/コメント」で介入する。
+- Artifacts（録画/スクショ）で進捗を可視化。
+
+**根拠**: factpack_ai_ops.md (AG-01, AG-02, AG-05)
+**関連用語**: Antigravity, Mission Control, Artifacts
+**重要度**: 高（Part06, Part18で明記）
+
+---
+
+### F-0074: Antigravity 安全装置（Safety Rails）
+**定義**: 権限の強制制御。
+**内容**:
+- **ターミナル**: 削除系（`rm`等）はAllow List外とし、実行前に強制レビュー（承認）を入れる。
+- **ブラウザ**: JS実行等の自動操作は「Request review」を標準とし、勝手な操作を防ぐ。
+
+**根拠**: factpack_ai_ops.md (AG-03, AG-04)
+**関連用語**: Antigravity, Allow List, Request review
+**重要度**: 最高（Part09, Part18で明記）
+
+---
+
+### F-0075: MCP vs RAG 役割分離
+**定義**: 情報取得経路の厳格な使い分け。
+**内容**:
+- **MCP Resources**: 「ローカル引用」。URI指定で正確なデータを取得（仕様書・ログ・設定）。`resources/read` 使用。
+- **RAG**: 「意味検索」。大量の文書から関連情報を探索・統合。出典確認が必須。
+- **原則**: 混在時は取得経路を明示する。
+
+**根拠**: factpack_ai_ops.md (MR-01, MR-02, MR-03)
+**関連用語**: MCP Resources, RAG, Information Retrieval
+**重要度**: 高（Part06, Part16で明記）
+
+---
+
 ## 5) フォルダ構造・命名
 
 ### F-0060: リリースフォルダ命名規則
@@ -685,7 +762,7 @@ VIBEKANBAN/
 ---
 
 ### U-0006: Phase 0-4 の導入計画の時間軸
-**問題**: MASTERでは Phase 0（最小で回す）〜 Phase 4（MCP/統合の完成）を定義しているが、各Phaseの期間・前提条件・完了条件が不明。
+**問題**: MASTERでは Phase 0（最小で回す）～ Phase 4（MCP/統合の完成）を定義しているが、各Phaseの期間・前提条件・完了条件が不明。
 **対応**: Part09（Phase導入）で具体化するが、「理想論ではなく運用部品」として明記
 
 ---
@@ -755,6 +832,56 @@ VIBEKANBAN/
 - HumanGate
 - WIP制限
 - Lane（レーン: ai_ready / pdf_ocr_ready / raw / staging / release）
+
+---
+
+## 8) 追加抽出（2026-01-12 監査/Runbook）
+
+### F-0058: 第2週監査でP0が10件と判定
+**定義**: 監査レポートはP0（致命的）10件、P1 8件、P2 5件を指摘している。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md
+**重要度**: 高（監査対応の優先順位）
+
+### F-0059: HumanGate/証跡/CI/RAG更新がP0原因として指摘
+**定義**: HumanGate承認者未定義、証跡命名・保持の矛盾、CI未強制、RAG更新未定義が事故要因として指摘されている。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md
+**重要度**: 最高（Part09/10/12/14/16で固定が必要）
+
+---
+
+### D-0001: HumanGate承認者とSLAを役割ベースで固定
+**決定**: 承認者を「主要/代理/緊急」の役割で定義し、SLAと承認チャネルを固定する。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: decisions/0004-humangate-approvers.md, Part09
+
+### D-0002: Verify証跡の命名と保持ポリシーを統一
+**決定**: `YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md` に統一し、直近3セット保持＋アーカイブ移動とする。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part10, Part12
+
+### D-0003: CIでVerify Gateを強制
+**決定**: main/integrate へのマージはCIのVerify PASSが必須。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part14, Part10
+
+### D-0004: RAG更新プロトコルを標準化
+**決定**: docs/glossary/decisions 更新時にRAG更新を実施し、`evidence/rag_updates/` にログを残す。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part16
+
+---
+
+### U-0011: HumanGate承認者の実名/チームの記入
+**問題**: ADR-0004では役割は定義済みだが、実名/チームが未記入。  
+**対応**: decisions/0004-humangate-approvers.md に実名/チームを記載。
+
+### U-0012: CIワークフローとBranch Protectionの実装
+**問題**: CI強制ルールは定義済みだが、ワークフロー/ルールセットが未実装。  
+**対応**: .github/workflows/verify-gate.yml とGitHub Rulesetsで実装。
+
+### U-0013: RAG更新の自動実装
+**問題**: RAG更新プロトコルは定義済みだが、自動化スクリプトが未実装。  
+**対応**: scripts/ で更新スクリプトを用意し、Evidenceにログを残す。
 
 ---
 

@@ -46,6 +46,7 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
 3. **Verify Gate通過**: 変更は必ず Part10 で定義された検証を通過してからマージ（通過しない変更はマージ禁止）
 4. **PATCHSET最小単位**: 1つの変更は「1つの目的」に限定し、複数目的を混ぜない
 5. **CHANGELOG維持**: 更新のたびに `CHANGELOG.md` を更新し、「いつ・誰が・何を」を記録
+6. **CI強制**: main/integrate へのマージはCIでVerify PASSが必須
 
 **根拠**: [F-0003](../docs/FACTS_LEDGER.md#F-0003), [ADR-0001](../decisions/0001-ssot-governance.md)
 
@@ -225,6 +226,21 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
 **根拠**: [F-0003](../docs/FACTS_LEDGER.md#F-0003), [F-0006](../docs/FACTS_LEDGER.md#F-0006)
 **Verify観点**: V-1406（後述）
 **例外**: プロジェクト方針でセマンティックバージョニング採用の場合はADRで明記
+
+---
+
+### R-1407: CIによるVerify強制【MUST】
+
+**定義**: main/integrate へのマージは CI で Verify Gate が PASS した場合のみ許可する。
+
+#### 条件
+1. **Required Status Checks** に Verify Fast を登録
+2. **main へのマージ**は Verify Full も PASS していること
+3. **CIログの参照**を evidence/ に記録する（参照パスのみで可）
+
+**根拠**: [Part10](./Part10.md)
+**Verify観点**: V-1410（後述）
+**例外**: HumanGate 承認（緊急対応のみ）
 
 ---
 
@@ -582,8 +598,6 @@ grep "移行手順" decisions/0003-*.md
 grep "Status: Spec Freeze" docs/Part14.md
 # なければ実装PRの存在をチェック
 git log --oneline --grep="Impl:" | grep Part14
-```
-
 **ログ**: evidence/verify_reports/V-1405_YYYYMMDD.md
 
 ---
@@ -667,6 +681,25 @@ grep "ロールバック" decisions/*.md
 ```
 
 **ログ**: evidence/verify_reports/V-1409_YYYYMMDD.md
+
+---
+
+### V-1410: CI強制の検証
+
+**判定条件**:
+1. Required Status Checks に `verify-gate-windows` が登録されていること
+2. main/integrate へのPRのChecksに `verify-gate-windows` が表示され、PASSであること
+
+**合否**:
+- **PASS**: 1,2を満たす
+- **FAIL**: CI結果未付与、またはFAIL
+
+**判定方法**:
+- GitHub Branch Protection / Rulesets で Required checks を確認
+- PRのChecksタブで `verify-gate-windows` のPASSを確認
+- 参照URLを evidence/verify_reports/V-1410_YYYYMMDD.md に記録
+
+**ログ**: evidence/verify_reports/V-1410_YYYYMMDD.md
 
 ---
 
@@ -766,11 +799,29 @@ grep "ロールバック" decisions/*.md
 - **凍結日**: 2026-01-10
 - **ADR**: decisions/0004-part14-spec-freeze.md
 - **未決事項**: ゼロ
-- **Acceptance**: V-1401〜V-1409 が全てPASS
+- **Acceptance**: V-1401〜V-1410 が全てPASS
 - **実装開始許可**: 承認済み
 ```
 
 **保存先**: evidence/spec_freeze/SPEC_FREEZE_Part14_20260110.md
+
+---
+
+### E-1406: CI強制ログ
+
+**内容**: CIでVerify GateがPASSした参照情報
+
+**形式**:
+```markdown
+# CI Verify Gate ログ
+
+- **PR**: PR-123
+- **Verify**: Fast PASS / Full PASS
+- **CI Run URL**: https://github.com/ORG/REPO/actions/runs/123456
+- **対象ブランチ**: integrate / main
+```
+
+**保存先**: evidence/verify_reports/CI_VERIFY_20260110_PR123.md
 
 ---
 
@@ -782,31 +833,14 @@ grep "ロールバック" decisions/*.md
 - [x] R-1404: 破壊的変更の制御が定義され、実施条件が明記されている
 - [x] R-1405: Spec凍結前の実装禁止が定義され、例外承認が明記されている
 - [x] R-1406: バージョン番号ルールが定義されている
+- [x] R-1407: CIによるVerify強制が定義されている
 - [x] 手順1〜4が「人間がそのまま実行できる粒度」で記述されている
 - [x] 例外処理1〜4が「失敗分岐・復旧・エスカレーション」を含む
-- [x] V-1401〜V-1409が「判定条件・合否・ログ」を含む
-- [x] E-1401〜E-1405が「形式・保存先」を含む
+- [x] V-1401〜V-1410が「判定条件・合否・ログ」を含む
+- [x] E-1401〜E-1406が「形式・保存先」を含む
 - [x] 全ルールに根拠（F-XXXX or ADR-XXXX）が明記されている
 
 ## 11. 未決事項（推測禁止）
-
-### U-1401: ADR承認フロー
-**問題**: decisions/ への ADR 追加は「誰が承認するか」が未定義（HumanGateとあるが、具体的な承認者・手順が不明）
-
-**影響**: ADR追加が属人化し、承認者不在時に変更が止まる
-
-**対応**: Part09（Permission Tier）で「HumanGateの承認者リスト」を定義
-
----
-
-### U-1402: checks/ の自動化
-**問題**: checks/ の検証スクリプトを手動実行するか、CI連携するか未定義
-
-**影響**: 手動実行だと「Verify忘れ」が発生、CI連携だとセットアップコスト増
-
-**対応**: 初期は手動、運用が安定したらADRでCI連携を決定
-
----
 
 ### U-1403: CHANGELOG の集約
 **問題**: CHANGELOG.md が長大化した場合、過去ログをアーカイブするか未定義
@@ -842,7 +876,7 @@ grep "ロールバック" decisions/*.md
 - （なし: 本Partは主にADR-0001を根拠とする）
 
 ### evidence/
-- evidence/verify_reports/ : V-1401〜V-1409のログ
+- evidence/verify_reports/ : V-1401〜V-1410のログ
 - evidence/hotfix_approvals/ : E-1402（Hotfix承認記録）
 - evidence/rollback_logs/ : E-1403（ロールバック記録）
 - evidence/adr_abuse_logs/ : E-1404（ADR免除濫用記録）
@@ -851,3 +885,4 @@ grep "ロールバック" decisions/*.md
 ### decisions/
 - [ADR-0001](../decisions/0001-ssot-governance.md) : SSOT運用ガバナンス（変更手順・根拠・検証の統治）
 - [ADR_TEMPLATE.md](../decisions/ADR_TEMPLATE.md) : ADRの書き方
+- [ADR-0004](../decisions/0004-humangate-approvers.md) : HumanGate承認者・SLA

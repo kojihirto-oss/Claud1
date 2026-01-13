@@ -86,6 +86,12 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - **MUST**: 承認プロセスは以下の手順で実行（セクション 6.3 参照）
 - **MUST**: 承認結果は evidence/ に記録
 
+##### HumanGate 承認者・SLA・承認チャネル
+- **MUST**: 承認者は `decisions/0004-humangate-approvers.md` に記録（主要/代理/緊急の3系統）
+- **MUST**: 承認SLAを明記し、期限超過時は自動エスカレーション（SLA: 通常24h、重要48h、緊急2h）
+- **MUST**: 承認チャネルは「PR Review」または「Issue/Chatの明示承認（LGTM + 確認ログ）」に限定
+- **MUST**: 承認ログは `evidence/humangate_approvals/` に保存し、参照パスを明記
+
 ### 5.2 DoD（Definition of Done）の基準
 
 すべての作業は以下の **DoD** を満たさなければ完了とみなさない：
@@ -194,14 +200,16 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 2. **人間への提示**
    - 承認要求を出力（明確に「HumanGate承認が必要です」と明記）
    - 質問形式で承認を求める（「この操作を実行してよろしいですか？ [Yes/No]」）
+   - 承認者は `decisions/0004-humangate-approvers.md` を参照し、主要/代理/緊急の順で依頼
 
 3. **承認結果の記録**
-   - 承認の場合：evidence/ に承認ログを保存（日時/承認者/操作内容）
+   - 承認の場合：`evidence/humangate_approvals/` に承認ログを保存（日時/承認者/操作内容/SLA判定）
    - 却下の場合：操作を中止し、代替案を検討
 
 4. **承認後の実行**
    - 承認された操作を実行
    - DoD に従って完了確認
+   - 緊急時は「緊急承認者→事後ADR→再Verify」を必須手順として追記
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
 
@@ -288,20 +296,20 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 すべての作業（PatchOnly / ExecLimited / HumanGate）は以下を evidence/ に保存：
 
 1. **変更差分（Diff）**
-   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_diff.txt`
+   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_diff.md`
    - 内容：git diff 出力、または編集前後の比較
 
 2. **Verify レポート**
-   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_verify.txt`
+   - ファイルパス：`evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS.md`
    - 内容：Fast Verify の4点チェック結果
 
 3. **実行ログ**
-   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_log.txt`
+   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_log.md`
    - 内容：タイムスタンプ、実行者（AI/人間）、コマンド履歴
 
 4. **HumanGate 承認記録（該当時）**
-   - ファイルパス：`evidence/YYYYMMDD_HHMM_<task-id>_approval.txt`
-   - 内容：承認日時、承認者、操作内容、承認理由
+   - ファイルパス：`evidence/humangate_approvals/YYYYMMDD_HHMMSS_<task-id>_APPROVED.md`
+   - 内容：承認日時、承認者、操作内容、承認理由、SLA判定
 
 ### 9.2 Evidence の保持期間
 
@@ -327,7 +335,6 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 - Full Verify の詳細仕様（Part10で定義予定）
 - Evidence Pack の自動生成スクリプト（checks/ で今後実装）
-- CI/CD との連携（Part14で定義予定）
 - Permission Tier の動的変更（セキュリティレベルの切り替え）
 
 ## 12. 参照（パス）
@@ -338,5 +345,6 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - docs/Part11.md（並列タスク運用、今後定義）
 - glossary/GLOSSARY.md（用語定義）
 - decisions/0001-ssot-governance.md（SSOT運用ガバナンス）
+- decisions/0004-humangate-approvers.md（HumanGate承認者・SLA）
 - checks/README.md（検証手順）
 - CLAUDE.md（常設ルール）
