@@ -758,6 +758,56 @@ VIBEKANBAN/
 
 ---
 
+## 8) 追加抽出（2026-01-12 監査/Runbook）
+
+### F-0058: 第2週監査でP0が10件と判定
+**定義**: 監査レポートはP0（致命的）10件、P1 8件、P2 5件を指摘している。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md
+**重要度**: 高（監査対応の優先順位）
+
+### F-0059: HumanGate/証跡/CI/RAG更新がP0原因として指摘
+**定義**: HumanGate承認者未定義、証跡命名・保持の矛盾、CI未強制、RAG更新未定義が事故要因として指摘されている。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md
+**重要度**: 最高（Part09/10/12/14/16で固定が必要）
+
+---
+
+### D-0001: HumanGate承認者とSLAを役割ベースで固定
+**決定**: 承認者を「主要/代理/緊急」の役割で定義し、SLAと承認チャネルを固定する。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: decisions/0004-humangate-approvers.md, Part09
+
+### D-0002: Verify証跡の命名と保持ポリシーを統一
+**決定**: `YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md` に統一し、直近3セット保持＋アーカイブ移動とする。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part10, Part12
+
+### D-0003: CIでVerify Gateを強制
+**決定**: main/integrate へのマージはCIのVerify PASSが必須。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part14, Part10
+
+### D-0004: RAG更新プロトコルを標準化
+**決定**: docs/glossary/decisions 更新時にRAG更新を実施し、`evidence/rag_updates/` にログを残す。  
+**根拠**: sources/research_inbox/20260112_125049_2nd_research/10_raw/VCG_VIBE_SSOT_完全設計監査レポート_第2週.md  
+**関連**: Part16
+
+---
+
+### U-0011: HumanGate承認者の実名/チームの記入
+**問題**: ADR-0004では役割は定義済みだが、実名/チームが未記入。  
+**対応**: decisions/0004-humangate-approvers.md に実名/チームを記載。
+
+### U-0012: CIワークフローとBranch Protectionの実装
+**問題**: CI強制ルールは定義済みだが、ワークフロー/ルールセットが未実装。  
+**対応**: .github/workflows/verify-gate.yml とGitHub Rulesetsで実装。
+
+### U-0013: RAG更新の自動実装
+**問題**: RAG更新プロトコルは定義済みだが、自動化スクリプトが未実装。  
+**対応**: scripts/ で更新スクリプトを用意し、Evidenceにログを残す。
+
+---
+
 ## 参照
 
 - **主要根拠**: [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md)

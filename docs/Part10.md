@@ -26,7 +26,7 @@ Verify Gateは、リポジトリの整合性を機械的に検証し、以下を
 - Fast/Full の2モード定義（Fullは将来拡張）
 
 ### Out of Scope
-- CI/CD環境での自動実行（将来的に導入可能だが本Partでは手動実行を標準とする）
+- CI/CD環境での自動実行の実装詳細（ワークフロー定義は別途、運用要件は本Partで固定）
 - sources/ の内容妥当性検証（改変検出のみ、内容の真偽は検証しない）
 - glossary/ の用語整合性（将来拡張候補）
 
@@ -54,13 +54,13 @@ Verify Gateは、リポジトリの整合性を機械的に検証し、以下を
 
 ### 5.2 PASS時の扱い
 - **MUST**：Verify PASS の証跡セット（4ファイル）を git add でステージングに含める
-- **SHOULD**：evidence/verify_reports には「最新PASS 1セットのみ」を追加する（過去分は削除推奨）
-- **MAY**：運用上の理由で「直近3セットまで」を保持してもよい（それ以上は `git r m` で整理する）
+- **SHOULD**：evidence/verify_reports には「直近3セットまで」を保持する（監査要件）
+- **MUST NOT**：過去の証跡を削除しない（アーカイブ移動のみ）
 
 ### 5.3 FAIL時の扱い
 - **MUST NOT**：Verify FAIL の状態では git commit しない（例外：HumanGate承認あり）
 - **MUST**：FAIL原因を修正し、再度 Verify Fast を実行してPASSを確認する
-- **SHOULD**：FAIL時の証跡は git add せず、未追跡のまま残す（または削除する）
+- **SHOULD**：FAIL時の証跡は git add せず、未追跡のまま残す（または `evidence/archive/` に退避）
 - **例外（HumanGate）**：障害解析目的でFAIL証跡を保持する場合、decisions/ にADRを追加してから保持する
 
 ### 5.4 sources/ 改変の禁止
@@ -71,6 +71,11 @@ Verify Gateは、リポジトリの整合性を機械的に検証し、以下を
 - **MUST NOT**：docs/ 内に危険なコマンド文字列（`r m - r f`、`git push - - f orce`、`git reset - - h ard`、`curl | s h` など）を生で記述しない
 - **MUST**：Verify は禁止文字列パターンを検出し、FAIL とする
 - **SHOULD**：危険コマンドを説明する場合は表記崩し（スペース挿入、ハイフン分離など）を使用する
+
+### 5.6 CI強制（Branch Protection）【MUST】
+- **MUST**：PRのマージには CI で Verify Fast（main への場合は Full も）を必須化
+- **MUST**：Required Status Checks に Verify Gate を登録し、FAIL時はマージ禁止
+- **MUST**：CIログは evidence/verify_reports/ の参照パスを残す
 
 ## 6. 手順（実行可能な粒度、番号付き）
 
@@ -133,10 +138,10 @@ pwsh .\checks\verify_repo.ps1 -Mode Fast
 4. **sources改変検出**（sources_integrity）：sources/ のハッシュ値チェック
 
 **出力**：
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_link_check.txt`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_parts_integrity.txt`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_forbidden_patterns.txt`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_sources_integrity.txt`
+- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_link_check.md`
+- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_parts_integrity.md`
+- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_forbidden_patterns.md`
+- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_sources_integrity.md`
 
 **判定**：4項目すべてが合格で PASS、1つでも不合格で FAIL
 
@@ -154,19 +159,10 @@ pwsh .\checks\verify_repo.ps1 -Mode Full
 
 ### 6.3 証跡の保持・削除ルール
 
-#### 推奨（最新1セットのみ）
-- **保持**：最新のPASS証跡セット（4ファイル）のみをgit管理下に置く
-- **削除**：過去のPASS証跡は `git r m evidence/verify_reports/2026*` で削除してOK
-- **理由**：証跡履歴はgit logで追跡可能。大量の証跡ファイルは可読性を下げる
-
-#### 許容（直近3セットまで）
-- **保持**：運用上の理由で直近3セットまで保持可能（監査要件など）
-- **整理**：4セット目以降は削除する
-- **コマンド例**：
-  ```powershell
-  # 古い証跡を削除（手動で日付を指定）
-  git r m evidence/verify_reports/20260108_*
-  ```
+#### 標準（直近3セット＋アーカイブ）
+- **保持**：直近3セットまでを evidence/verify_reports/ に保持
+- **整理**：4セット目以降は `evidence/archive/YYYY/MM/` へ移動（削除禁止）
+- **理由**：監査要件と可読性の両立
 
 #### 禁止（FAIL証跡の混入）
 - **MUST NOT**：FAIL証跡を誤ってコミットしない
@@ -191,7 +187,7 @@ pwsh .\checks\verify_repo.ps1 -Mode Full
    - エスカレーション：HumanGateで方針を決定 → decisions/ にADR追加 → 修正
 
 #### 復旧手順
-1. FAIL原因を `evidence/verify_reports/*_YYYYMMDD_HHMMSS.txt` から特定
+1. FAIL原因を `evidence/verify_reports/*_YYYYMMDD_HHMMSS_*.md` から特定
 2. 該当ファイルを修正
 3. 再度 `pwsh .\checks\verify_repo.ps1 -Mode Fast` を実行
 4. PASS確認後、手順6.1の4番（証跡追加）から再開
@@ -202,7 +198,7 @@ pwsh .\checks\verify_repo.ps1 -Mode Full
 - **障害解析目的**：FAIL証跡を保持して原因調査を行う必要がある
 - **条件**：
   1. decisions/ に ADR を追加（例：`ADR-00XX-exception-verify-fail-for-analysis.md`）
-  2. ADR に FAIL理由、保持期間、削除予定日を明記
+  2. ADR に FAIL理由、保持期間、アーカイブ予定日を明記
   3. コミットメッセージに `[HumanGate approved]` を付記
 
 ### 7.3 スクリプトエラー時の対処
@@ -260,23 +256,25 @@ verify_repo.ps1 が異常終了した場合：
 
 ### 9.1 証跡ファイル命名規則
 ```
-evidence/verify_reports/YYYYMMDD_HHMMSS_<category>.txt
+evidence/verify_reports/YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md
 ```
 - **YYYYMMDD**：実行日（例：20260111）
 - **HHMMSS**：実行時刻（例：143052）
+- **mode**：Fast / Full
+- **status**：PASS / FAIL
 - **category**：検証カテゴリ（link_check / parts_integrity / forbidden_patterns / sources_integrity）
 
 ### 9.2 証跡セットの構成
 1回のverify実行で以下4ファイルが生成される：
-1. `YYYYMMDD_HHMMSS_link_check.txt`
-2. `YYYYMMDD_HHMMSS_parts_integrity.txt`
-3. `YYYYMMDD_HHMMSS_forbidden_patterns.txt`
-4. `YYYYMMDD_HHMMSS_sources_integrity.txt`
+1. `YYYYMMDD_HHMMSS_Fast_PASS_link_check.md`
+2. `YYYYMMDD_HHMMSS_Fast_PASS_parts_integrity.md`
+3. `YYYYMMDD_HHMMSS_Fast_PASS_forbidden_patterns.md`
+4. `YYYYMMDD_HHMMSS_Fast_PASS_sources_integrity.md`
 
 ### 9.3 証跡の採用ルール
-- **標準**：最新PASS 1セットのみをgit管理下に置く
-- **許容**：直近3セットまで保持可能
-- **禁止**：FAIL証跡をコミットしない（例外：HumanGate承認あり）
+- **標準**：直近3セットまでを git 管理下に置く
+- **許容**：FAIL証跡は未追跡またはアーカイブ退避
+- **禁止**：証跡の削除（例外：HumanGate承認あり）
 
 ### 9.4 監査時の参照方法
 ```powershell
@@ -284,7 +282,7 @@ evidence/verify_reports/YYYYMMDD_HHMMSS_<category>.txt
 ls evidence/verify_reports/ | Sort-Object -Descending | Select-Object -First 4
 
 # 特定日時の証跡を確認
-cat evidence/verify_reports/20260111_143052_link_check.txt
+cat evidence/verify_reports/20260111_143052_Fast_PASS_link_check.md
 ```
 
 ## 10. チェックリスト
@@ -295,7 +293,7 @@ cat evidence/verify_reports/20260111_143052_link_check.txt
 - [ ] `pwsh .\checks\verify_repo.ps1 -Mode Fast` を **1回だけ** 実行した
 - [ ] Verify結果が **PASS** である
 - [ ] evidence/verify_reports に最新PASS 4ファイルが生成されている
-- [ ] 過去の証跡は削除した（または直近3セットまで保持）
+- [ ] 過去の証跡はアーカイブ済み（または直近3セットまで保持）
 - [ ] `git add evidence/verify_reports/*` で証跡をステージングした
 - [ ] `git add docs/Part10.md` など変更ファイルをステージングした
 - [ ] `git status -sb` でステージング内容を確認した
@@ -307,15 +305,12 @@ cat evidence/verify_reports/20260111_143052_link_check.txt
 現時点で確定していない項目：
 - **Verify Full の詳細仕様**：用語揺れ検出、未決事項集計の具体的アルゴリズム（将来実装）
 - **Linux/macOS対応**：pwsh 以外の環境での verify 実行方法（シェルスクリプト版を検討中）
-- **CI/CD統合**：GitHub Actions などでの自動実行タイミング・失敗時の通知方法（将来検討）
 
 ### 運用上の選択肢（HumanGateで決定）
-- **証跡保持数**：「最新1セット」vs「直近3セット」
-  - 推奨：最新1セット（シンプル・可読性優先）
-  - 許容：直近3セット（監査要件がある場合）
-- **FAIL証跡の扱い**：「即削除」vs「未追跡で残す」vs「別ディレクトリ退避」
+- **証跡保持数**：「直近3セット」固定（アーカイブ移動は運用手順で調整）
+- **FAIL証跡の扱い**：「未追跡で残す」vs「別ディレクトリ退避」
   - 推奨：未追跡で残す（障害解析時に参照可能）
-  - 許容：即削除（証跡量産を防ぐ）
+  - 許容：アーカイブ退避（証跡量産を防ぐ）
 
 ## 12. 参照（パス）
 

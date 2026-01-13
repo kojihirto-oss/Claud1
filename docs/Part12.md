@@ -34,13 +34,24 @@ Verify/Evidenceが揃っていない変更を排除する。
 
 ## 5. ルール（MUST / MUST NOT / SHOULD）
 ### R-1201: Evidence保存義務【MUST】
-Verify結果と変更記録は evidence/ に保存し、削除しない。
+Verify結果と変更記録は evidence/ に保存し、削除しない（アーカイブ移動のみ許可）。
 
 ### R-1202: PASS証跡のみ採用【MUST】
 Fast検証でPASSした証跡のみを採用する。
 
 ### R-1203: 証跡4点の最小セット【MUST】
 link/parts/forbidden/sources の4点を最小セットとして保存する。
+
+### R-1206: Evidence Pack 規格【MUST】
+Evidenceは以下の構成を満たす：
+1. Verifyレポート（`evidence/verify_reports/YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md`）
+2. 差分（`evidence/YYYYMMDD_HHMM_<task-id>_diff.md`）
+3. 実行ログ（`evidence/YYYYMMDD_HHMM_<task-id>_log.md`）
+4. 変更概要（`evidence/YYYYMMDD_HHMM_<task-id>_summary.md`）
+
+### R-1207: 証跡保持ポリシー【MUST】
+- evidence/verify_reports は「直近3セット」を保持
+- 4セット目以降は `evidence/archive/YYYY/MM/` へ移動（削除禁止）
 
 ### R-1204: sources/ 無改変【MUST NOT】
 sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
@@ -103,7 +114,7 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 
 ### E-1203: 証跡4点（最小セット）
 **内容**: link_check / parts_check / forbidden_check / sources_integrity  
-**保存先**: evidence/verify_reports/
+**保存先**: evidence/verify_reports/（`.md` 形式）
 
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている

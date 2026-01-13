@@ -115,7 +115,130 @@ Playbookは「発見 → 記録 → 修正 → 検証 → 監査」のループ�
 1. 変更概要とVerify結果を作業報告にまとめる。
 2. 必要に応じてHumanGate承認者へ提出する。
 
+### 手順6: Runbook（Deep Research→一次情報(MCP)→Facts→設計書差分→Verify→Evidence→Release）
+
+#### 工程1: Deep Research（探索）
+1. 探索目的と範囲を明確化（対象Part/用語/課題を固定）。
+2. 参照優先順位を宣言（一次情報→社内根拠→二次情報）。
+3. 探索クエリを列挙し、重複を排除する。
+4. 収集対象を一次/二次に分類し、混在させない。
+5. 収集元URLと取得日時を記録する。
+6. 収集した原文を `sources/research_inbox/.../10_raw/` に保存する（追加のみ）。
+7. 収集物の概要をメモ化（検索意図、重要点、未確認点）。
+8. 収集物の信頼区分を付与（公式/標準/ブログ/不明）。
+9. 探索結果の不足点を列挙し、追加探索の要否を判断する。
+10. 探索ログを evidence/ に保存し、次工程へ渡す。
+
+#### 工程2: 一次情報（MCP）
+1. MCPの対象リソースと権限を確認する（ReadOnly優先）。
+2. User Consentが必要な操作を洗い出す（Part03/Part09）。
+3. MCPで一次情報を取得し、参照パスを記録する。
+4. 取得結果は raw のまま保存し、加工前に証跡化する。
+5. MCP実行ログを `evidence/mcp_logs/` に保存する。
+6. 同一情報の重複取得を回避し、最終参照を固定する。
+7. 取得情報の更新日/版数を記録する。
+8. 必要な場合は追加の一次情報をMCPで補完する。
+9. 取得情報の信頼境界を明記する（公開/機密/内部）。
+10. 一次情報一覧を整理し、Facts工程の入力にする。
+
+#### 工程3: Facts（F/D/U抽出）
+1. 一次情報と探索結果からFact候補を抽出する。
+2. 既存のFACTS_LEDGERと重複を確認する。
+3. Factは「内容・根拠パス・重要度」を揃える。
+4. Decisionは「決定内容・影響Part・根拠」を揃える。
+5. Unknownは「不明点・影響・対応方針」を揃える。
+6. F/D/Uを区別して FACTS_LEDGER に追記する。
+7. 各項目に参照パスを必ず付与する。
+8. 誤解釈がないか再チェックする。
+9. 更新差分を最小化し、混在を防ぐ。
+10. Facts更新完了をEvidenceに記録する。
+
+#### 工程4: 設計書差分（docs更新）
+1. 影響Partと関連ADRを特定する。
+2. ADR先行が必要か判定する（Part14）。
+3. 変更方針を最小差分に分割する。
+4. 変更点の一覧を作成し、順序を固定する。
+5. docs/ の対象Partを更新する（最小差分）。
+6. 用語変更がある場合は glossary を更新する。
+7. 人間承認が必要な変更はHumanGateへ回す。
+8. 変更理由と根拠を短く記録する。
+9. 変更後の参照リンクを点検する。
+10. 次工程のVerify準備を整える。
+
+#### 工程5: Verify（機械判定）
+1. Fast Verify を1回だけ実行する（Part10）。
+2. PASS/FAIL を確認し、結果を記録する。
+3. FAIL時は原因を分類して修正する。
+4. 修正後に再度 Fast Verify を実行する。
+5. sources/ 改変がないことを再確認する。
+6. 追加の検証（Full Verify）が必要か判断する。
+7. CI実行が必要な場合はPRに付与する。
+8. PASS証跡のみを採用する。
+9. Verify結果の参照パスを確定する。
+10. Verify完了をEvidenceに記録する。
+
+#### 工程6: Evidence（証跡パック）
+1. Evidence Packの必須構成を確認する（Part12）。
+2. diff/verify/log/summary を揃える。
+3. 命名規則に従って保存する（.md）。
+4. 直近3セット保持ルールを確認する。
+5. 古い証跡は archive/ へ移動する。
+6. HumanGate承認がある場合は承認ログを追加する。
+7. Evidence参照パスを作業報告に追記する。
+8. Evidence不足がないかチェックする。
+9. Evidence一覧を整理する。
+10. Evidence完了を監査ログに記録する。
+
+#### 工程7: Release（不変成果物）
+1. Releaseが必要か判断する（Part13）。
+2. Release対象を固定し、manifestを作成する。
+3. sha256を生成し、整合性を確認する。
+4. SBOMが必要な場合は生成する。
+5. Releaseフォルダ命名規則を遵守する。
+6. Releaseに含める証跡の参照パスを整理する。
+7. Release作成後はREAD-ONLY化する。
+8. CHANGELOGに反映する。
+9. ReleaseのVerify結果を確認する。
+10. Release完了を報告し、次サイクルへ戻る。
+
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+
+### 手順8: 工程別AI割当（最強AI構成）
+
+#### 工程×AI割当マトリクス【ID: R-1506】
+
+以下の工程別AI割当を標準とする（根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md)）。
+
+| 工程 | 主AI | 副AI/補完 | 入力 | 出力 | チェック | 証跡 | フォールバック |
+|------|------|----------|------|------|---------|------|---------------|
+| **Research** | Gemini Deep Research | Z.ai (MCP経由) | SSOT/FACTS/ADR | research_inbox/ | Claude+ | evidence/research/ | 人間による文献確認 |
+| **Hard Design & Review** | Claude+ (Sonnet/Opus) | GPT(Projects) | Research成果/FACTS | ADR/docs/ | Gemini CLI | evidence/design/ | 人間レビュー |
+| **Implementation Bulk** | Gemini CLI / Codex | Claude+ | ADR/仕様 | 実装コード | Verify Gate | evidence/impl/ | Claude+で再実装 |
+| **Audit/整合性監査** | GPT(Projects) | Claude+ | docs/全体 | 監査レポート | 人間 | evidence/audit/ | Claude+で再監査 |
+| **Verify/Evidence** | Verify Gate(自動) | - | 変更差分 | PASS/FAIL | - | evidence/verify_reports/ | 手動検証 |
+
+#### AI選択理由
+
+1. **Research**: Gemini Deep Researchは多段探索・ソース追跡に強い
+2. **Hard Design**: Claude+は長文設計・ADR作成・推論に強い
+3. **Implementation**: Gemini CLI/Codexは高速・バルク処理に強い
+4. **Audit**: GPT(Projects)は全体俯瞰・矛盾検出に強い
+5. **Verify**: 機械判定のため固定（Fast Verify推奨）
+
+#### 並列運用の制約
+
+- **S タスク並列2まで**: 別worktree、証跡は独立保存
+- **M タスク並列1まで**: 単独実行、worktree確保
+- **L タスク並列0**: 他タスク停止、単独集中
+
+詳細: [Part04](./Part04.md) R-0403（WIP制限）
+
+#### フォールバック手順
+
+1. **主AI失敗時**: フォールバック列のAIで再実行
+2. **副AI失敗時**: 人間介入（HumanGate）
+3. **Verify FAIL 3回**: 即座にHumanGate（Part09）
+
 
 ### 例外1: Verifyが3ループで通らない
 

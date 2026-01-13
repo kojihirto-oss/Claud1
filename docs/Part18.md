@@ -62,6 +62,136 @@ Fast検証でPASSした証跡のみを採用する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、状態遷移の整合を確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+
+### 手順2: AI/ツール割当マトリクス（工程別最適AI選択）
+
+#### 完全版AI割当マトリクス【ID: R-1807】
+
+以下の工程別AI割当を標準とする（根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md)）。
+
+| 工程 | 主AI | 副AI/補完 | 入力 | 出力 | チェック | 証跡 | フォールバック | Permission Tier |
+|------|------|----------|------|------|---------|------|---------------|----------------|
+| **Research** | Gemini Deep Research | Z.ai (MCP経由) | SSOT/FACTS/ADR | research_inbox/ | Claude+ | evidence/research/ | 人間による文献確認 | ReadOnly |
+| **Hard Design & Review** | Claude+ (Sonnet/Opus) | GPT(Projects) | Research成果/FACTS | ADR/docs/ | Gemini CLI | evidence/design/ | 人間レビュー | PatchOnly |
+| **Implementation Bulk** | Gemini CLI / Codex | Claude+ | ADR/仕様 | 実装コード | Verify Gate | evidence/impl/ | Claude+で再実装 | ExecLimited |
+| **Audit/整合性監査** | GPT(Projects) | Claude+ | docs/全体 | 監査レポート | 人間 | evidence/audit/ | Claude+で再監査 | ReadOnly |
+| **Verify/Evidence** | Verify Gate(自動) | - | 変更差分 | PASS/FAIL | - | evidence/verify_reports/ | 手動検証 | ExecLimited |
+
+#### MCP vs RAG の使い分け（根拠: [ADR-0007](../decisions/0007-mcp-rag-boundary.md)）
+
+| 観点 | MCP（推奨） | RAG（推奨） |
+|------|-----------|-----------|
+| **データ種別** | 構造化データ（JSON/YAML/コード） | 非構造化データ（Markdown/PDF/長文） |
+| **更新頻度** | 高頻度（リアルタイム） | 低頻度（日次〜週次更新） |
+| **参照パターン** | ピンポイント取得（特定ファイル） | あいまい検索（キーワード/意図） |
+| **データ所在** | ローカルファイルシステム | インデックス化済みKB |
+| **鮮度要件** | 最新必須 | 多少の遅延OK |
+
+**判断フロー**:
+1. 「特定ファイルパスがわかっている」→ **MCP Read-only**
+2. 「キーワードで探したい」→ **RAG検索**
+3. 「sources/を参照したい」→ **MCPでRead-only** （RAG化禁止）
+4. 「docs/を検索したい」→ **RAG検索** （更新済み前提）
+
+### 手順3: VIBEKANBAN並列運用標準（1タスク=1worktree=1Verify=1Evidence）
+
+#### 並列運用の安全基準【ID: R-1808】
+
+根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-3
+
+- **S タスク並列2まで**: 別worktree、証跡は独立保存
+- **M タスク並列1まで**: 単独実行、worktree確保
+- **L タスク並列0**: 他タスク停止、単独集中
+
+#### 1タスク=1物理隔離の原則【ID: R-1809】
+
+根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-1
+
+- 1 TICKET = 1 worktree = 1 branch = 1 Verify = 1 Evidence Pack
+- worktree命名: `worktree_TICKET-{ID}`
+- branch命名: `task/TICKET-{ID}`
+- 証跡保存先: `evidence/tasks/TICKET-{ID}/`
+
+#### 失敗時フォールバック【ID: R-1810】
+
+根拠: [ADR-0005](../decisions/0005-vibekanban-ai-orchestration.md) D-0005-4
+
+1. **主AI失敗時**: フォールバック列のAIで再実行
+2. **副AI失敗時**: 人間介入（HumanGate）
+3. **Verify FAIL 3回**: 即座にHumanGate（Part09）
+
+### 手順4: Antigravity安全柵（司令塔の権限境界）
+
+#### Antigravityの役割限定【ID: R-1811】
+
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-1
+
+Antigravity（IDE/司令塔）は以下の役割に限定する：
+
+1. **司令塔**: TICKET作成、AI割当指示、進捗確認
+2. **レビュー**: diff確認、Evidence確認、DoD確認
+3. **確認**: Verify結果、状態遷移、証跡整合性
+
+**禁止**: 直接のファイル編集・削除・一括置換・git操作（commit/push以外）
+
+#### 削除系操作の安全柵【ID: R-1812】
+
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-2
+
+以下の削除系操作は **HumanGate必須**：
+
+- `rm -r`, `rm (recursive+force)` （ファイル・ディレクトリ削除）
+- `git clean -fdx` （未追跡ファイル削除）
+- sources/ 内の任意の変更・削除
+- decisions/ 内のADR削除
+- evidence/ 内の証跡削除
+- worktree削除（`git worktree remove`）
+
+**例外**:
+- 一時ファイル削除（`*.tmp`, `*.log`）はPatchOnly Tierで可
+- 削除前にDry-run表示必須（影響範囲確認）
+
+#### 作業ディレクトリ固定【ID: R-1813】
+
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-3
+
+AIエージェント実行時は以下のディレクトリ固定を強制：
+
+- **worktree内限定**: `worktree_TICKET-{ID}/` 配下のみ操作可
+- **読み取り専用**: `docs/`, `sources/`, `decisions/`, `glossary/` （変更不可）
+- **書き込み可**: `evidence/tasks/TICKET-{ID}/` （証跡保存専用）
+
+**検証**: Fast Verifyで `sources/` 無改変確認（V-0004）
+
+#### Permission Tier強制【ID: R-1814】
+
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-4
+
+Antigravity経由のAI実行は以下のTier制限を強制：
+
+| 操作種別 | 必要Tier | 確認方法 |
+|---------|---------|---------|
+| ファイル読み取り | ReadOnly | なし |
+| docs/編集（最小差分） | PatchOnly | Dry-run表示 |
+| Verify実行 | ExecLimited | 実行前確認 |
+| 削除・sources改変・ADR追加 | HumanGate | 明示的承認 |
+
+#### 緊急停止（Emergency Stop）【ID: R-1815】
+
+根拠: [ADR-0006](../decisions/0006-antigravity-safety-rails.md) D-0006-5
+
+以下の検出時は **即座に操作停止**：
+
+- sources/ への改変検出（V-0004 FAIL）
+- Permission Tier超過の実行試行
+- worktree外への書き込み試行
+- 禁止コマンド検出（V-0003 FAIL）
+
+**復旧**:
+1. 操作ログをevidence/emergency/に保存
+2. HumanGateで原因確認
+3. Rollback実行
+
 ### 例外1: 検証が通らない
 - 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへエスカレーションする。
 
