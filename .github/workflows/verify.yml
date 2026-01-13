@@ -1,0 +1,26 @@
+name: Verify Gate
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  verify-gate-windows:
+    name: verify-gate-windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Run Verify Gate (Fast)
+        shell: pwsh
+        run: pwsh -File checks/verify_repo.ps1 Fast
+      - name: Upload verify reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify_reports
+          path: evidence/verify_reports

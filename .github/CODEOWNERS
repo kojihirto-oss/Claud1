@@ -1,0 +1,8 @@
+# Default owner
+* @koji2
+
+# SSOT docs and decisions
+/docs/ @koji2
+/decisions/ @koji2
+/checks/ @koji2
+/.github/ @koji2
