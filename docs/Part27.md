@@ -41,6 +41,11 @@
 2. **CIパイプラインが構築されている**（GitHub Actions等）
 3. **セキュリティスキャンは自動実行**される
 4. **検出結果はEvidenceに保存**される
+5. **公式ドキュメント・リポジトリ**が参照可能
+   - [Gitleaks Official Repository](https://github.com/gitleaks/gitleaks) : 機密情報検出ツール
+   - [Trivy Official Website](https://trivy.dev/) : 脆弱性スキャナー
+   - [OpenSSF Scorecard Official GitHub](https://github.com/ossf/scorecard) : リポジトリ健全性評価
+   - [OpenSSF Scorecard Website](https://scorecard.dev/) : Scorecard公式サイト
 
 ---
 
@@ -136,7 +141,7 @@ OpenSSF Scorecardは以下の健全性評価を実施する：
 Conftest/OPAは以下のポリシー検証を実施する：
 
 #### ポリシー項目
-- **危険コマンド禁止**: 任意ディレクトリの強制削除、git force push 等の使用禁止
+- **破壊的コマンド禁止**: システムに重大な影響を及ぼすコマンド（例: 強制削除、履歴改変を伴うプッシュ）の使用は禁止されています。代わりに、安全な運用手順とバージョン管理のベストプラクティスに従ってください。
 - **設定逸脱検知**: 推奨設定からの逸脱検知
 - **権限検証**: 適切な権限設定の検証
 
@@ -290,11 +295,10 @@ Sigstore等を用いてビルド来歴を証明する：
 - [x] Trivyによる脆弱性スキャン（R-2702）が明記されているか
 - [x] Scorecardによる健全性評価（R-2703）が明記されているか
 - [x] Conftest/OPAによるポリシー強制（R-2704）が明記されているか
-- [x] Attestationsによる来歴証明（R-2705）が明記されているか
-- [x] 各ルールに rev.md への参照が付いているか
-- [x] Verify観点（V-2701〜V-2703）が機械判定可能な形で記述されているか
-- [x] Evidence観点（E-2701〜E-2703）が参照パス付きで記述されているか
-- [ ] 本Part27 を読んだ人が「セキュリティガバナンス」を理解できるか
+- [x] Artifact Attestationsによる来歴証明（R-2705）が明記されているか
+- [x] 各ルールに最新の一次情報（OpenSSF等）への参照が付いているか
+- [ ] 各スキャンの実行結果が `evidence/security/` に保存されているか
+- [ ] 本Part27 を読んだ人が「無料で強い守り」の運用方法を理解できるか
 
 ---
 
@@ -328,6 +332,17 @@ Sigstore等を用いてビルド来歴を証明する：
 - [docs/Part09.md](Part09.md) : Permission Tier
 - [docs/Part10.md](Part10.md) : Verify Gate
 - [docs/Part01.md](Part01.md) : 目標・DoD
+
+### セキュリティツール公式一次情報
+- [Gitleaks Official Repository](https://github.com/gitleaks/gitleaks) : Gitleaks公式リポジトリ
+- [Gitleaks Official Configuration](https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml) : Gitleaks公式設定ファイル
+- [Trivy Official Website](https://trivy.dev/) : Trivy公式サイト
+- [Trivy GitHub Repository](https://github.com/aquasecurity/trivy) : Trivy公式リポジトリ
+- [Trivy Reporting Documentation](https://trivy.dev/docs/dev/docs/configuration/reporting/) : レポート形式ドキュメント
+- [OpenSSF Scorecard Official GitHub](https://github.com/ossf/scorecard) : Scorecard公式リポジトリ
+- [OpenSSF Scorecard Website](https://scorecard.dev/) : Scorecard公式サイト
+- [OpenSSF 2025 Vision Brief](https://openssf.org/wp-content/uploads/2025/02/OpenSSF_2025_Vision_Brief.pdf) : OpenSSF 2025ビジョン
+- [OpenSSF Security Baseline (2025-10-10)](https://baseline.openssf.org/versions/2025-10-10.html) : 2025年10月版セキュリティベースライン
 
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「2.7 事故系の自動検知」）
