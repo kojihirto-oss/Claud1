@@ -55,7 +55,7 @@ Fast検証でPASSした証跡のみを採用する。
 1. 発見：役割衝突や判断差を特定し、影響範囲と参照根拠を確認する。
 2. 記録：発見内容、根拠、対象ファイル、作業メモの保存先を記録する。
 3. 修正：最小差分で裁定内容を反映し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、裁定結果を確定する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -104,13 +104,13 @@ Fast検証でPASSした証跡のみを採用する。
 **内容**: Fast検証のPASSログ  
 **保存先**: evidence/verify_reports/
 
-### E-0503: 証跡4点（最小セット）
-**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+### 9.3 証跡4点（最小セット）
+**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity  
 **保存先**: evidence/verify_reports/
 
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] 役割裁定と参照根拠が記録されている
