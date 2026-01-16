@@ -164,7 +164,7 @@
 ### R-0007: Part番号・ファイル名の変更禁止【MUST NOT】
 **Part00〜Part20 のファイル名は変更禁止**。
 
-**理由**: docs/00_INDEX.md、FACTS_LEDGER.md、他Part からの参照が全壊する。
+**理由**: Part番号は `docs/00_INDEX.md`, `FACTS_LEDGER.md`, `decisions/*.md` 等、リポジトリの広範囲から参照される不変の識別子であるため。ファイル名を変更すると、これらの参照がすべてリンク切れとなり、仕様の追跡可能性が失われる。
 **根拠**: [CLAUDE.md](../CLAUDE.md)
 
 **例外**: 新規Part追加（Part21以降）は可。ただし 00_INDEX.md への追記が必須。
