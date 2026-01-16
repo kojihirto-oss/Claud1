@@ -39,11 +39,11 @@ Verify Gateは、リポジトリの整合性を機械的に検証し、以下を
 
 ## 4. 用語（Glossary参照：Part02）
 
-- **Verify Fast**：必須項目のみ検証（リンク、Part整合、sources改変、禁止文字列）。所要時間 < 30秒
-- **Verify Full**：Fast + 追加検証（用語揺れ、未決事項集計、外部URL生存確認）。所要時間 数分（将来実装）
-- **PASS**：全検証項目が合格。コミット可能
-- **FAIL**：1つ以上の検証項目が不合格。原則コミット禁止
-- **証跡セット**：1回のverify実行で生成される4つのレポートファイル（link/parts/forbidden/sources_integrity）
+- **Verify Fast**：必須4点チェック（リンク整合性/Part構造/禁止パターン/sources改変）。所要時間 < 30秒
+- **Verify Full**：Fast + 追加検証（外部URL生存確認、詳細整合性チェックなど）。所要時間 数分（将来実装予定）
+- **PASS**：全検証項目が合格（[PASS]）。コミット可能
+- **FAIL**：1つ以上の検証項目が不合格（[FAIL]）。原則コミット禁止
+- **証跡セット**：1回のverify実行で生成される4つのレポートファイル（link_check/parts_integrity/forbidden_patterns/sources_integrity）
 
 ## 5. ルール（MUST / MUST NOT / SHOULD）
 
@@ -133,17 +133,17 @@ pwsh .\checks\verify_repo.ps1 -Mode Fast
 ```
 **検証項目**：
 1. **リンク整合性**（link_check）：docs/ 内の相対パス・Part参照が切れていないか
-2. **Part間整合性**（parts_integrity）：Part00-20 のテンプレート構造、相互参照の矛盾
-3. **禁止文字列検出**（forbidden_patterns）：危険コマンド、禁止表記の有無
-4. **sources改変検出**（sources_integrity）：sources/ のハッシュ値チェック
+2. **Part構造の整合性**（parts_integrity）：Part00-30 の標準セクション構造（0〜12）が維持されているか
+3. **禁止パターン検出**（forbidden_patterns）：危険なコマンド（`rm` `-rf` 等）が平文で記載されていないかスキャン
+4. **sources改変検出**（sources_integrity）：sources/ 内の既存ファイルが変更・削除されていないか（git status による検知）
 
-**出力**：
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_link_check.md`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_parts_integrity.md`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_forbidden_patterns.md`
-- `evidence/verify_reports/YYYYMMDD_HHMMSS_Fast_PASS_sources_integrity.md`
+**出力**（例）：
+- `evidence/verify_reports/20260116_232717_link_check.md`
+- `evidence/verify_reports/20260116_232717_parts_integrity.md`
+- `evidence/verify_reports/20260116_232717_forbidden_patterns.md`
+- `evidence/verify_reports/20260116_232717_sources_integrity.md`
 
-**判定**：4項目すべてが合格で PASS、1つでも不合格で FAIL
+**判定**：4項目すべてが [PASS] で総合 PASS、1つでも [FAIL] で総合 FAIL
 
 #### Full モード（将来拡張）
 ```powershell
@@ -222,7 +222,7 @@ verify_repo.ps1 が異常終了した場合：
   ```
 
 ### 8.2 parts_integrity（Part整合性）
-- **判定条件**：Part00-20 がテンプレート構造に従い、相互参照が矛盾しない
+- **判定条件**：Part00-30 がテンプレート構造に従い、相互参照が矛盾しない
 - **合格**：構造違反0件
 - **不合格**：構造違反1件以上
 - **ログ出力例**：
@@ -256,20 +256,19 @@ verify_repo.ps1 が異常終了した場合：
 
 ### 9.1 証跡ファイル命名規則
 ```
-evidence/verify_reports/YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md
+evidence/verify_reports/YYYYMMDD_HHMMSS_<category>.md
 ```
-- **YYYYMMDD**：実行日（例：20260111）
-- **HHMMSS**：実行時刻（例：143052）
-- **mode**：Fast / Full
-- **status**：PASS / FAIL
+- **YYYYMMDD**：実行日（例：20260116）
+- **HHMMSS**：実行時刻（例：232717）
 - **category**：検証カテゴリ（link_check / parts_integrity / forbidden_patterns / sources_integrity）
 
 ### 9.2 証跡セットの構成
-1回のverify実行で以下4ファイルが生成される：
-1. `YYYYMMDD_HHMMSS_Fast_PASS_link_check.md`
-2. `YYYYMMDD_HHMMSS_Fast_PASS_parts_integrity.md`
-3. `YYYYMMDD_HHMMSS_Fast_PASS_forbidden_patterns.md`
-4. `YYYYMMDD_HHMMSS_Fast_PASS_sources_integrity.md`
+1回のverify実行で生成される全ファイル（現在は4ファイル）を1セットとして扱う。
+例：
+1. `20260116_232717_link_check.md`
+2. `20260116_232717_parts_integrity.md`
+3. `20260116_232717_forbidden_patterns.md`
+4. `20260116_232717_sources_integrity.md`
 
 ### 9.3 証跡の採用ルール
 - **標準**：直近3セットまでを git 管理下に置く
@@ -282,7 +281,7 @@ evidence/verify_reports/YYYYMMDD_HHMMSS_<mode>_<status>_<category>.md
 ls evidence/verify_reports/ | Sort-Object -Descending | Select-Object -First 4
 
 # 特定日時の証跡を確認
-cat evidence/verify_reports/20260111_143052_Fast_PASS_link_check.md
+cat evidence/verify_reports/20260116_232717_link_check.md
 ```
 
 ## 10. チェックリスト
