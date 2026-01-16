@@ -177,6 +177,31 @@ Gemini（3 Pro/Flash）は以下のプロンプト構造に従う：
 
 ---
 
+### R-2608: AI役割切り替えランチャー【SHOULD】
+
+IDE（VS CodeやCursor）内で、「これは設計相談（ChatGPT）」「これは実装（Claude）」とワンクリックで送信先を変えるプリセットを用意する：
+
+#### プリセット定義
+- **設計モード（Spec/Design）**: ChatGPT（GPT-5.2）へ送信
+- **実装モード（Build）**: Claude Code（Sonnet）へ送信
+- **調査モード（Research）**: Gemini 3 Proへ送信
+- **雑務モード（整形・コメント）**: Z.ai GLMへ送信
+
+#### 実装方法
+- **VS Code拡張機能**: `vibe-ai-switcher` 拡張機能をインストール
+- **コマンドパレット**: `Ctrl+Shift+P` → `Vibe: Switch AI Mode` で選択
+- **ショートカットキー**: `Alt+1`〜`Alt+4` で各モードに切り替え
+
+#### プロンプト自動切り替え
+- 各モードで最適なプロンプト構造（R-2601〜R-2603）を自動適用
+- Claude: XMLタグ構造
+- GPT: JSON構造
+- Gemini: Markdown構造
+
+**根拠**: [Part03](Part03.md)（Core4の役割固定）、[Part29](Part29.md)（IDE統合設計）、必ず入れたい.md「Core4の役割分担をIDEに統合」
+
+---
+
 ## 6. 手順（実行可能な粒度、番号付き）
 
 ### 手順A: Claudeプロンプトの作成

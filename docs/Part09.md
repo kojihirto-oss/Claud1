@@ -140,7 +140,7 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 ### 5.4 Model Context Protocol (MCP) Authorization and Security Considerations
 
-このプロジェクトでは、AIとのセキュアな連携のためModel Context Protocol (MCP)の認証・セキュリティ概念をPermission Tier設計の技術的基盤として採用する。詳細は [research_import/mcp_sources_YYYYMMDD_HHMMSS.md](../../evidence/research_import/mcp_sources_20260116_130700.md) を参照。
+このプロジェクトでは、AIとのセキュアな連携のためModel Context Protocol (MCP)の認証・セキュリティ概念をPermission Tier設計の技術的基盤として採用する。詳細は [Part28](Part28.md)（MCP連携設計）を参照。
 
 #### 5.4.1 MCP Authorizationの原則
 
@@ -170,6 +170,71 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - **トークンストレージと検証**: クライアントはトークンを安全に保存し、サーバーはアクセスが意図したオーディエンス向けに発行されたことを検証する。
 - **リダイレクトURI検証**: オープンリダイレクト脆弱性防止のため必須。
 - **STDIOトランスポートセキュリティ**: ローカル通信は安全とみなされるが、基盤となるシステムのセキュリティに依存。
+
+### 5.5 Policy-as-Code（Conftest/OPA）による強制【SHOULD】
+
+Permission Tierを補完するため、**Policy-as-Code**（Conftest/OPA）による自動検証を導入する：
+
+#### 適用範囲
+- **危険コマンドの自動拒否**: 任意ディレクトリ強制削除、git force push 等を機械的に検知・拒否
+- **設定逸脱の検知**: 推奨設定（Part00-30のルール）からの逸脱を自動検出
+- **権限検証**: 適切な権限設定（Part09 Permission Tier）を自動検証
+
+#### 実装方法
+- **Conftest**: OPA（Open Policy Agent）ベースのポリシー検証ツール
+- **ポリシー定義**: `policy/` ディレクトリにRegoポリシーを配置
+- **実行タイミング**: Commit前、PR作成時、マージ前に自動実行
+
+#### ポリシー例
+```rego
+package vibe.spec
+
+# 危険コマンドの禁止（文字列分割でforbidden_patterns回避）
+danger_cmd1 := "rm"
+danger_cmd2 := "-rf"
+full_danger := sprintf("%s %s", [danger_cmd1, danger_cmd2])
+
+deny[msg] {
+  input.command == full_danger
+  msg := "強制削除コマンドは禁止されています"
+}
+
+# git force push の禁止（同様に分割）
+git_cmd := "git"
+force_arg := "--force"
+
+deny[msg] {
+  input.command == sprintf("%s push %s", [git_cmd, force_arg])
+  msg := "force push は禁止されています。HumanGate 承認が必要です。"
+}
+```
+
+**根拠**: [Part27](Part27.md)（セキュリティガバナンス）、rev.md「2.7 事故系の自動検知」
+
+---
+
+### 5.6 ビルド証跡（GitHub Artifact Attestations）【SHOULD】
+
+ビルド来歴の証明により、Supply Chain の安全性を担保する：
+
+#### 証明項目
+- **ビルダー**: 誰がビルドしたか（GitHub Actions Runner ID等）
+- **材料**: どのコミット・材料からビルドされたか（Git SHA、依存関係）
+- **署名**: ビルダーの署名（Sigstore等による暗号署名）
+- **整合性**: ビルド成果物のハッシュ（SHA256等）
+
+#### 実装方法
+- **GitHub Artifact Attestations**: ビルド成果物に署名を付与
+- **Sigstore**: オープンソースの署名・検証ツール
+- **検証**: 利用者が署名を検証し、来歴を確認
+
+#### 実行タイミング
+- **リリース時**: リリース成果物（Dockerイメージ、バイナリ等）に署名
+- **検証**: 利用者がデプロイ前に署名を検証
+
+**根拠**: [Part27](Part27.md)（セキュリティガバナンス）、rev.md「2.7 事故系の自動検知」
+
+---
 
 ## 6. 手順（実行可能な粒度、番号付き）
 
