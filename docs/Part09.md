@@ -103,10 +103,10 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 #### DoD-2: Verify PASS
 - **MUST**: Fast Verify（4点チェック）を実行し、全項目 PASS を確認
   1. docs 内リンク切れ（相対パス/外部URL）
-  2. 用語揺れ（glossary と docs の不一致）
-  3. Part間整合（Part00 との衝突チェック）
-  4. 未決事項の残存一覧（TODO/未決の集計）
-- **SHOULD**: Full Verify（詳細検証）は重要な変更時に実行
+  2. 禁止パターン（forbidden patterns）の検出
+  3. Part構造の整合性（Template準拠）
+  4. sources/ の改変検知
+- **SHOULD**: Full Verify（詳細検証）は重要な変更時に実行（詳細は Part10 参照）
 
 #### DoD-3: Evidence Pack 生成
 - **MUST**: 以下を evidence/ に保存：
@@ -146,7 +146,7 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 - **標準化された認証フロー**: MCPはOAuth 2.1を基盤とし、AIアプリケーションと外部システム間のセキュアな相互作用を保証する。
 - **機密データ保護**: ユーザー固有データ、APIへのアクセス、監査要件、厳格なアクセス制御が必要なエンタープライズ環境で特に推奨される。
-- **OAuth 2.1標準の採用**: OAuth 2.0 Authorization Server Metadata (RFC8414), OAuth 2.0 Dynamic Client Registration Protocol (RFC7591), OAuth 2.0 Protected Resource Metadata (RFC9728), Resource Indicators for OAuth 2.0 (RFC 8707) などの主要標準を統合。
+- **OAuth 2.1標準の採用**: OAuth 2.0 Authorization Server Metadata (RFC 8414), OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591), OAuth 2.0 Protected Resource Metadata (RFC 9470), Resource Indicators for OAuth 2.0 (RFC 8707) などの主要標準を統合。
 - **明確な認証フロー**: MCPサーバーが `401 Unauthorized` で応答し、Protected Resource Metadata (PRM) ドキュメントを通じてクライアントを認証サーバーに誘導する。
 - **役割分担**: MCPサーバーはOAuth 2.1リソースサーバー、MCPクライアントはリソースオーナーの代理としてリクエストを行うOAuth 2.1クライアントとして機能する。
 
@@ -268,25 +268,23 @@ deny[msg] {
 
 1. **docs 内リンク切れチェック**
    - 各 Part 内の `[...](...)`形式のリンクを抽出
-   - 相対パスの存在確認、外部URLの到達確認
-   - 結果：PASS / FAIL（リンク切れ数）
+   - 相対パスの存在確認、外部URLの到達確認（現在は内部リンクのみ）
+   - 結果：[PASS] / [FAIL]（リンク切れ数）
 
-2. **用語揺れチェック**
-   - glossary/GLOSSARY.md の用語定義を読み取り
-   - docs/ 内の用語使用を検索
-   - 未定義用語、表記揺れを検出
-   - 結果：PASS / FAIL（揺れ数）
+1. **禁止パターン（forbidden patterns）の検出**
+   - docs/ 内に危険なコマンド（`rm` `-rf` 等）が平文で記載されていないかスキャン
+   - 正規表現によるパターンマッチング
+   - 結果：[PASS] / [FAIL]（検出数）
 
-3. **Part間整合チェック**
-   - Part00（前提・目的）のルールを読み取り
-   - 各 Part がPart00 のルールに違反していないか確認
-   - 矛盾する記述を検出
-   - 結果：PASS / FAIL（矛盾数）
+3. **Part構造の整合性チェック**
+   - 各 Part（00-30）が標準的なセクション構成（0〜12）を満たしているか確認
+   - 必須セクションの欠落を検出
+   - 結果：[PASS] / [FAIL]（違反数）
 
-4. **未決事項の残存チェック**
-   - 各 Part の「## 11. 未決事項」を抽出
-   - 未解決項目を集計
-   - 結果：PASS（0件） / WARN（1件以上、内容リスト化）
+4. **sources/ の改変検知チェック**
+   - git status を使用して sources/ ディレクトリ内の既存ファイルが変更・削除されていないか確認
+   - 追加（Append-only）以外の変更を検出
+   - 結果：[PASS] / [FAIL]（変更数）
 
 ### 6.3 HumanGate（人間承認）の手順
 
@@ -363,10 +361,10 @@ deny[msg] {
 
 | 項目 | 判定条件 | PASS | FAIL |
 |------|----------|------|------|
-| 1. リンク切れ | docs/ 内の全リンクが有効 | リンク切れ 0件 | リンク切れ 1件以上 |
-| 2. 用語揺れ | glossary/ と docs/ の用語が一致 | 揺れ 0件 | 揺れ 1件以上 |
-| 3. Part間整合 | Part00 との矛盾なし | 矛盾 0件 | 矛盾 1件以上 |
-| 4. 未決事項 | 未決事項の集計 | WARN許容 | - |
+| 1. リンク切れ | docs/ 内の全内部リンクが有効 | リンク切れ 0件 | リンク切れ 1件以上 |
+| 2. 禁止パターン | 危険なコマンドパターンの検出 | 検出 0件 | 検出 1件以上 |
+| 3. Part構造 | 標準テンプレート構造の遵守 | 違反 0件 | 違反 1件以上 |
+| 4. sources改変 | sources/ 内の既存ファイル変更 | 変更 0件 | 変更 1件以上 |
 
 ### 8.2 Permission Tier 判定
 
@@ -431,7 +429,7 @@ deny[msg] {
 
 ## 11. 未決事項（推測禁止）
 
-- Full Verify の詳細仕様（Part10で定義予定）
+- Full Verify の詳細項目の継続的な拡充（Part10参照）
 - Evidence Pack の自動生成スクリプト（checks/ で今後実装）
 - Permission Tier の動的変更（セキュリティレベルの切り替え）
 
