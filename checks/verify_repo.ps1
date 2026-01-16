@@ -138,8 +138,8 @@ function Test-PartsIntegrity {
         "## 12. 参照（パス）"
     )
 
-    # Check Part00-20 files
-    for ($i = 0; $i -le 20; $i++) {
+    # Check Part00-30 files
+    for ($i = 0; $i -le 30; $i++) {
         $PartNum = $i.ToString("00")
         $PartFile = Join-Path $DocsDir "Part$PartNum.md"
 
@@ -165,7 +165,7 @@ function Test-PartsIntegrity {
     if ($Violations.Count -eq 0) {
         $Report = "[PASS] parts_integrity: All Parts follow template structure`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
-        $Report += "Parts checked: Part00-20 (21 files)"
+        $Report += "Parts checked: Part00-30 (31 files)"
         Write-Host "  ✓ PASS - Part structure valid" -ForegroundColor Green
         $script:AllPassed = $script:AllPassed -and $true
     } else {
@@ -363,4 +363,5 @@ foreach ($Check in $Results.Keys | Sort-Object) {
 
 # Exit with appropriate code
 exit $(if ($AllPassed) { 0 } else { 1 })
+
 
