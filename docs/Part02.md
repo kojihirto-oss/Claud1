@@ -79,7 +79,7 @@
 - **関連用語**: Fast Verify、Full Verify
 
 #### Fast Verify
-- **定義**: 必須4点チェック（リンク切れ/用語揺れ/Part間整合/未決事項）による簡易検証。
+- **定義**: 必須4点チェック（リンク切れ/禁止パターン/Part間整合/未決事項）による簡易検証。
 - **使用例**: 「DoD-2 では Fast Verify の PASS が必須」
 - **詳細**: Part09 セクション 6.2（Fast Verify の実行手順）
 - **関連用語**: Verify Gate、Full Verify
