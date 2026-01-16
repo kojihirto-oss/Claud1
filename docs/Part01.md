@@ -69,7 +69,7 @@
 - **Evidence**: [glossary/GLOSSARY.md#Evidence](../glossary/GLOSSARY.md)
 - **Release**: [glossary/GLOSSARY.md#Release](../glossary/GLOSSARY.md)
 - **VRループ**: [glossary/GLOSSARY.md#VRループ](../glossary/GLOSSARY.md)
-- **SBOM**: [glossary/GLOSSARY.md#SBF](../glossary/GLOSSARY.md)（Software Bill of Materials）
+- **SBOM**: [glossary/GLOSSARY.md#SBOM](../glossary/GLOSSARY.md)（Software Bill of Materials）
 - **VIBEKANBAN**: [glossary/GLOSSARY.md#VIBEKANBAN](../glossary/GLOSSARY.md)
 
 詳細は [glossary/GLOSSARY.md](../glossary/GLOSSARY.md) を参照。
