@@ -413,31 +413,31 @@ VIBEKANBAN は「人間の計画 → AI の実行 → 人間の承認」の型�
 
 ## 11. 未決事項（推測禁止）
 
-### U-0401: VIBEKANBAN の物理実装
-**問題**: VIBEKANBAN を「フォルダ」「Git Issue」「外部ツール（Trello等）」のどれで実装するか不明。
-**影響Part**: Part04（本Part）
-**暫定対応**: フォルダベース（`VIBEKANBAN/100_SPEC/`）で開始。運用が安定したら外部ツールへ移行を検討。
+### U-0401: VIBEKANBAN の拡張
+**問題**: 現在はフォルダベース（`VIBEKANBAN/`）で運用。将来的に Git Issue や外部ツール（Trello等）へ自動連携するか検討。
+**影響Part**: Part04（本Part）、Part08（AI連携）
+**対応**: フォルダベースで運用を安定させた後、ADRで移行を検討。
 
 ---
 
 ### U-0402: worktree の命名規則
-**問題**: worktree のフォルダ名を「TICKET-ID」「ブランチ名」のどちらにするか不明。
+**問題**: worktree のフォルダ名を「TICKET-ID」「ブランチ名」のどちらにするか。
 **影響Part**: Part04、Part14（変更管理）
-**暫定対応**: `worktree_<TICKET-ID>` 形式で統一。
+**対応**: 初期は `worktree_<TICKET-ID>` 形式で試行し、利便性を評価。
 
 ---
 
 ### U-0403: BLOCKED の自動検出
-**問題**: BLOCKED 状態を自動検出する方法が不明（依存タスクの未完了を機械判定できるか？）。
+**問題**: 依存タスクの未完了による BLOCKED 状態を機械判定できるか。
 **影響Part**: Part10（Verify Gate）
-**暫定対応**: 手動で BLOCKED を設定。自動検出は将来の改善課題。
+**対応**: 手動設定から開始し、`verify_kanban.ps1` 実装時に自動化を検討。
 
 ---
 
-### U-0404: タスク完了後のアーカイブ先
-**問題**: DONE 状態のタスクを VIBEKANBAN から削除する際、どこにアーカイブするか不明。
+### U-0404: タスク完了後のアーカイブ整理
+**問題**: `900_RELEASE/` 内のファイルが蓄積した際の整理ルール（月次アーカイブ等）が未定義。
 **影響Part**: Part04、Part14（変更管理）
-**暫定対応**: `VIBEKANBAN/900_RELEASE/` にアーカイブ。
+**対応**: リリース頻度に合わせてADRで決定。
 
 ---
 
@@ -455,22 +455,13 @@ VIBEKANBAN は「人間の計画 → AI の実行 → 人間の承認」の型�
 ### sources/
 - [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md) : 原文（L143-197）
 
-### decisions/
-- [decisions/0001-ssot-governance.md](../decisions/0001-ssot-governance.md) : SSOT運用ガバナンス
-
 ### glossary/
 - [glossary/GLOSSARY.md](../glossary/GLOSSARY.md) : 用語の唯一定義
 
-### checks/
-- `checks/verify_ticket.ps1` : TICKET フォーマット検証（次タスクで作成予定）
-- `checks/verify_wip.ps1` : WIP制限・XLタスク検出（次タスクで作成予定）
-- `checks/verify_kanban.ps1` : VIBEKANBAN 状態整合性検証（次タスクで作成予定）
-
-### evidence/
-- `evidence/tasks/` : タスク実行時の Evidence
-- `evidence/approvals/` : タスク承認時の Evidence
-- `evidence/wip_snapshots/` : WIP 状況スナップショット
-- `evidence/blocked_history/` : BLOCKED タスク履歴
+### checks/（※今後順次実装）
+- `checks/verify_ticket.ps1` : TICKET フォーマット検証
+- `checks/verify_wip.ps1` : WIP制限・XLタスク検出
+- `checks/verify_kanban.ps1` : VIBEKANBAN 状態整合性検証
 
 ### VIBEKANBAN/
 - `VIBEKANBAN/000_INBOX/` : 未分類タスク
@@ -479,6 +470,3 @@ VIBEKANBAN は「人間の計画 → AI の実行 → 人間の承認」の型�
 - `VIBEKANBAN/300_VERIFY/` : Verify 実行中
 - `VIBEKANBAN/400_REPAIR/` : 修正中（VRループ）
 - `VIBEKANBAN/900_RELEASE/` : 完了（アーカイブ）
-
-### その他
-- [CLAUDE.md](../CLAUDE.md) : Claude Code 常設ルール
