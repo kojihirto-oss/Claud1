@@ -1,0 +1,235 @@
+﻿________________
+
+
+KB: vibe-mcp-flex-router-node（Windows）最終安定版 運用・保守ドキュメント
+0. メタ情報（AI向け）
+* 対象：Windows 10/11 + PowerShell 7.x 環境で動作する MCPサーバー（stdio）
+* 目的：MCPクライアント（MCP Inspector / Claude Code / Antigravity等）から **LLMルーティング（Gemini / Z.ai）**を安全に呼び出す
+* 重要前提（最重要）：
+   * stdoutはJSON-RPC専用（ログ混入禁止）
+   * 事故防止のため、ログはstderrへ（server.mjs側で console.* をstderrへリダイレクト）
+   * Inspector UIは不安定になり得るため、CLI検証を正とする
+* 設置場所（現環境）：
+   * プロジェクト：C:\Users\koji2\Desktop\vibe-mcp-flex-router-node
+   * デスクトップ起動：C:\Users\koji2\Desktop\Start_VIBE_MCP_Inspector.cmd
+* 状態：
+   * npm run verify:stdio PASS（tools/listで3ツール検出）
+   * llm_health CLI実行で ok:true を確認済み
+   * Inspector起動スクリプトは 単一タブ起動・ERR_CONNECTION_REFUSED回避のため待機ロジックあり
+________________
+
+
+1. これが提供する機能（MCPツール）
+本サーバーは MCP tool を3つ公開する。
+1) llm_health
+* 用途：サーバー稼働状態、APIキー設定有無（中身は出さない）、キャッシュ状態、統計の確認
+* 期待：ok: true を返す
+2) llm_cache_clear
+* 用途：プロセス内キャッシュをクリア
+3) llm_chat
+* 用途：LLMにチャットを投げる（OpenAI互換形式で Gemini または Z.aiへ）
+* 入力の主な項目：
+   * provider: auto | gemini | zai（既定 auto）
+   * purpose: general | coding
+   * prompt: ユーザー入力（必須）
+   * system: システム指示（任意）
+   * temperature, max_tokens など
+________________
+
+
+2. ディレクトリと主要ファイル（SSOT）
+2.1 必須フォルダ
+* ✅ vibe-mcp-flex-router-node（実体）
+* ✅ Start_VIBE_MCP_Inspector.cmd（デスクトップからの入口）
+2.2 主要ファイル
+* server.mjs
+MCPサーバー本体（stdio）。consoleログをstderrへリダイレクトしstdoutを汚さない。
+* verify_stdio.mjs
+STDIOの健全性チェック（tools/list応答が正しいJSONで返るか）
+* run-inspector-safe.cmd
+安全なInspector起動スクリプト（事故防止・単一タブ・待機）
+* run-inspector.cmd
+ラッパー化され、常に safe を呼ぶ（混乱防止）
+* run-server.cmd
+サーバー単体起動用（手動入力事故に注意）
+* Start_VIBE_MCP_Inspector.cmd
+デスクトップ用。プロジェクトへcdしてsafeを呼ぶだけ
+* .env / .env.example
+APIキー等の設定
+* .gitignore
+.env、ログ、node_modules 等をGit事故から守る
+* README.md
+運用手順（初心者セクションあり）
+* walkthrough.md
+変更経緯・検証ログの記録
+________________
+
+
+3. 最重要の不変条件（事故防止ルール）
+3.1 stdout汚染禁止（JSON-RPC破壊の原因）
+   * MCP stdioは通常 stdoutにJSON-RPCを流す
+   * console.log 等がstdoutに出ると、**Unexpected end of JSON input**などの障害が起きる
+   * 対策：server.mjs 冒頭で console.log/info/warn/debug => console.error（stderrへ）
+3.2 サーバー起動中のウィンドウに入力しない
+   * サーバーを起動しているコンソールに文字を入力すると、混入する場合がある
+   * 必ず別のターミナルで操作する
+3.3 Inspector UIは“参考” / CLIが“正”
+   * Inspector UIは白画面等になり得る
+   * ただしCLIで tools/call が通ればシステムは正常
+→ 運用判断は CLI を優先する
+________________
+
+
+4. 環境変数（.env）仕様
+.env に少なくとも以下が想定される（値は例）。
+      * GEMINI_BASE_URL（例：https://generativelanguage.googleapis.com/v1beta/openai）
+      * GEMINI_MODEL（例：gemini-2.5-flash）
+      * GEMINI_API_KEY（必須：Gemini利用時）
+      * ZAI_BASE_URL（例：https://api.z.ai/api/paas/v4）
+      * ZAI_MODEL（例：glm-4.5）
+      * ZAI_API_KEY（必須：Z.ai利用時）
+      * キャッシュ：
+      * VIBE_CACHE_TTL_MS（例：300000）
+      * VIBE_CACHE_MAX（例：200）
+注意：APIキーは漏洩禁止。.gitignoreで追跡除外されていること。
+________________
+
+
+5. 起動方法（最短・確実）
+5.1 初心者向け（最短）
+      1. デスクトップの Start_VIBE_MCP_Inspector.cmd をダブルクリック
+      2. ブラウザが 1タブだけ開けばOK
+      3. UIが白くても慌てず、後述のCLIで確認する
+5.2 PowerShellで手動起動（必要時）
+cd "C:\Users\koji2\Desktop\vibe-mcp-flex-router-node"
+.\run-inspector-safe.cmd
+
+
+________________
+
+
+6. 検証（Definition of Done / 完了条件）
+6.1 STDIO健全性（必須）
+cd "C:\Users\koji2\Desktop\vibe-mcp-flex-router-node"
+npm run verify:stdio
+
+
+期待：
+      * Valid JSON received.
+      * Success: tools/list returned 3 tools.
+6.2 CLIで最終確認（UI不要・最重要）
+cd "C:\Users\koji2\Desktop\vibe-mcp-flex-router-node"
+npx -y @modelcontextprotocol/inspector --cli -- node server.mjs --method tools/call --tool-name llm_health
+
+
+期待：ok:true と provider keySet が true/false で返る（trueが望ましい）
+6.3 E2E（Gemini / Z.ai）
+Gemini:
+npx -y @modelcontextprotocol/inspector --cli -- node server.mjs --method tools/call --tool-name llm_chat --tool-arg provider=gemini --tool-arg purpose=general --tool-arg prompt="動作確認。日本語で3行で返事して。"
+
+
+Z.ai:
+npx -y @modelcontextprotocol/inspector --cli -- node server.mjs --method tools/call --tool-name llm_chat --tool-arg provider=zai --tool-arg purpose=general --tool-arg prompt="動作確認。日本語で3行で返事して。"
+
+
+DoD（完成条件）：
+      * verify:stdio PASS
+      * llm_health がCLIで成功
+      * llm_chat が少なくとも片方で成功（両方推奨）
+      * デスクトップ起動で1タブのみ、ERR_CONNECTION_REFUSEDなし
+________________
+
+
+7. run-inspector-safe.cmd（安全起動）設計意図
+7.1 解決した問題
+      * 2タブ問題：Inspectorが自動で開く＋スクリプト側でも開く → 2つ開く
+→ MCP_AUTO_OPEN_ENABLED=false で自動オープン無効化
+      * ERR_CONNECTION_REFUSED：Inspector起動前にブラウザが開く
+→ **ポート待機（ポーリング）**してからブラウザを開く
+      * Chromeログイン/初回案内：初回誘導や同期案内
+→ Chrome起動フラグと専用プロファイルで抑制（完全保証ではないが低減）
+      * 混乱：run-inspector.cmdが古い挙動のまま
+→ run-inspector.cmdをsafe呼び出しラッパーに統一
+7.2 仕様（要点）
+         * 既存nodeプロセス等を掃除（残骸で事故るため）
+         * 環境変数を設定
+         * Inspectorを npx ... -- node server.mjs で起動（UI入力不要）
+         * 6274がLISTENINGになるまで待つ（v2.3）
+         * ブラウザは1回だけ開く（Chrome/Edge検出）
+________________
+
+
+8. よくある障害と対応（AIが自動で誘導する用）
+8.1 npm install が C:\Users\koji2\package.json を探す
+原因：プロジェクトフォルダに移動していない
+対応：
+cd "C:\Users\koji2\Desktop\vibe-mcp-flex-router-node"
+npm install
+
+
+8.2 Unexpected end of JSON input
+原因：stdout汚染（ログ混入、手入力混入）
+対応：
+         * server.mjs の先頭で console.* をstderrへ（既に対策済み）
+         * サーバー起動中のウィンドウに入力しない
+         * npm run verify:stdio で再確認
+8.3 Inspector UIが白画面になる
+原因：UI側の不安定・拡張機能干渉など
+対応：
+         * UIに依存しない。CLIで llm_health を実行して判断する
+         * run-inspector-safe.cmd を使う（安全プロファイル/拡張抑制）
+8.4 try { ... } が実行されず文字列になる
+原因：PowerShellで "..." は文字列。^ はcmdの継続記号でPowerShellでは無効
+対応：PowerShellは1行で実行する（文字列で囲わない）
+8.5 127.0.0.1:6274 が FAIL だが netstat は LISTENING
+原因候補：
+         * Inspector UIがトークン付きURL前提だったり、IWRが例外を投げるケース
+判断基準：
+         * CLIで tools/call が通れば正常（これを最優先）
+________________
+
+
+9. Git運用（事故防止）
+            * .env（秘密）やログ、node_modules、バックアップ等が Git に入らないこと
+            * .gitignoreがそれを保証する
+            * AIが変更する場合は、git statusで 秘密が混入していないことを確認する
+________________
+
+
+10. AIエージェント向け「運用プロンプト（テンプレ）」
+AIに添付して、毎回これで回せます。
+10.1 “状態確認” テンプレ
+            * 目的：いま動いているか、壊れているかを最短で判断
+            * 手順：
+            1. npm run verify:stdio
+            2. llm_health（CLI）
+            3. 問題があれば run-inspector-safe.cmd のログと server.mjs 先頭（consoleリダイレクト）確認
+10.2 “復旧” テンプレ
+            1. 残骸停止：
+taskkill /F /IM node.exe
+taskkill /F /IM chrome.exe
+taskkill /F /IM msedge.exe
+
+
+            2. 依存修復：
+cd "C:\Users\koji2\Desktop\vibe-mcp-flex-router-node"
+npm install
+
+
+            3. 検証：
+npm run verify:stdio
+npx -y @modelcontextprotocol/inspector --cli -- node server.mjs --method tools/call --tool-name llm_health
+
+
+________________
+
+
+11. 最終まとめ（SSOT結論）
+            * サーバー（stdio/MCP）は正常：llm_health がCLIで成功しているため
+            * Inspector UIは補助。CLIの成功をもって正常と判断
+            * 起動はデスクトップ入口（Start_VIBE_MCP_Inspector）に一本化し、混乱を排除
+            * 事故原因のほとんど（stdout汚染/2タブ/起動待機不足/古いスクリプト混在）は対策済み
+________________
+
+
+必要なら、このKBに加えて **「Claude Code / Antigravity / Cline 用の設定ファイル（.mcp.json）の確定版」**も、あなたの実環境パス固定で“貼るだけ版”を作って添付用に整えます。

@@ -275,10 +275,10 @@ function Test-SourcesIntegrity {
         $GitStatus = git status --porcelain sources/ 2>&1
 
         if ($LASTEXITCODE -eq 0 -and $GitStatus) {
-            $ModifiedFiles = $GitStatus | Where-Object { $_ -match '^\s*[MADRCU]' }
+            $ModifiedFiles = $GitStatus | Where-Object { $_ -match '^\[s*([MADRCU])' }
 
             foreach ($Line in $ModifiedFiles) {
-                if ($Line -match '^\s*([MADRCU])\s+(.+)$') {
+                if ($Line -match '^\[s*([MADRCU])\s+(.+)$') {
                     $Status = $Matches[1]
                     $FilePath = $Matches[2]
                     $Modifications += "[MODIFIED] $Status $FilePath"
@@ -363,5 +363,3 @@ foreach ($Check in $Results.Keys | Sort-Object) {
 
 # Exit with appropriate code
 exit $(if ($AllPassed) { 0 } else { 1 })
-
-

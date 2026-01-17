@@ -1,0 +1,385 @@
+﻿VCG/VIBE 2026 SSOT運用最適化報告書：GitワークフローとVerify Gateによる完全性の確立
+エグゼクティブサマリー
+本報告書は、VCG/VIBE 2026プロジェクトにおける「設計書SSOT（Single Source of Truth）」の運用基盤を再定義し、運用上の混乱（Confusion Points）を排除することを目的としています。提供された設計マスターおよび広範な技術調査に基づき、Git運用における「ローカル」と「GitHub」の役割分断、ブランチ戦略の厳格化、およびVerify Gateの実効性強化を提言します。
+特に、ドキュメントリポジトリ特有の課題である「マージ競合によるSSOT破壊」と「証跡（Evidence）によるリポジトリ肥大化」のジレンマに対し、Git Worktreeを用いた物理的隔離と、PowerShellによる自動化されたローテーションポリシー（Recent-3）を導入することで、再現性と事故防止を最大化する設計を提示します。
+本報告書は、専門的な運用設計者の視点から、現状の課題分析、改善された運用フロー、設計書への追記案、および技術的な実装詳細を網羅し、約15,000語に及ぶ詳細な分析と手順書を提供します。
+________________
+1. 混乱ポイント一覧（P0/P1/P2）：例と原因
+現在のGit運用、特にドキュメント中心のSSOT管理において発生しやすい「混乱ポイント」を、深刻度別に分析しました。これらは、人間の認知モデルとGitの内部状態の乖離から生じるものであり、システム的な強制力によってのみ解決可能です。
+1.1 P0：クリティカル（SSOT破壊・データ損失）
+P0-1: 競合マーカー（Conflict Marker）の混入とコミット
+* 例: 設計書の中に <<<<<<< HEAD や ======= といったGitの競合マーカーがそのままテキストとしてコミットされ、SSOTが構文エラーを起こす。または、自動マージによって意図しない文章の消失が発生する。
+* 原因:
+   * コンテキストの喪失: 開発者がローカルでの作業中に git pull や git rebase を行った際、競合が発生しても、テキストエディタ上で「ただのテキスト」として処理してしまい、解決しないままステージング（git add）してしまう心理的ミスです。
+   * ツールの不備: 標準の pre-commit フックが設定されておらず、テキストファイル内のマーカー文字列を機械的に拒絶するゲートウェイが存在しません 1。
+   * 認知的不協和: ドキュメント修正はコード修正と異なり、コンパイルエラーが出ないため、「見た目が整っていれば正しい」と誤認しやすい傾向があります。
+* 技術的背景: Gitの標準的なマージ戦略（ort や recursive）は、同一行の変更に対して競合を発生させますが、ユーザーがこれを手動で解消する際のヒューマンエラーは防げません 4。
+P0-2: ローカル状態とリモート状態の乖離による先祖返り
+* 例: ユーザーが古い main ブランチから作業を開始し、作業完了後に無理やりマージすることで、他者が行った更新（Part間のリンク修正など）を古い状態に巻き戻してしまう。
+* 原因:
+   * Gitの分散性への誤解: 「ローカルのmain」はあくまで「最後にfetchした時点のスナップショット」に過ぎないという事実が直感的に理解されにくい点にあります。
+   * スイッチコスト: ブランチを切り替える（git switch）際に、作業途中のファイルを退避（stash）したり、状態を確認したりするコストが高いため、ついつい同じディレクトリで作業を続けてしまいます。
+   * Worktreeの未導入: 物理的にディレクトリを分けない限り、この「状態の混濁」は避けられません 6。
+1.2 P1：ブロッキング（作業停滞・運用摩擦）
+P1-1: 証跡（Evidence）の保存場所とリポジトリ肥大化のジレンマ
+* 例: 「すべての作業の証跡を残せ」というルール（R-0005）に対し、巨大なログファイルやバイナリを含めてコミットしようとし、Gitのプッシュ制限やクローン時間の増大に直面する。逆に、それを恐れて証跡を残さず、監査要件を満たせなくなる。
+* 原因:
+   * Gitの構造的欠陥: Gitはバイナリや頻繁に変更される巨大なログファイルの扱いに適していません。Microsoftのエンジニアによる調査でも、頻繁な変更（CHANGELOGなど）がリポジトリサイズを肥大化させる要因として指摘されています 8。
+   * ポリシーの欠如: 「何を」「いつまで」保存するかという「ローテーションポリシー（Recent-3）」が技術的に実装されておらず、手動運用に依存しているためです。
+P1-2: Worktree運用における「Resource Busy」エラー（Windows環境）
+* 例: 推奨される git worktree を使用しようとしたが、Windows環境でフォルダを削除または移動しようとすると "Device or resource busy" エラーが発生し、作業がロックされる 10。
+* 原因:
+   * ファイルロック: PowerShellやVS Code、バックグラウンドのプロセス（リンターやエージェント）がWorktree内のファイルを掴んでいる状態で、Git操作を行おうとすることによるOSレベルの排他制御の問題です。
+   * プロセスのゾンビ化: 終了したはずのターミナルやエージェントがハンドルを解放していないケースが多発します。
+1.3 P2：効率性（認知負荷・手戻り）
+P2-1: Verify Gateの実行タイミングの迷い
+* 例: 「コミット前にVerifyすべきか？」「プッシュ前でいいか？」「PR作成後か？」というタイミングが個人の裁量に委ねられ、結果としてCIで落ちるまで気づかない。
+* 原因:
+   * 自動化の欠如: pre-commit フックや pre-push フックによる強制力がなく、自主的なコマンド実行に依存しているためです 12。
+   * Fast/Fullの境界: どのレベルの検証をいつ行うべきかの定義が曖昧です。
+P2-2: ブランチ命名規則の揺らぎ
+* 例: feature/update-part1, fix-typo, user/part1-edit など、ブランチ名が統一されず、自動化スクリプト（証跡生成など）がブランチ名からメタデータを抽出できない。
+* 原因:
+   * ルールの形骸化: ドキュメントには書かれているが、バリデータが存在しないため、急いでいる時に規則が無視されます。
+________________
+2. 改善後の “迷いゼロ” 運用フロー（チェックリスト形式）
+上記の混乱ポイントを解消するため、「物理的分離（Worktree）」「自動化されたゲート（Hooks）」「明確なライフサイクル（One-Way Flow）」 を主軸とした新しい運用フローを策定しました。
+このフローは、ローカル作業とGitHub運用の境界を明確にし、ユーザーが「次に何をすべきか」を迷う余地を排除します。
+2.1 運用フロー概略図
+1. 初期化 (Setup): マザーシップ（メインリポジトリ）の更新とタスク専用Worktreeの作成。
+2. 実装 (Build): 隔離環境での執筆とローカルVerify。
+3. 証跡 (Evidence): 自動生成スクリプトによる証跡パックの作成とコミット。
+4. 統合 (Integrate): GitHubへのプッシュとPR、そしてWorktreeの破棄。
+2.2 “迷いゼロ” チェックリスト
+以下のチェックリストは、作業者がタスクごとに上から順に実行することを想定しています。
+フェーズ
+	ID
+	アクション
+	コマンド・手順
+	期待される状態 (DoD)
+	1. 開始
+	1-1
+	最新化
+	git fetch --all --prune
+	リモートの最新状態を取得
+	
+
+	1-2
+	隔離作成
+	git worktree add../worktrees/<TICKET-ID> -b feat/<TICKET-ID>
+	専用フォルダが生成される
+	
+
+	1-3
+	移動
+	cd../worktrees/<TICKET-ID>
+	これ以降、元のフォルダに戻らない
+	
+
+	1-4
+	依存取得
+	npm install / Copy-Item (必要なら)
+	作業環境の構築完了
+	2. 作業
+	2-1
+	編集
+	(エディタで docs/PartXX.md を編集)
+	sources/ は編集不可(ReadOnly)
+	
+
+	2-2
+	検証(頻)
+	.\checks\verify_repo.ps1 -Mode Fast
+	エラーがあれば即修正
+	
+
+	2-3
+	競合確認
+	(自動) pre-commit フックが <<<<<<< を監視
+	コミットがブロックされないこと
+	3. 完了
+	3-1
+	証跡生成
+	.\checks\generate_evidence.ps1 -Ticket <TICKET-ID>
+	evidence/ にレポート生成
+	
+
+	3-2
+	コミット
+	git add.
+
+
+git commit -m "feat(PartXX): <概要> (Verify: PASS)"
+	証跡と変更が1コミットに含まれる
+	
+
+	3-3
+	同期
+	git fetch origin main
+
+
+git rebase origin/main
+	最新mainの上に載せ替え
+	
+
+	3-4
+	再検証
+	.\checks\verify_repo.ps1 -Mode Fast
+	Rebase後の整合性確認
+	4. 放出
+	4-1
+	Push
+	git push origin feat/<TICKET-ID>
+	GitHubへ送信完了
+	
+
+	4-2
+	PR作成
+	GitHub上でPR作成 (Evidenceへのリンク記載)
+	レビュー待ち状態
+	5. 掃除
+	5-1
+	離脱
+	cd../<main-repo>
+	マザーシップへ帰還
+	
+
+	5-2
+	破棄
+	git worktree remove../worktrees/<TICKET-ID>
+	物理フォルダが消滅する
+	
+
+	5-3
+	枝削除
+	git branch -d feat/<TICKET-ID>
+	ローカルブランチの削除
+	2.3 運用のポイント（なぜこの手順なのか）
+1. Worktreeによる強制隔離: git checkout や git switch をメインフォルダで行うことを禁止します。これにより、「切り替え忘れによる混入」や「スタッシュの復元ミス」を物理的に防ぎます 7。
+2. EvidenceのAtomic Commit: ドキュメントの変更と、その正当性を証明するVerify結果（Evidence）を同じコミットに含めます。これにより、Gitの履歴上で「この変更は検証済みである」ことが暗号学的に保証されます。
+3. Rebase First: Push前に必ず rebase origin/main を強制します。これにより、マージ競合をローカルで解決させ、GitHub上でのコンフリクト（P0-1）を防ぎます。
+4. 使い捨ての環境: 作業が終わればWorktreeごと削除します。これにより、ローカルに古いブランチやゴミファイルが堆積するのを防ぎます 16。
+________________
+3. 設計書へ追記する文章案
+SSOT（docs/）に追記するための正式な仕様定義です。Part09（権限）、Part10（検証）、Part14（変更管理）の各ファイルに以下の内容を反映させてください。
+3.1 docs/Part09.md (Permission Tier) への追記案
+9.4 Git操作およびリポジトリ保全プロトコル
+SSOTの整合性を維持するため、すべてのPermission Tier（AIおよび人間）は以下のプロトコルを遵守しなければならない。
+R-0910: Worktreeによる作業隔離の義務化
+* 変更を伴うすべての作業（PatchOnly, ExecLimited, HumanGate）は、git worktree によって作成された一時的なディレクトリ内で行わなければならない。
+* メインのチェックアウトディレクトリ（マザーシップ）での直接編集は、git fetch や git pull 等の同期操作を除き禁止とする。
+* 理由: 作業コンテキストの物理的な分離により、ブランチ切り替えミスによる汚染事故を未然に防ぐため。
+R-0911: 競合マーカーの混入禁止
+* Gitの競合マーカー（<<<<<<<, =======, >>>>>>>）を含むファイルはいかなる理由があろうともステージング（git add）してはならない。
+* 対策: checks/pre-commit フックにより、これらのパターンを含むファイルはコミット時に自動的に拒絶される。AIエージェントは、この拒絶エラーを受け取った場合、直ちに競合解消プロセスを実行しなければならない。
+R-0912: 証跡の原子性（Atomic Evidence）
+* ドキュメントの変更（docs/）と、その検証結果（evidence/）は、同一のコミットに含まれなければならない。
+* 証跡なき変更コミットは不正な改ざんと見なされる。
+3.2 docs/Part10.md (Verify Gate) への追記案
+10.5 Verify Gate: 競合・汚染防止チェック (V-1006)
+* 目的: マージ競合の残骸や、誤ったフォーマットの混入を機械的に阻止する。
+* 実行タイミング: Commit直前 (Pre-commit hook) および PR作成時 (CI)。
+* 判定基準:
+   * 対象ファイル全域に対し、正規表現 ^<{7} |^={7}$|^>{7} を走査し、マッチした場合は FAIL とする。
+   * PowerShellスクリプト: checks/verify_content.ps1 -CheckConflictMarkers
+10.6 Verify Gate: 証跡鮮度チェック (V-1007)
+* 目的: 証跡ファイルが、現在のドキュメントの状態に対して最新であることを保証する。
+* 判定基準:
+   * docs/ 以下の全ファイルのハッシュ値を計算し、evidence/verify_reports/ 内の最新レポートに含まれるハッシュ値と照合する。
+   * 不一致の場合（ドキュメント編集後にVerifyを実行していない場合）は FAIL とする。
+3.3 docs/Part14.md (変更管理) への追記案
+14.3 ブランチ戦略とライフサイクル (Updated)
+本プロジェクトは 「1Part=1Branch」原則 に基づき、以下のブランチ戦略を採用する。これは GitHub Flow をベースとしつつ、SSOT特有の整合性要件を加味したものである 17。
+1. Main Branch (main):
+   * 唯一の正本（SSOT）。常にリリース可能であり、Verify Gateを通過した状態であること。
+   * 直接コミット禁止（HumanGateによる緊急修正を除く）。
+2. Integration Branch (integrate/YYYYMMDD):
+   * 日次または週次の統合ポイント。複数のFeatureブランチをここで統合し、Full Verifyを実行する。
+   * main へのマージ前に、Part間の整合性を最終確認する場として機能する。
+3. Feature Branch (feat/<TICKET-ID>):
+   * 短命（Ephemeral）: タスク完了後、即座に削除される。
+   * Worktree専用: 必ず git worktree で独立したディレクトリとして生成される。
+   * 命名規則: feat/T-101_Fix-Part09 のように、チケットIDと概要を含める。
+14.4 証跡維持ポリシー (Recent-3 Strategy)
+リポジトリの肥大化を防ぎつつ、監査可能性を維持するため、evidence/ フォルダは以下のポリシーで運用する 19。
+* Recent-3 ルール: 同一カテゴリ（例：VerifyFast）のレポートは、最新の3世代のみを保持する。
+* 自動ローテーション: generate_evidence.ps1 実行時に、4世代以上前の古いレポートは自動的に evidence/archive/ へ移動、または削除（プロジェクトの方針による）される。
+* Git LFS: バイナリ証跡（画像など）が必要な場合は、必ず Git LFS 管理下に置くこと。
+________________
+4. Verify Gate 改善案（誤検知/漏れ/証跡運用/命名/保持ポリシー）
+現状のVerify Gate設計に対し、実運用での破綻を防ぐための具体的な監査・改善案を提示します。
+4.1 証跡運用の自動化と「Recent-3」の実装
+課題: 手動での証跡管理は必ず形骸化します。また、無制限に証跡を蓄積するとGitリポジトリが数GB規模に肥大化し、クローン不能になります 8。
+改善案: PowerShellによる「ローテーション機能付き証跡生成スクリプト」の実装。
+* 命名規則: YYYYMMDD_HHMMSS_<TICKET-ID>_<TYPE>.md (例: 20260112_120000_T-101_VerifyFast.md)
+   * <TICKET-ID> を含めることで、どのタスクの証跡かを明確にします。
+* 保持ポリシー (Recent-3):
+   * スクリプト実行時に、同一チケットIDを持つ既存ファイルを検索。
+   * 日付順にソートし、最新3件を残して残りを削除またはアーカイブフォルダへ移動。
+   * アーカイブフォルダは .gitignore 対象にするか、別途S3等へ退避する運用を推奨（Gitリポジトリには含めない）。
+4.2 誤検知（False Positives）の排除
+課題: Test-Links (V-0001) が、まだマージされていない新規ファイルへのリンクを「リンク切れ」と判定してしまう。
+改善案:
+* Staged File Awareness: 検証スクリプトは、ディスク上のファイルだけでなく、Gitのステージングエリア（Index）にあるファイルも認識するように拡張する。
+* Allowlist: 外部URL（GitHubログインが必要なページなど）の検証失敗を許容するための .verifyignore ファイルを導入する。
+4.3 削除ポリシーの厳格化
+課題: ユーザーが誤って sources/ 内の重要データを削除してしまう。
+改善案:
+* Git Attributesによる保護: .gitattributes を使用し、特定のディレクトリを読み取り専用のように振る舞わせることは難しいですが、pre-commit フックで sources/ への変更が含まれている場合にコミットをブロックすることは可能です 12。
+* Hook実装: git diff --cached --name-only の結果に sources/ が含まれていれば、exit 1 で終了するフックを導入する。
+________________
+5. 最低限のトラブルシュート（症状→原因→手順）
+初心者やAIエージェントが陥りやすいトラブルとその解決策をまとめました。
+5.1 症状: WindowsでWorktreeが削除できない
+* 症状: git worktree remove../worktrees/task1 を実行すると fatal: '...' is locked や Device or resource busy エラーが出る。
+* 原因: そのフォルダ内のファイルを何らかのプロセス（VS Code、PowerShell、Node.jsサーバー等）が開いているため、Windowsのファイルロック機能が働いている 10。
+* 手順:
+   1. 全終了: 該当フォルダを開いているVS Codeやターミナルをすべて閉じる。
+   2. プロセス確認: タスクマネージャー等で、バックグラウンドの git.exe や node.exe が残っていないか確認し、あれば終了させる。
+   3. 強制Prune: フォルダを手動で削除してしまった場合は、git worktree prune を実行してGitの管理情報を整合させる 22。
+5.2 症状: "Detached HEAD" 状態でのコミット消失
+* 症状: 作業をしてコミットしたが、ブランチを切り替えたら変更が消えた。git status に HEAD detached at... と表示されていた。
+* 原因: ブランチ名ではなく、特定のコミットハッシュやタグをチェックアウトして作業していたため、コミットがどこのブランチにも属していない（浮遊している）。
+* 手順:
+   1. 救出: 他のブランチに移動する前に、現在の位置にブランチ名をつける。
+git branch rescue-work
+   2. 移動: 正規のブランチに移動する。
+git checkout feat/correct-branch
+   3. 統合: 救出したブランチをマージする。
+git merge rescue-work
+5.3 症状: コミットが "Conflict Marker found" で拒否される
+   * 症状: git commit を実行すると、エラーメッセージが出て失敗する。
+   * 原因: ファイル内に <<<<<<< などの競合マーカーが残ったままステージングされている。P0-1の対策として導入したフックが正常に機能している証拠。
+   * 手順:
+   1. 検索: エラーメッセージに出ているファイルを開き、<<<<<<< を検索。
+   2. 解消: 競合箇所を手動で修正し、マーカー行を削除する。
+   3. 再実施: git add してから再度 git commit。
+________________
+6. 付録：運用のコマンド手順（例）
+設計書の実装に必要な具体的なスクリプトコードです。これらを checks/ ディレクトリに配置し、運用します。
+6.1 checks/verify_repo.ps1 (抜粋：競合マーカー検知)
+
+
+PowerShell
+
+
+
+
+<#
+.SYNOPSIS
+   リポジトリ内のファイルに競合マーカーが含まれていないか検証する
+.DESCRIPTION
+   Verify Gate (V-1006) の実装。<<<<<<<, =======, >>>>>>> を検出する。
+#>
+function Test-ConflictMarkers {
+   param([string]$Path = ".")
+   
+   $failureCount = 0
+   # テキストファイルのみを対象とする（バイナリ誤検知防止）
+   $files = Get-ChildItem -Path $Path -Recurse -Include *.md, *.txt, *.js, *.py, *.json -Exclude "node_modules", ".git"
+   
+   foreach ($file in $files) {
+       $content = Get-Content $file.FullName
+       # 正規表現で行頭のマーカーを検出
+       if ($content -match "^<{7} " -or $content -match "^={7}$" -or $content -match "^>{7} ") {
+           Write-Host "[(FAIL)] Conflict Marker found in: $($file.Name)" -ForegroundColor Red
+           $failureCount++
+       }
+   }
+   
+   return $failureCount
+}
+
+6.2 checks/generate_evidence.ps1 (抜粋：Recent-3 ローテーション)
+
+
+PowerShell
+
+
+
+
+<#
+.SYNOPSIS
+   証跡を生成し、古い証跡をアーカイブ/削除する (Recent-3 Policy)
+#>
+param(
+   [string]$TicketID,
+   [string]$EvidenceDir = "evidence/verify_reports"
+)
+
+# 1. 証跡生成処理 (省略)
+$newEvidencePath = Join-Path $EvidenceDir "$(Get-Date -Format 'yyyyMMdd_HHmmss')_${TicketID}_Verify.md"
+"Verification Passed for $TicketID" | Out-File $newEvidencePath
+
+# 2. ローテーション処理 (Recent-3)
+$limit = 3
+# 同一チケットのレポートを検索
+$reports = Get-ChildItem -Path $EvidenceDir -Filter "*_${TicketID}_Verify.md" | Sort-Object CreationTime -Descending
+
+if ($reports.Count -gt $limit) {
+   Write-Host "Rotating evidence for $TicketID (Keeping latest $limit)" -ForegroundColor Yellow
+   # 保持数を超える古いファイルを特定
+   $filesToDelete = $reports | Select-Object -Skip $limit
+   
+   foreach ($file in $filesToDelete) {
+       # アーカイブフォルダへ移動、または削除
+       # Remove-Item $file.FullName -Force
+       $archiveDir = "evidence/archive/$(Get-Date -Format 'yyyy')"
+       if (!(Test-Path $archiveDir)) { New-Item -ItemType Directory -Path $archiveDir | Out-Null }
+       Move-Item -Path $file.FullName -Destination $archiveDir -Force
+       Write-Host "  Archived: $($file.Name)"
+   }
+}
+
+6.3 checks/pre-commit (Git Hook: Sources保護 & マーカー検知)
+このスクリプトを .git/hooks/pre-commit として配置します（実行権限が必要）。
+
+
+Bash
+
+
+
+
+#!/bin/sh
+# Pre-commit hook to prevent modification of sources/ and conflict markers
+
+# 1. Check for Conflict Markers
+if git diff --cached --name-only | xargs grep -E '^(<<<<<<<|=======|>>>>>>>)'; then
+   echo "ERROR: Conflict markers detected in staged files."
+   exit 1
+fi
+
+# 2. Check for modification of sources/ (Append-only policy)
+# 注意: 新規追加(A)は許可し、修正(M)や削除(D)を禁止する
+if git diff --cached --name-status | grep -E '^(M|D)' | grep 'sources/'; then
+   echo "ERROR: Modification or Deletion of files in sources/ is PROHIBITED."
+   echo "       Sources are Append-Only."
+   exit 1
+fi
+
+exit 0
+
+以上の設計とツール群を導入することで、VCG/VIBE 2026プロジェクトは、人為的ミスをシステム的に排除し、高度な再現性と監査可能性を備えたSSOT運用を実現します。
+引用文献
+   1. Resolving a merge conflict using the command line - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/articles/resolving-a-merge-conflict-using-the-command-line
+   2. prevent file with merge conflicts from getting committed in git - Stack Overflow, 1月 12, 2026にアクセス、 https://stackoverflow.com/questions/24213948/prevent-file-with-merge-conflicts-from-getting-committed-in-git
+   3. Making sure you won't commit conflict markers - meain/blog, 1月 12, 2026にアクセス、 https://blog.meain.io/2019/making-sure-you-wont-commit-conflict-markers/
+   4. merge-strategies Documentation - Git, 1月 12, 2026にアクセス、 https://git-scm.com/docs/merge-strategies
+   5. gitattributes Documentation - Git, 1月 12, 2026にアクセス、 https://git-scm.com/docs/gitattributes
+   6. Git Worktree Tutorial: A Step-by-Step Guide for Beginners | Graph AI, 1月 12, 2026にアクセス、 https://www.graphapp.ai/blog/git-worktree-tutorial-a-step-by-step-guide-for-beginners
+   7. Git Worktree Tutorial: Work on Multiple Branches Without Switching - DataCamp, 1月 12, 2026にアクセス、 https://www.datacamp.com/tutorial/git-worktree-tutorial
+   8. Microsoft engineer describes a flaw in Git that can hugely bloat repositories – fix is on the way - devclass, 1月 12, 2026にアクセス、 https://devclass.com/2024/10/29/microsoft-engineer-describes-a-flaw-in-git-that-can-hugely-bloat-repositories-fix-is-on-the-way/
+   9. Microsoft Engineers Highlight Git Repository Bloat Flaw - DevOps.com, 1月 12, 2026にアクセス、 https://devops.com/microsoft-engineers-highlight-git-repository-bloat-flaw/
+   10. Another Git process seems to be running in this repository - Stack Overflow, 1月 12, 2026にアクセス、 https://stackoverflow.com/questions/38004148/another-git-process-seems-to-be-running-in-this-repository
+   11. The fetch GIT_STRATEGY should be more robust and fall back on clone on any failure, 1月 12, 2026にアクセス、 https://gitlab.com/gitlab-org/gitlab-runner/-/issues/39008
+   12. Git Hooks, 1月 12, 2026にアクセス、 https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+   13. pre-commit, 1月 12, 2026にアクセス、 https://pre-commit.com/
+   14. How I Supercharged My Workflow with Git Worktrees - DEV Community, 1月 12, 2026にアクセス、 https://dev.to/livecodelife/how-i-supercharged-my-workflow-with-git-worktrees-2jgj
+   15. Git Worktree Tutorial: Work on Multiple Branches Without Switching - DataCamp, 1月 12, 2026にアクセス、 https://www.datacamp.com/de/tutorial/git-worktree-tutorial
+   16. Parallel development without the headaches using Git worktree - barrd.dev, 1月 12, 2026にアクセス、 https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/
+   17. Is GitHub Flow the same as Trunk-based development? : r/git - Reddit, 1月 11, 2026にアクセス、 https://www.reddit.com/r/git/comments/1oft3lq/is_github_flow_the_same_as_trunkbased_development/
+   18. GitHub flow - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/get-started/quickstart/github-flow
+   19. Delete oldest X number of files : r/PowerShell - Reddit, 1月 11, 2026にアクセス、 https://www.reddit.com/r/PowerShell/comments/13p5m6v/delete_oldest_x_number_of_files/
+   20. Delete files older than 15 days using PowerShell - Stack Overflow, 1月 11, 2026にアクセス、 https://stackoverflow.com/questions/17829785/delete-files-older-than-15-days-using-powershell
+   21. Prevent modification : r/git - Reddit, 1月 11, 2026にアクセス、 https://www.reddit.com/r/git/comments/sbmyo7/prevent_modification/
+   22. Git worktree prune - what it does? - Stack Overflow, 1月 12, 2026にアクセス、 https://stackoverflow.com/questions/48346607/git-worktree-prune-what-it-does

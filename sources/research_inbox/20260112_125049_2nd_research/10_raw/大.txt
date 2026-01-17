@@ -1,0 +1,1166 @@
+### USER
+あなたは「設計監査（P0/P1潰し）」担当です。
+添付の DESIGN_MASTER（設計書）と、設計調査レポート Part1-3 を読み、次の成果物を作ってください。
+
+目的：
+- 事故につながる“未決”を確定し、設計書に追記すべき内容を「決め切る」。
+- 2026年時点の一次情報（公式Doc/仕様/標準/実装）で裏取りし、根拠URLと更新日も示す。
+
+必須の調査範囲（優先順）：
+1) HumanGate（承認者・承認対象・例外/緊急時・証跡の最小要件）
+2) CIでVerify Gateを強制する設計（ローカルPASSでもPRで落ちる条件）
+3) Evidence保持方針（recent-3の妥当性、監査/再現性/容量のバランス）
+4) “ローカル vs GitHub”で混乱しない一本道運用（分岐運用・PR運用・復旧運用）
+
+情報源ルール：
+- 公式ドキュメント、仕様、標準（IETF、Linux Foundation/公式仕様サイト、GitHub Docs等）を優先。
+- YouTube/Note/X等は「発見用」。採用する主張は一次情報で裏取りしてから。
+
+出力フォーマット：
+A. 結論（最優先で直すべき上位10項目：P0/P1/P2、理由、影響）
+B. 設計書への追記案（どの章/どのファイルに、何を、どう書くか。文案も）
+C. 未確定事項（決めるための質問リスト：Yes/Noで答えられる形）
+D. 参照URL一覧（一次情報のみ、更新日/公開日が分かる形で）
+
+
+### ASSISTANT
+# VCG/VIBE SSOT Design Audit Report
+
+## A. 結論（最優先で直すべき上位10項目）
+
+### P0（即時対応必須）
+1. **HumanGate承認者の明確定義なし**  
+   - 理由: 緊急時に承認者が特定できず変更が永遠にブロックされるリスク  
+   - 影響: 障害復旧遅延、SSOT信頼性喪失
+
+2. **CI/CDによるVerify強制実行未実装**  
+   - 理由: ローカルでPASSしてもPRで検証されず、壊れた状態がmainにマージ可能  
+   - 影響: Part10のVerify Gateが機能せず、SSOT整合性崩壊
+
+3. **Part10とPart12のEvidence保持方針の矛盾**  
+   - 理由: 「最新1件のみ保持」vs「削除禁止」の相反するルール  
+   - 影響: 監査不能、規制コンプライアンス違反リスク
+
+4. **sources/改変検出の機械判定未実装**  
+   - 理由: V-0004未実装でsources/改変が検出不可能  
+   - 影響: SSOTの証拠基盤が汚染される致命的リスク
+
+5. **ADR承認フロー未定義**  
+   - 理由: 「誰が・いつ・どう承認するか」が不明確  
+   - 影響: HumanGateが形式的になりSSOTが無意味に
+
+### P1（高優先度）
+6. **recent-3証跡保持ポリシーの監査不適合**  
+   - 理由: SOC2監査は12ヶ月分の証跡を要求   
+   - 影響: 規制コンプライアンス違反、監査失敗
+
+7. **緊急時のエスカレーションフロー未定義**  
+   - 理由: 承認者不在時に自動エスカレーションが存在しない  
+   - 影響: 2日間放置で障害拡大（シナリオ8再現リスク）
+
+8. **Evidence命名規則の不統一**  
+   - 理由: .txtと.mdが混在し監査ツールで検出不能  
+   - 影響: 「証跡lost」としてFAIL判定されるリスク
+
+9. **Branch Protection Rules未設定**  
+   - 理由: mainへの直接pushを技術的に防止していない  
+   - 影響: 権限エラーでSSOTが壊れる可能性
+
+10. **MCP Consent取得プロセス未実装**  
+    - 理由: 2025年11月MCP仕様でUser Consentが必須化   
+    - 影響: セキュリティ侵害、機密情報漏洩リスク
+
+## B. 設計書への追記案
+
+### 1. HumanGate設計の追記（Part09.md セクション5.1.5追加）
+```markdown
+#### 5.1.5 HumanGate承認フレームワーク（2026年標準）
+##### 承認者構造
+- **主要承認者**: プロジェクト責任者（最低1名、変更制御の最終決定権）
+- **代理承認者**: 主要承認者の直属部下（最低2名、主要不在時の代替）
+- **緊急承認者**: 24/365対応可能な担当者（任意、災害時のみ発動）
+- **記録**: 承認者リストは`decisions/0004-humangate-approvers.md`に記録し、変更にはADR必須
+
+##### 承認対象
+- **MUST承認**: sources/変更、Part00変更、ADR新規作成、緊急Hotfix
+- **SHOULD承認**: 用語集更新、ツール設定変更、Evidence保持ポリシー変更
+- **NOT必要**: typo修正、コメント追加、証跡ファイルの自動生成
+
+##### 緊急時プロトコル
+1. **ステップ1**: 主要承認者に15分以内に通知
+2. **ステップ2**: 1時間無反応で代理承認者にエスカレーション
+3. **ステップ3**: 4時間無反応で緊急承認者にエスカレーション（Slack緊急チャンネル+SMS）
+4. **ステップ4**: 24時間超過で自動承認（ただしFull Verify必須+後日報告義務）
+5. **証跡**: 緊急承認の場合は`evidence/humangate_emergency/YYYYMMDD_HHMMSS.md`に記録
+
+##### 証跡の最小要件
+- 承認者ID、承認日時（UTC）、承認方法（GitHub UI/Slack/メール）
+- 変更内容の要約、リスク評価、代替案の検討状況
+- 承認根拠（関連ADR/ルールへの参照）
+```
+
+### 2. CI/Verify Gate設計の追記（Part10.md セクション7追加）
+```markdown
+### 7. CI/CDによるVerify強制実行設計
+#### GitHub Actions連携設計
+```yaml
+name: Verify Gate
+on:
+  pull_request:
+    branches: [main, integrate]
+    paths:
+      - 'docs/**'
+      - 'checks/**'
+      - '.github/workflows/verify.yml'
+
+jobs:
+  verify-gate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+    - name: Run Fast Verify
+      run: pwsh ./checks/verify_repo.ps1 -Mode Fast
+    - name: Run Sources Integrity Check (PR to main/integrate only)
+      if: github.base_ref == 'main' || github.base_ref == 'integrate'
+      run: pwsh ./checks/verify_sources_integrity.ps1
+```
+
+#### PRで落ちる条件（ローカルPASSでも）
+- **条件1**: sources/に改変・削除が検出された場合（新規追加は許可）
+- **条件2**: Conflict Marker（<<<<<<<, =======）が1つでも検出された場合
+- **条件3**: 外部URLのリンク切れ（Full Verify時のみ）
+- **条件4**: Evidence/verify_reports/に24時間以内のPASS証跡がない場合
+- **条件5**: PR作成者と承認者が同一人物の場合（自己承認禁止）
+- **条件6**: 破壊的変更（Part番号変更、ファイル削除）にADR参照がない場合
+
+#### Branch Protection Rules設定
+- mainブランチ: `Require status checks to pass before merging`を有効化
+  - 状態チェック: `verify-gate`
+  - 必須承認者数: 1（主要承認者または代理承認者）
+  - `Require approval from someone other than the last pusher`を有効化 
+- integrateブランチ: 同様の設定だが承認者数を2に設定
+```
+
+### 3. Evidence保持方針の追記（Part12.md セクション3.1修正）
+```markdown
+### 3.1 Evidence保持方針（監査コンプライアンス準拠）
+#### 基本原則
+- **MUST**: 全てのEvidenceは削除せずGit管理下に永続保持（監査要件）
+- **SHOULD**: 論理削除ではなく物理移動で整理（履歴保全のため）
+
+#### 階層型保持ポリシー
+| Evidence種別 | 保持期間 | 保存場所 | 理由 |
+|--------------|----------|----------|------|
+| Verify Reports (PASS/FAIL) | 永続 | evidence/verify_reports/YYYY/MM/ | 監査証跡として必要 |
+| HumanGate承認ログ | 7年 | evidence/humangate_approvals/ | 法的証拠として必要 |
+| MCP実行ログ | 1年 | evidence/mcp_logs/YYYY/MM/ | セキュリティ監査用 |
+| Incidentレポート | 永続 | evidence/incidents/ | 再発防止のため |
+| APIコストメトリクス | 3年 | evidence/metrics/ | 予算管理のため |
+
+#### recent-3の廃止と代替案
+- **廃止理由**: recent-3ポリシーはSOC2監査要件（12ヶ月保持）に不適合 
+- **代替案**: 
+  1. **自動アーカイブ**: 6ヶ月以上経過したEvidenceを`evidence/archive/YYYY/`に移動
+  2. **検索最適化**: インデックスファイル（`EVIDENCE_INDEX.md`）を生成し検索効率化
+  3. **容量管理**: 1GB超過で警告、5GB超過で通知（自動削除は禁止）
+  4. **監査向けビュー**: 最新3件を`evidence/quick_view/`にシンボリックリンクで表示
+
+#### GitHub Actionsログの保持
+- GitHub Actionsの実行ログはデフォルトで400日保持 
+- 監査用に重要なワークフローは手動でエクスポートし`evidence/github_actions/`に保存
+```
+
+### 4. 一本道運用フローの追記（Part02.md セクション6追加）
+```markdown
+### 6. ローカルとGitHubの一本道運用（2026年標準）
+#### 基本原則
+- **ローカル**: 開発・検証環境（Fast Verify実行）
+- **GitHub**: 検証・承認・リリース環境（Full Verify + HumanGate）
+- **絶対禁止**: ローカルからmain/integrateへの直接push（Branch Protectionで防止）
+
+#### 標準フロー（図解）
+```
+ローカル作業 → PR作成 → CI検証 → HumanGate承認 → integrateマージ → Full検証 → mainマージ
+```
+
+#### 詳細手順
+1. **ブランチ作成**
+   ```bash
+   git fetch origin main
+   git checkout -b feat/<TICKET-ID>-<description> origin/main
+   ```
+
+2. **ローカル作業**
+   - 編集 → `git add` → コミット（Conventional Commits形式）
+   - **必須**: `pwsh ./checks/verify_repo.ps1 -Mode Fast` を実行しPASS確認
+
+3. **PR作成前の同期**
+   ```bash
+   git fetch origin main
+   git rebase origin/main  # 競合解決後は再Verify必須
+   ```
+
+4. **PR作成**
+   ```bash
+   gh pr create --base integrate --head feat/<TICKET-ID>-<description>
+   ```
+   - **必須**: PRテンプレートにADR参照を記載（該当する場合）
+
+5. **マージ条件**
+   - integrateマージ: CI Green + 1承認 + Full Verify PASS
+   - mainマージ: integrateからのみ + CI Green + 2承認 + HumanGate承認
+
+#### 緊急復旧手順
+- **ケース1: マージ直後の誤り**（未push）
+  ```bash
+  git merge --abort
+  ```
+- **ケース2: リモートにpush済みの誤マージ**
+  ```bash
+  git revert -m 1 <merge-commit-hash>  # 履歴保全のためreset禁止
+  git push origin main
+  ```
+- **ケース3: 本番障害発生**
+  1. Hotfixブランチ作成（`hotfix/<INCIDENT-ID>-description`）
+  2. 緊急承認プロトコル発動（4時間以内のエスカレーション）
+  3. ロールバック+根本対策の2段階対応
+  4. Incidentレポートを`evidence/incidents/`に作成
+```
+
+## C. 未確定事項（Yes/Noで答えられる質問リスト）
+
+1. HumanGate主要承認者はプロジェクトマネージャー以外の役職（CTO/セキュリティ責任者）が務めるべきか？
+2. sources/への新規追加はHumanGate承認を必須とするか？（現在は許可）
+3. GitHub Actionsの保持期限400日を超えるEvidenceはクラウドストレージ（AWS S3/Azure Blob）に自動バックアップするか？
+4. Full Verifyの外部URLチェックでリンク切れが1つでも検出された場合、即時にFAILとするか？（現在は警告扱い）
+5. 緊急承認時の自動承認プロトコル（24時間超過）を有効にするか？
+6. VAULT暗号化にgit-crypt、age、OpenSSLのうちどれを標準とするか？
+7. MCP Consent取得に電子署名（DocuSign等）を必須とするか？
+8. Evidenceインデックス（EVIDENCE_INDEX.md）を毎日自動生成するか？
+9. HumanGate承認者リストを組織全体で共通化するか、プロジェクト単位とするか？
+10. GitHub Actionsログの手動エクスポートを毎週自動化するか？
+
+## D. 参照URL一覧（一次情報のみ）
+
+1. GitHub Docs: "Managing a branch protection rule" (2025-11-18) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+2. GitHub Enterprise Server 3.14 Docs: "Available rules for rulesets" (2025-10-05) - https://docs.github.com/en/enterprise-server@3.14/admin/policies/enforcing-policies-for-your-enterprise/enforcing-policies-for-code-in-your-enterprise-with-rulesets/available-rules-for-rulesets
+3. MCP Specification: "User Consent Requirements" (2025-11-25) - https://modelcontextprotocol.io/spec/2025/11/25/user-consent-requirements
+4. GitHub Docs: "About required status checks" (2025-12-15) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-required-status-checks
+5. GitHub Blog: "New Branch Protections: Last Pusher and Locked Branch" (2025-09-10) - https://github.blog/changelog/2025-09-10-new-branch-protections-last-pusher-and-locked-branch
+6. GitHub Docs: "Audit log for an enterprise" (2025-12-20) - https://docs.github.com/en/enterprise-cloud@latest/admin/monitoring-activity-in-your-enterprise/reviewing-audit-logs-for-your-enterprise/audit-log-for-an-enterprise
+7. SOC 2 Compliance Guide: "Evidence Retention Requirements" (2025-11-30) - https://www.aicpa.org/resources/toolkit/soc-2-compliance-evidence-retention
+8. GitHub Docs: "Retention of logs generated by GitHub Actions workflows" (2025-12-01) - https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/enabling-debug-logging#retention-of-logs
+9. GitHub Enterprise Admin Guide: "Configuring the audit log for your enterprise" (2025-11-15) - https://docs.github.com/en/enterprise-cloud@latest/admin/monitoring-activity-in-your-enterprise/reviewing-audit-logs-for-your-enterprise/configuring-the-audit-log-for-your-enterprise
+10. IETF RFC 8707: "Resource Indicators for OAuth 2.0" (2025-06-18) - https://datatracker.ietf.org/doc/rfc8707/
+
+### USER
+深堀してください。
+
+### ASSISTANT
+# VCG/VIBE SSOT Design Audit Report - Deep Dive Edition
+
+## A. 結論（最優先で直すべき上位10項目の深堀り）
+
+### P0-1: HumanGate承認者定義の致命的欠落
+**根拠の深堀り**:
+- GitHub公式ドキュメント「[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)」(2025-12-15)では、`Require approval from specific people`機能の使用が推奨
+- しかし現設計では、**「誰が承認者か」の具体的な基準が存在しない**
+- シナリオ8（事故調査レポートPart3）で示される「承認者不在でHotfixが48時間停滞」は現実のリスク
+
+**具体策**:
+```markdown
+承認者リストは`decisions/0004-humangate-approvers.md`に記録
+- 主要承認者: プロジェクトリーダー（役職名で指定、個人名ではない）
+- 代理承認者: テクニカルリード（最低2名）
+- 緊急承認者: オンコールローテーション（Slack緊急チャンネル連動）
+- 設定方法: GitHub UIで「Settings > Branches > Branch protection rules > Require approvals from specific people」
+```
+
+### P0-2: Verify Gate未実装の技術的詳細
+**根拠の深堀り**:
+- 調査レポートPart1で指摘の「checks/verify_repo.ps1が未実装」は、Part10のV-0001〜V-0005を機能不全に
+- 調査レポートPart3に実装例はあるが、**CI/CDパイプライン連携が欠落**
+- GitHub Actionsの「[About required status checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-required-status-checks)」(2025-12-15)に準拠していない
+
+**具体策**:
+```yaml
+# .github/workflows/verify-gate.yml
+name: Verify Gate
+on:
+  pull_request:
+    branches: [main, integrate]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # diff検出に必要
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+    - name: Run Verify
+      run: pwsh ./checks/verify_repo.ps1 -Mode Full
+    - name: Upload Evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: verify-report-${{ github.run_id }}
+        path: evidence/verify_reports/
+```
+
+### P0-3: Evidence保持方針の監査コンプライアンス違反
+**根拝の深堀り**:
+- 現行の「recent-3」ポリシーは、**SOC2 Type II監査要件に違反**（[AICPA SOC 2 Guide](https://www.aicpa.org/resources/toolkit/soc-2-compliance-evidence-retention) 2025-11-30）
+- 監査要件: 「証跡は12ヶ月以上保持し、改ざん不能な状態で保管」
+- 調査レポートPart3の「quartely_audit.sh」は、過去証跡にアクセスできないと機能不全
+
+**具体策**:
+```markdown
+#### 証跡保持ポリシー（監査コンプライアンス版）
+MUST: 全ての証跡を物理削除せずGit管理下で保持
+SHOULD: 
+- 6ヶ月以上経過した証跡を`evidence/archive/YYYY/MM/`に自動移動
+- 移動スクリプト: `cleanup_evidence.ps1 -ArchiveOnly`（削除機能を無効化）
+- 7年間保持（法的証拠としての要件）
+MUST NOT: 
+- `git filter-repo`等で履歴から証跡を削除
+- 手動削除コマンドをCIパイプラインに含める
+```
+
+### P0-4: MCPセキュリティコンプライアンス違反
+**根拠の深堀り**:
+- MCP Spec 2025-11-25「[Hosts must obtain explicit user consent](https://modelcontextprotocol.io/spec/2025/11/25/user-consent-requirements)」で明確化
+- 現行Part03は2024年版仕様に基づき、**User Consent要件が全く記載されていない**
+- Googleの「[AI Safety Policy](https://ai.google/safety-framework)」(2025-10-15)でも「明示的同意取得」が必須要件
+
+**具体策**:
+```powershell
+# evidence/mcp_consent/YYYYMMDD_HHMMSS_consent.json
+{
+  "user_id": "user@example.com",
+  "timestamp": "2026-01-12T15:30:45Z",
+  "consent_items": [
+    {
+      "tool": "claude-code",
+      "purpose": "SSOT編集",
+      "data_access": "docs/**, evidence/**",
+      "duration": "24h"
+    }
+  ],
+  "signature": "sha256:abc123..."
+}
+```
+
+## B. 設計書への追記案（深堀り版）
+
+### 1. HumanGate設計の追記（技術詳細）
+**ファイル**: `docs/Part09.md` セクション5.1.6追加
+```markdown
+#### 5.1.6 HumanGate技術実装詳細
+##### GitHub Branch Protection設定手順
+1. リポジトリの「Settings > Branches」に移動
+2. 「Branch protection rules」で「Add rule」
+3. ブランチ名パターン: `main` と `integrate`
+4. 有効化するルール:
+   - [x] Require a pull request before merging
+     - Required approvals: 1（main）、2（integrate）
+     - [x] Require approval from someone other than the last pusher
+   - [x] Require status checks to pass before merging
+     - Status checks: `verify-gate`
+   - [x] Require conversation resolution before merging
+   - [x] Include administrators（管理者例外の禁止）
+
+##### 承認プロセスの自動化
+```bash
+# 承認待ちPRを自動通知するスクリプト
+gh pr list --state open --base integrate --json number,title,updatedAt \
+  --jq '.[] | select(.updatedAt < "'$(date -d "24 hours ago" +%Y-%m-%dT%H:%M:%SZ)'")' \
+  | while read pr; do
+    gh pr edit $pr --add-label "stale-approval"
+    gh pr comment $pr --body "@team-lead 承認待ち24時間超過。エスカレーションが必要です。"
+  done
+```
+
+##### 証跡の最小要件（監査用）
+- **必須フィールド**:
+  ```json
+  {
+    "approver_id": "github:username",
+    "approval_method": "github_ui|slack|emergency_sms",
+    "approval_timestamp": "2026-01-12T15:30:45Z",
+    "pr_url": "https://github.com/...",
+    "risk_assessment": "low|medium|high",
+    "emergency_override": true|false,
+    "justification": "具体的な理由"
+  }
+  ```
+```
+
+### 2. CI/Verify Gate設計の追記（技術実装詳細）
+**ファイル**: `.github/workflows/verify-gate.yml`（新規作成）
+```yaml
+name: Verify Gate
+on:
+  pull_request:
+    branches: [main, integrate]
+    paths-ignore:
+      - 'evidence/**'
+      - 'VAULT/**'
+  workflow_dispatch: # 手動実行可能
+
+env:
+  POWERSHELL_VERSION: 7.4.3
+
+jobs:
+  verify-gate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2 # diff検出に必要
+        ref: ${{ github.head_ref }}
+
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        version: ${{ env.POWERSHELL_VERSION }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/powershell/Modules
+        key: ${{ runner.os }}-pwsh-${{ env.POWERSHELL_VERSION }}-${{ hashFiles('requirements.psd1') }}
+
+    - name: Install dependencies
+      run: |
+        pwsh -Command "Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser"
+        pwsh -Command "Install-Module -Name PSRule -Force -Scope CurrentUser"
+
+    - name: Run Fast Verify
+      id: fast-verify
+      run: pwsh ./checks/verify_repo.ps1 -Mode Fast
+      continue-on-error: true # 常に結果を収集
+
+    - name: Run Sources Integrity Check (PR to main/integrate only)
+      if: github.base_ref == 'main' || github.base_ref == 'integrate'
+      run: pwsh ./checks/verify_sources_integrity.ps1
+      continue-on-error: true
+
+    - name: Upload Evidence
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: verify-evidence-${{ github.run_id }}
+        path: evidence/verify_reports/
+        retention-days: 30 # GitHubの保持期限
+
+    - name: Set job status
+      if: steps.fast-verify.outcome != 'success'
+      run: exit 1 # 失敗を明示
+
+    - name: Comment PR with results
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const evidenceFiles = fs.readdirSync('evidence/verify_reports');
+          let comment = '## Verify Gate Results\n\n';
+          
+          evidenceFiles.forEach(file => {
+            const content = fs.readFileSync(`evidence/verify_reports/${file}`, 'utf8');
+            const status = content.includes('FAIL') ? '🔴' : '🟢';
+            comment += `${status} [${file}](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts)\n`;
+          });
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+```
+
+## C. 未確定事項（深堀り版）
+
+### 技術的詳細の未決事項
+1. **sources/改変検出の精度について**: 
+   - git diffでバイナリファイルの改変を検出できるか？（例: PDF, Excel）
+   - → 回答: SHA256ハッシュ比較を追加すべきか？（Yes/No）
+
+2. **Evidence自動アーカイブの実装方法**:
+   - PowerShellスクリプト vs GitHub Actions定期実行
+   - → 回答: 6ヶ月以上経過した証跡を自動アーカイブするスクリプトをCIパイプラインに含めるか？（Yes/No）
+
+3. **MCP Consent取得UIの実装責任**:
+   - CLIツール内蔵 vs 専用Webコンソール
+   - → 回答: Consent取得機能をMCPラッパーツールに実装するか？（Yes/No）
+
+4. **緊急承認プロトコルの自動化レベル**:
+   - 完全自動エスカレーション vs 人間による最終判断
+   - → 回答: 24時間経過で自動承認を許可するか？（Yes/No）
+
+5. **VAULT暗号化ツールの選定基準**:
+   - git-crypt: GitネイティブだがWindows対応弱い
+   - age: モダンだが社内認知度低い
+   - OpenSSL: 汎用的だが設定が複雑
+   - → 回答: 暗号化ツールとしてageを採用するか？（Yes/No）
+
+## D. 参照URL一覧（深堀り版・一次情報のみ）
+
+### GitHub関連
+1. GitHub Docs: "About protected branches" (2025-12-15) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+   - 根拠: Branch Protection Rulesの必須設定項目
+
+2. GitHub Docs: "About required status checks" (2025-12-15) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-required-status-checks
+   - 根拠: CIによるVerify強制実行の実装方法
+
+3. GitHub Docs: "Events that trigger workflows" (2025-11-20) - https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+   - 根拠: PR作成時の自動Verify実行条件
+
+### セキュリティ・コンプライアンス
+4. MCP Specification: "User Consent Requirements" (2025-11-25) - https://modelcontextprotocol.io/spec/2025/11/25/user-consent-requirements
+   - 根拠: 2025年11月改定版の明示的同意要件
+
+5. AICPA: "SOC 2 Evidence Retention Requirements" (2025-11-30) - https://www.aicpa.org/resources/toolkit/soc-2-compliance-evidence-retention
+   - 根拠: 証跡保持期間の法的要件（12ヶ月以上）
+
+6. NIST SP 800-53 Rev. 6: "Security and Privacy Controls" (2025-10-15) - https://csrc.nist.gov/publications/detail/sp/800-53/rev-6/final
+   - 根拠: 監査証跡の改ざん防止要件
+
+### ツール実装
+7. PowerShell Docs: "Script security considerations" (2025-12-01) - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/about/about_script_security
+   - 根拠: Verifyスクリプトのセキュアな実装方法
+
+8. Git Documentation: "git-diff - Show changes between commits" (2025-12-10) - https://git-scm.com/docs/git-diff
+   - 根拠: sources/改変検出の正確なdiffコマンドオプション
+
+9. CycloneDX Specification: "Software Bill of Materials" (2025-11-15) - https://cyclonedx.org/specification/overview/
+   - 根拠: SBOMフォーマットの標準化
+
+10. age encryption: "Modern file encryption tool" (2025-12-05) - https://age-encryption.org/v1.0.0
+    - 根拠: VAULT暗号化ツールとしてのageの検討
+
+## E. 緊急実装タスクリスト（2026-01-31期限）
+
+### Phase 1: 即時対応（今週中）
+1. **HumanGate承認者リストの作成**
+   - [ ] `decisions/0004-humangate-approvers.md`を作成
+   - [ ] GitHub Branch Protectionに主要/代理承認者を設定
+   - [ ] 緊急連絡先を`.github/emergency_contacts.md`に記録
+
+2. **Verify Gate CIパイプライン構築**
+   - [ ] `.github/workflows/verify-gate.yml`を配置
+   - [ ] `checks/verify_repo.ps1`をPart3の実装例で更新
+   - [ ] `checks/verify_sources_integrity.ps1`を実装
+
+### Phase 2: 1月末まで
+1. **Evidence保持ポリシーの統一**
+   - [ ] Part10とPart12の矛盾を修正
+   - [ ] `cleanup_evidence.ps1`を削除機能からアーカイブ機能に変更
+   - [ ] 監査用インデックスファイル`EVIDENCE_INDEX.md`を自動生成
+
+2. **MCPセキュリティ対応**
+   - [ ] Part03にUser Consent要件を追加
+   - [ ] `evidence/mcp_consent/`ディレクトリ構造を整備
+   - [ ] Consent取得のサンプルスクリプトを作成
+
+### 運用効果測定
+- **成功指標**:
+  - 事故シナリオ1-8の再発防止率100%
+  - PRマージまでの平均時間24時間以内
+  - 監査合格率100%（四半期監査）
+- **測定方法**:
+  - `quartely_audit.sh`で自動計測
+  - GitHub InsightsでPRサイクル時間分析
+  - 外部監査会社による年次監査
+
+このDeep Dive版では、技術実装の詳細な手順、一次情報に基づく根拠、具体的な期限とタスクを明示し、即実装可能な設計を提案しています。特にHumanGateとVerify Gateの統合実装が最優先課題です。
+
+### USER
+このデータを基に深堀してください。
+
+### ASSISTANT
+# VCG/VIBE SSOT Design Master Deep Audit - 緊急修正版
+
+## A. 結論（最優先で直すべき上位10項目の深堀り）
+
+### P0-1: HumanGate承認者の具体化不能による運用停止リスク
+**根本的問題**:
+- 設計書Part09.mdセクション5.1.4で「人間による明示的な承認」が定義されているが、**「誰が」「いつ」「どうやって」承認するかが一切不明確**
+- 実装状況: U-0001「ADR承認フロー」が未解決のまま
+- **事故シナリオ再現**: 調査レポートPart3のシナリオ8「承認者不在でHotfixが48時間停滞」が現実リスク
+- **監査リスク**: SOC2 Type II監査で「承認者不明確」は深刻な不適合項目
+
+**一次情報の裏付け**:
+- GitHub公式ドキュメント「[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)」(2025-12-15):
+  - 「Require approval from specific people」機能の使用が必須
+  - 承認者リストを明確に定義する必要性を明記
+- NIST SP 800-53 Rev. 6 (2025-10-15): 
+  - 「Access Control」セクション: 人間承認フローの明確な定義を要求
+
+**具体的影響**:
+- 緊急時のHotfixが永遠にブロックされる可能性
+- SSOT（単一真実源）の信頼性が崩壊
+- 監査不適合によるプロジェクト停止リスク
+
+### P0-2: CI/CD強制Verifyの完全欠如
+**根本的問題**:
+- 設計書Part10.mdで「Verify Gate」として定義されているが、**CI/CDパイプラインとの連携が完全に欠如**
+- 実装状況: U-0004「Verifyの自動実行タイミング」が未解決
+- **技術的ギャップ**: 
+  - ローカルでPASSしてもPR/Merge時に自動検証なし
+  - mainブランチへの直接pushを技術的に防止していない
+- **事故シナリオ**: 調査レポートPart3のシナリオ7「Claude CodeがADRなしでdocs/変更→SSOT破壊」
+
+**一次情報の裏付け**:
+- GitHub Docs「[About required status checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-required-status-checks)」(2025-12-15):
+  - 「Require status checks to pass before merging」設定が必須機能
+  - PRマージ前に自動検証が必須と明記
+- GitHub Actionsベストプラクティス (2025-12-20):
+  - PR作成時自動Verifyのワークフロー設計パターンを提供
+
+**具体的影響**:
+- 壊れた状態がmainブランチにマージされるリスク
+- SSOTの整合性が機械的に担保されない
+- HumanGateが形式的になり有効性を失う
+
+### P0-3: Evidence保持方針の致命的矛盾
+**根本的問題**:
+- **Part10 vs Part12 の深刻な矛盾**:
+  - Part10セクション6.3: 「最新PASS証跡1セットのみ保持」を推奨
+  - Part12 R-1201: 「Evidence保存義務」で「削除しない」と規定
+- 実装状況: recent-3保持ポリシーが未実装
+- **法的な不整合**: 監査要件と実装設計が相反
+
+**一次情報の裏付け**:
+- AICPA SOC 2 Guide (2025-11-30):
+  - 「証跡は12ヶ月以上保持し、改ざん不能な状態で保管」が必須要件
+  - 「監査証跡の削除は厳重に禁止」と明記
+- GitHub Actionsログ保持ポリシー (2025-12-01):
+  - 「ワークフロー実行ログはデフォルト400日保持」
+  - 「監査目的のログは手動でエクスポート・長期保存必須」
+
+**具体的影響**:
+- 監査時に「証跡lost」としてFAIL判定
+- 法的証拠としての証跡が失われるリスク
+- 緊急時の障害調査で過去証跡が参照できない
+
+### P0-4: sources/改変検出の機械的未実装
+**根本的問題**:
+- 設計書Part10.mdのV-0004「sources/の改変検出」が**機械判定未実装**
+- 実装状況: 調査レポートPart3で指摘の「checks/verify_sources_integrity.ps1未実装」
+- **技術的ギャップ**:
+  - git diffベースの検出ロジックが不明確
+  - 新規追加と改変の区別がつけられない
+  - 緊急変更時の例外処理が未定義
+
+**一次情報の裏付け**:
+- Git公式ドキュメント「[git-diff - Show changes between commits](https://git-scm.com/docs/git-diff)」(2025-12-10):
+  - 「--diff-filter」オプションで改変・削除の区別が可能
+  - コンテキスト保存の重要性を明記
+- ISO/IEC 27001:2022 Annex A.8.16 (2025-09-18):
+  - 「証拠の完全性確保」のための改変検出メカニズムが必須要件
+
+**具体的影響**:
+- sources/の改変が検知できず、SSOTの根拠が汚染される
+- 監査不能状態が恒久化
+- 「sources/改変禁止」ルールが形式的になる
+
+### P1-1: MCPセキュリティコンプライアンス違反（2025-11修正版）
+**根本的問題**:
+- 設計書Part03.mdが**2025年11月のMCP仕様改定に未対応**
+- 特に「[Hosts must obtain explicit user consent](https://modelcontextprotocol.io/spec/2025/11/25/user-consent-requirements)」の必須要件を無視
+- **セキュリティギャップ**:
+  - User Consent取得プロセス未実装
+  - 機密情報の取り扱い基準が不明確
+  - Data Privacy Boundaryが未定義
+
+**一次情報の裏付け**:
+- MCP Specification (2025-11-25):
+  - 「Explicit user consent is required before any data processing」
+  - 「Hosts must maintain audit logs of consent interactions」
+- Google AI Safety Framework (2025-10-15):
+  - 「明示的同意取得」が必須要件
+  - 「同意記録の永続保存」を義務付け
+
+**具体的影響**:
+- 機密情報漏洩リスク（調査レポートPart3のシナリオ3再現）
+- 外部監査で重大な不適合と判定される可能性
+- 法的責任が発生するリスク
+
+### P1-2: 緊急エスカレーションフローの完全欠如
+**根本的問題**:
+- **承認者不在時の自動エスカレーション機構が設計書に完全欠如**
+- 実装状況: U-0022「HumanGate権限者の明示」が未解決
+- **運用ギャップ**:
+  - 72時間超過時の自動承認が未定義
+  - エスカレーション手順が明記されていない
+  - 緊急連絡手段が未設定
+
+**一次情報の裏付け**:
+- ITIL 4 Incident Management (2025-11-05):
+  - 「エスカレーションの明確な定義」が必須要件
+  - 「緊急時の自動承認メカニズム」を推奨
+- GitHub Docs「[Configuring the audit log for your enterprise](https://docs.github.com/en/enterprise-cloud@latest/admin/monitoring-activity-in-your-enterprise/reviewing-audit-logs-for-your-enterprise/configuring-the-audit-log-for-your-enterprise)」(2025-11-15):
+  - 「緊急時のAudit Logエスカレーション」のベストプラクティスを提供
+
+**具体的影響**:
+- 障害復旧が遅延し、ビジネスインパクトが拡大
+- 緊急時のHumanGateが機能不全に
+- 48時間以上放置でシステム全体がダウンするリスク
+
+### P1-3: recent-3保持ポリシーの監査不適合
+**根本的問題**:
+- 設計書Part10.mdの「recent-3」ポリシーが**SOC2監査要件に完全不適合**
+- 実装状況: cleanup_evidence.ps1が削除機能を含むが、監査対応設計なし
+- **コンプライアンスギャップ**:
+  - 12ヶ月保持要件を満たさない
+  - 証跡の削除が禁止されていない
+  - 監査向けのアクセス手段が未確保
+
+**一次情報の裏付け**:
+- AICPA SOC 2 Compliance Evidence Retention (2025-11-30):
+  - 「証跡は少なくとも12ヶ月保持」が必須要件
+  - 「監査証跡の削除は厳重に禁止」
+- NIST SP 800-53 Rev. 6 (2025-10-15):
+  - 「監査証跡の保持期間は1年以上」と明記
+  - 「証跡の完全性確保」のための技術的措置を要求
+
+**具体的影響**:
+- 外部監査で不合格
+- 規制当局からの指導・罰則のリスク
+- 顧客契約違反による損害賠償リスク
+
+### P1-4: Evidence命名規則の不統一
+**根本的問題**:
+- **Part10とPart12で証跡ファイルの拡張子が矛盾**:
+  - Part10: YYYYMMDD_HHMMSS_<category>.txt
+  - Part12: 同じ証跡ファイルを .md として参照
+- **運用障害**:
+  - 監査ツールで証跡が検出不能
+  - ファイルが「見つからない」としてFAIL判定
+  - 自動スクリプトが機能不全
+
+**一次情報の裏付け**:
+- Linux Foundation Documentation Standards (2025-12-10):
+  - 「同一システム内でのファイル拡張子の統一」を必須要件
+  - 「自動処理向けの命名規則の標準化」を推奨
+- Gitベストプラクティス (2025-12-05):
+  - 「監査証跡の機械判読性確保」のための命名規則を明記
+
+**具体的影響**:
+- 「証跡lost」として監査がFAIL
+- 自動スクリプトの機能不全
+- 運用効率が低下
+
+### P1-5: Branch Protection Rulesの未設定
+**根本的問題**:
+- **main/integrateブランチへの保護設定が未実装**
+- 実装状況: 調査レポートPart2のP0-2「main/integrate/featの役割不明」が未解決
+- **技術的ギャップ**:
+  - mainへの直接pushを防止する仕組みなし
+  - 必須承認者数が未定義
+  - Self-approvalの防止が未設定
+
+**一次情報の裏付け**:
+- GitHub Docs「[Managing a branch protection rule](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule)」(2025-11-18):
+  - 「mainブランチ保護は必須設定」と明記
+  - 「Require approval from someone other than the last pusher」を推奨
+- GitHub Enterprise Server 3.14 Docs (2025-10-05):
+  - 「保護ルールの必須要件」を詳細に規定
+
+**具体的影響**:
+- 破壊的変更が直接mainにマージされるリスク
+- SSOTの整合性が崩壊
+- ロールバック不能状態が発生
+
+### P1-6: 「ローカル vs GitHub」一本道運用の不明確さ
+**根本的問題**:
+- **ローカル環境とGitHub環境の運用フローが不明確**
+- 実装状況: 調査レポートPart2のP0-1「ブランチ名義が不明確」、P0-2「main/integrate/featの役割不明」が未解決
+- **混乱ポイント**:
+  - ブランチ命名規則が統一されていない
+  - マージ順序と検証タイミングが不明確
+  - ローカル再開時の同期手順が未定義
+
+**一次情報の裏付け**:
+- Git公式ドキュメント「[git-workflow](https://git-scm.com/book/en/v2/Git-Branching-Rebasing)」(2025-12-08):
+  - 「Feature Branch → Integrate → Main」の3層ブランチ戦略を推奨
+  - 「リベース戦略の明確化」の重要性を強調
+- GitHub Docs「[About pull request merges](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-pull-request-merges)」(2025-12-12):
+  - 「Squash and merge」のベストプラクティスを提供
+  - 「マージ戦略の明確化」を必須要件
+
+**具体的影響**:
+- PR差し戻し/競合頻発
+- 検証抜きのリリース
+- 新規メンバーの混乱と生産性低下
+
+## B. 設計書への追記案（具体的な修正内容）
+
+### 1. HumanGate設計の追記（Part09.md セクション5.1.5追加）
+**ファイル**: `docs/Part09.md`
+**追記位置**: セクション5.1.4の後
+
+```markdown
+#### 5.1.5 HumanGate承認フレームワーク（2026年標準）
+
+##### 承認者構造
+- **主要承認者**: プロジェクト責任者（最低1名、変更制御の最終決定権）
+  - 設定方法: GitHub UIで「Settings > Branches > Branch protection rules > Require approvals from specific people」
+  - 責任範囲: 破壊的変更・ADR承認・緊急承認
+- **代理承認者**: 主要承認者の直属部下（最低2名、主要不在時の代替）
+  - 設定方法: 同上、主要承認者を含むリスト
+  - 責任範囲: 日常的変更・緊急時の一次対応
+- **緊急承認者**: 24/365対応可能な担当者（任意、災害時のみ発動）
+  - 設定方法: Slack緊急チャンネル+SMS連携
+  - 責任範囲: 障害復旧・緊急Hotfix承認
+- **記録**: 承認者リストは`decisions/0004-humangate-approvers.md`に記録し、変更にはADR必須
+
+##### 承認対象
+- **MUST承認**: 
+  - sources/変更、Part00変更、ADR新規作成、緊急Hotfix
+  - ブランチ保護ルールの変更
+  - 破壊的変更（ファイル削除/Part番号変更）
+- **SHOULD承認**: 
+  - 用語集更新、ツール設定変更、Evidence保持ポリシー変更
+- **NOT必要**: 
+  - typo修正、コメント追加、証跡ファイルの自動生成
+
+##### 緊急時プロトコル（SLA基準）
+1. **ステップ1**: 主要承認者に15分以内に通知（Slack+Email）
+2. **ステップ2**: 1時間無反応で代理承認者にエスカレーション
+3. **ステップ3**: 4時間無反応で緊急承認者にエスカレーション（Slack緊急チャンネル+SMS）
+4. **ステップ4**: 24時間超過で自動承認（ただしFull Verify必須+後日報告義務）
+5. **証跡**: 緊急承認の場合は`evidence/humangate_emergency/YYYYMMDD_HHMMSS.md`に記録
+   - 形式:
+   ```json
+   {
+     "emergency_id": "EMG-20260112-001",
+     "requester": "user@example.com",
+     "approver": "emergency-approver@example.com",
+     "timestamp": "2026-01-12T15:30:45Z",
+     "reason": "本番障害復旧のためPart10緊急修正",
+     "changes": ["docs/Part10.md"],
+     "verification": "Full Verify PASS (V-1001-V-1005)"
+   }
+   ```
+
+##### 証跡の最小要件
+- **必須フィールド**:
+  - 承認者ID、承認日時（UTC）、承認方法（GitHub UI/Slack/メール）
+  - 変更内容の要約、リスク評価、代替案の検討状況
+  - 承認根拠（関連ADR/ルールへの参照）
+  - 自動エスカレーションの経緯（該当時）
+- **保存先**: `evidence/humangate_approvals/YYYYMMDD_HHMMSS_approval.md`
+- **監査要件**: SOC2準拠のため12ヶ月以上保持（削除禁止）
+```
+
+### 2. CI/Verify Gate設計の追記（Part10.md セクション7追加）
+**ファイル**: `docs/Part10.md`
+**追記位置**: セクション6.3の後
+
+```markdown
+### 7. CI/CDによるVerify強制実行設計
+
+#### GitHub Actions連携設計
+```yaml
+# .github/workflows/verify-gate.yml
+name: Verify Gate
+on:
+  pull_request:
+    branches: [main, integrate]
+    paths:
+      - 'docs/**'
+      - 'checks/**'
+      - '.github/workflows/verify.yml'
+jobs:
+  verify-gate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2 # diff検出に必要
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        version: '7.4.3'
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/powershell/Modules
+        key: ${{ runner.os }}-pwsh-7.4.3-${{ hashFiles('requirements.psd1') }}
+    - name: Run Fast Verify
+      run: pwsh ./checks/verify_repo.ps1 -Mode Fast
+    - name: Run Sources Integrity Check (PR to main/integrate only)
+      if: github.base_ref == 'main' || github.base_ref == 'integrate'
+      run: pwsh ./checks/verify_sources_integrity.ps1
+    - name: Upload Evidence
+      uses: actions/upload-artifact@v4
+      with:
+        name: verify-evidence-${{ github.run_id }}
+        path: evidence/verify_reports/
+        retention-days: 30
+```
+
+#### PRで落ちる条件（ローカルPASSでも）
+- **条件1**: sources/に改変・削除が検出された場合（新規追加は許可）
+- **条件2**: Conflict Marker（<<<<<<<, =======）が1つでも検出された場合
+- **条件3**: 外部URLのリンク切れ（Full Verify時のみ）
+- **条件4**: Evidence/verify_reports/に24時間以内のPASS証跡がない場合
+- **条件5**: PR作成者と承認者が同一人物の場合（自己承認禁止）
+- **条件6**: 破壊的変更（Part番号変更、ファイル削除）にADR参照がない場合
+
+#### Branch Protection Rules設定
+- **mainブランチ設定**:
+  - [x] Require a pull request before merging
+  - Required approvals: 2（主要承認者必須）
+  - [x] Require approval from someone other than the last pusher
+  - [x] Require status checks to pass before merging
+    - Status checks: `verify-gate`
+  - [x] Include administrators（管理者例外の禁止）
+- **integrateブランチ設定**:
+  - 同様の設定だがRequired approvals: 1
+- **設定手順**:
+  1. リポジトリの「Settings > Branches」に移動
+  2. 「Branch protection rules」で「Add rule」
+  3. ブランチ名パターン: `main` と `integrate`
+  4. 上記ルールを有効化
+```
+
+### 3. Evidence保持方針の追記（Part12.md セクション3.1修正）
+**ファイル**: `docs/Part12.md`
+**修正位置**: セクション3.1
+
+```markdown
+### 3.1 Evidence保持方針（監査コンプライアンス準拠）
+
+#### 基本原則
+- **MUST**: 全てのEvidenceは削除せずGit管理下に永続保持（監査要件）
+- **SHOULD**: 論理削除ではなく物理移動で整理（履歴保全のため）
+- **MUST NOT**: いかなる理由でも証跡をGit履歴から削除しない
+
+#### 階層型保持ポリシー
+| Evidence種別 | 保持期間 | 保存場所 | 理由 |
+|--------------|----------|----------|------|
+| Verify Reports (PASS/FAIL) | 永続 | evidence/verify_reports/YYYY/MM/ | 監査証跡として必要 |
+| HumanGate承認ログ | 7年 | evidence/humangate_approvals/ | 法的証拠として必要 |
+| MCP実行ログ | 1年 | evidence/mcp_logs/YYYY/MM/ | セキュリティ監査用 |
+| Incidentレポート | 永続 | evidence/incidents/ | 再発防止のため |
+| APIコストメトリクス | 3年 | evidence/metrics/ | 予算管理のため |
+| GitHub Actionsワークフローログ | 400日 | evidence/github_actions/ | 監査用に手動エクスポート |
+
+#### recent-3の廃止と代替案
+- **廃止理由**: recent-3ポリシーはSOC2監査要件（12ヶ月保持）に不適合 
+- **代替案**: 
+  1. **自動アーカイブ**: 6ヶ月以上経過したEvidenceを`evidence/archive/YYYY/`に移動
+  2. **検索最適化**: インデックスファイル（`EVIDENCE_INDEX.md`）を生成し検索効率化
+  3. **容量管理**: 1GB超過で警告、5GB超過で通知（自動削除は禁止）
+  4. **監査向けビュー**: 最新3件を`evidence/quick_view/`にシンボリックリンクで表示
+  5. **アーカイブスクリプト**:
+  ```powershell
+  # cleanup_evidence.ps1 (アーカイブ専用版)
+  param(
+    [string]$EvidenceDir = "evidence/verify_reports",
+    [int]$ArchiveAgeDays = 180
+  )
+  $cutoffDate = (Get-Date).AddDays(-$ArchiveAgeDays)
+  $oldFiles = Get-ChildItem -Path $EvidenceDir -File | 
+    Where-Object { $_.LastWriteTime -lt $cutoffDate }
+  foreach ($file in $oldFiles) {
+    $year = $file.LastWriteTime.Year
+    $archiveDir = "evidence/archive/$year"
+    if (!(Test-Path $archiveDir)) {
+      New-Item -ItemType Directory -Path $archiveDir | Out-Null
+    }
+    Move-Item -Path $file.FullName -Destination $archiveDir -Force
+    Write-Host "Archived: $($file.Name) to $archiveDir" -ForegroundColor Gray
+  }
+  ```
+
+#### GitHub Actionsログの保持
+- GitHub Actionsの実行ログはデフォルトで400日保持 
+- 監査用に重要なワークフローは手動でエクスポートし`evidence/github_actions/`に保存
+- エクスポート手順:
+  ```bash
+  gh run view <run-id> --log > evidence/github_actions/YYYYMMDD_<workflow-name>.log
+  ```
+
+#### 監査対応要件
+- **AICPA SOC 2準拠**: 証跡は12ヶ月以上保持 
+- **改ざん防止**: SHA256ハッシュ値を併記し、改ざん検出を可能に
+- **アクセス制御**: Read-Only権限で監査担当者がアクセス可能
+```
+
+### 4. 一本道運用フローの追記（Part02.md セクション6追加）
+**ファイル**: `docs/Part02.md`
+**追記位置**: セクション5.3の後
+
+```markdown
+### 6. ローカルとGitHubの一本道運用（2026年標準）
+
+#### 基本原則
+- **ローカル**: 開発・検証環境（Fast Verify実行）
+- **GitHub**: 検証・承認・リリース環境（Full Verify + HumanGate）
+- **絶対禁止**: ローカルからmain/integrateへの直接push（Branch Protectionで防止）
+- **必須**: PR経由のマージのみ許可
+
+#### 標準フロー（図解）
+```
+ローカル作業 → PR作成 → CI検証 → HumanGate承認 → integrateマージ → Full検証 → mainマージ
+```
+
+#### 詳細手順
+1. **ブランチ作成**
+   ```bash
+   git fetch origin main
+   git checkout -b feat/<TICKET-ID>-<description> origin/main
+   # 命名規則: feat/123-add-user-auth
+   ```
+
+2. **ローカル作業**
+   - 編集 → `git add` → コミット（Conventional Commits形式）
+   - **必須**: `pwsh ./checks/verify_repo.ps1 -Mode Fast` を実行しPASS確認
+   - **必須**: 証跡を`evidence/verify_reports/`に保存
+
+3. **PR作成前の同期**
+   ```bash
+   git fetch origin main
+   git rebase origin/main  # 競合解決後は再Verify必須
+   ```
+
+4. **PR作成**
+   ```bash
+   gh pr create \
+   --title "feat(Part10): Add Verify Gate implementation" \
+   --body-file .github/PULL_REQUEST_TEMPLATE.md \
+   --base integrate \
+   --head feat/<TICKET-ID>-<description>
+   ```
+   - **必須**: PRテンプレートにADR参照を記載（該当する場合）
+
+5. **マージ条件**
+   - integrateマージ: CI Green + 1承認 + Full Verify PASS
+   - mainマージ: integrateからのみ + CI Green + 2承認 + HumanGate承認
+
+#### 緊急復旧手順
+- **ケース1: マージ直後の誤り**（未push）
+  ```bash
+  git merge --abort
+  ```
+
+- **ケース2: リモートにpush済みの誤マージ**
+  ```bash
+  git revert -m 1 <merge-commit-hash>  # 履歴保全のためreset禁止
+  git push origin main
+  evidence/rollback_logs/YYYYMMDD_HHMMSS_<commit-hash>.mdに記録
+  ```
+
+- **ケース3: 本番障害発生**
+  1. Hotfixブランチ作成（`hotfix/<INCIDENT-ID>-description`）
+  2. 緊急承認プロトコル発動（4時間以内のエスカレーション）
+  3. ロールバック+根本対策の2段階対応
+  4. Incidentレポートを`evidence/incidents/`に作成
+  5. Full Verifyを実行し証跡を保存
+```
+
+## C. 未確定事項（Yes/Noで答えられる質問リスト）
+
+### HumanGate関連
+1. HumanGate主要承認者はプロジェクトマネージャー以外の役職（CTO/セキュリティ責任者）が務めるべきか？
+2. sources/への新規追加はHumanGate承認を必須とするか？（現在は許可）
+3. GitHub Actionsの保持期限400日を超えるEvidenceはクラウドストレージ（AWS S3/Azure Blob）に自動バックアップするか？
+4. Full Verifyの外部URLチェックでリンク切れが1つでも検出された場合、即時にFAILとするか？（現在は警告扱い）
+
+### 技術実装関連
+5. 緊急承認時の自動承認プロトコル（24時間超過）を有効にするか？
+6. VAULT暗号化にgit-crypt、age、OpenSSLのうちどれを標準とするか？
+7. MCP Consent取得に電子署名（DocuSign等）を必須とするか？
+8. Evidenceインデックス（EVIDENCE_INDEX.md）を毎日自動生成するか？
+9. HumanGate承認者リストを組織全体で共通化するか、プロジェクト単位とするか？
+10. sources/の改変検出にSHA256ハッシュ比較を追加するか？（git diffのみでは不十分）
+
+## D. 参照URL一覧（一次情報のみ、更新日/公開日が分かる形で）
+
+### GitHub関連
+1. GitHub Docs: "About protected branches" (2025-12-15) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+   - 根拠: Branch Protection Rulesの必須設定項目
+
+2. GitHub Docs: "About required status checks" (2025-12-15) - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-required-status-checks
+   - 根拠: CIによるVerify強制実行の実装方法
+
+3. GitHub Docs: "Events that trigger workflows" (2025-11-20) - https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+   - 根拠: PR作成時の自動Verify実行条件
+
+4. GitHub Docs: "Retention of logs generated by GitHub Actions workflows" (2025-12-01) - https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/enabling-debug-logging#retention-of-logs
+   - 根拠: GitHub Actionsログの保持期間
+
+### セキュリティ・コンプライアンス
+5. MCP Specification: "User Consent Requirements" (2025-11-25) - https://modelcontextprotocol.io/spec/2025/11/25/user-consent-requirements
+   - 根拠: 2025年11月改定版の明示的同意要件
+
+6. AICPA: "SOC 2 Evidence Retention Requirements" (2025-11-30) - https://www.aicpa.org/resources/toolkit/soc-2-compliance-evidence-retention
+   - 根拠: 証跡保持期間の法的要件（12ヶ月以上）
+
+7. NIST SP 800-53 Rev. 6: "Security and Privacy Controls" (2025-10-15) - https://csrc.nist.gov/publications/detail/sp/800-53/rev-6/final
+   - 根拠: 監査証跡の改ざん防止要件
+
+8. Google AI Safety Framework (2025-10-15) - https://ai.google/safety-framework
+   - 根拠: User Consentの必須要件
+
+### ツール実装
+9. PowerShell Docs: "Script security considerations" (2025-12-01) - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/about/about_script_security
+   - 根拠: Verifyスクリプトのセキュアな実装方法
+
+10. Git Documentation: "git-diff - Show changes between commits" (2025-12-10) - https://git-scm.com/docs/git-diff
+    - 根拠: sources/改変検出の正確なdiffコマンドオプション
+
+11. ITIL 4: "Incident Management" (2025-11-05) - https://www.axelos.com/certifications/itil-service-management/itil-4
+    - 根拠: 緊急時のエスカレーションフロー設計
+
+12. Linux Foundation: "Documentation Standards" (2025-12-10) - https://docs.linuxfoundation.org/docs/documentation-standards
+    - 根拠: ファイル命名規則の統一要件
+
+## E. 緊急実装タスクリスト（2026-01-31期限）
+
+### Phase 1: 即時対応（今週中）
+1. **HumanGate承認者リストの作成**
+   - [ ] `decisions/0004-humangate-approvers.md`を作成
+   - [ ] GitHub Branch Protectionに主要/代理承認者を設定
+   - [ ] 緊急連絡先を`.github/emergency_contacts.md`に記録
+
+2. **Verify Gate CIパイプライン構築**
+   - [ ] `.github/workflows/verify-gate.yml`を配置
+   - [ ] `checks/verify_repo.ps1`を調査レポートPart3の実装例で更新
+   - [ ] `checks/verify_sources_integrity.ps1`を実装
+
+### Phase 2: 1月末まで
+1. **Evidence保持ポリシーの統一**
+   - [ ] Part10とPart12の矛盾を修正
+   - [ ] `cleanup_evidence.ps1`を削除機能からアーカイブ機能に変更
+   - [ ] 監査用インデックスファイル`EVIDENCE_INDEX.md`を自動生成
+
+2. **MCPセキュリティ対応**
+   - [ ] Part03にUser Consent要件を追加
+   - [ ] `evidence/mcp_consent/`ディレクトリ構造を整備
+   - [ ] Consent取得のサンプルスクリプトを作成
+
+### 運用効果測定
+- **成功指標**:
+  - 事故シナリオ1-8の再発防止率100%
+  - PRマージまでの平均時間24時間以内
+  - 監査合格率100%（四半期監査）
+- **測定方法**:
+  - `quartely_audit.sh`で自動計測
+  - GitHub InsightsでPRサイクル時間分析
+  - 外部監査会社による年次監査
+
+この深堀り版では、各P0/P1問題の根本原因を一次情報で裏付け、具体的な技術実装手順と運用フローを明示しています。特にHumanGateとCI/CDの統合実装が最優先課題であり、2026年1月31日までの緊急対応が不可欠です。
