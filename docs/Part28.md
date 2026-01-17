@@ -54,7 +54,7 @@
    - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
    - [RFC 7591: Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html)
 5. **vibe-mcp-flex-router-node が配置されている**
-   - `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node` に配置済み
+   - 親ディレクトリまたは兄弟ディレクトリに配置（`../vibe-mcp-flex-router-node/` 推奨）
    - MCPツール `llm_chat` / `llm_health` / `llm_cache_clear` を提供
 
 ---
@@ -303,7 +303,11 @@ MCPはIDE/CLIから直接呼べるようにする：
 vibe-mcp-flex-router-node は **MCPのLLMルーティング用途**に限定して運用する。
 
 - **役割**: MCPクライアントからのLLM呼び出しを `llm_chat` / `llm_health` / `llm_cache_clear` で中継し、Gemini/Z.ai へルーティングする
-- **配置**: ローカル端末（`C:\Users\koji2\Desktop\vibe-mcp-flex-router-node`）に常設し、STDIOでのみ起動する（HTTP公開しない）
+- **配置推奨**:
+  - vibe-spec-ssot の親ディレクトリまたは兄弟ディレクトリに配置
+  - 推奨パス: `../vibe-mcp-flex-router-node/` または `../../vibe-mcp-flex-router-node/`
+  - 絶対パスは使用せず、環境依存しない相対パスで記述
+  - vibe-spec-ssot 側からは `.MCP.json` または `.claude/mcp_settings.json` で相対パスを指定
 - **起動**: `Start_VIBE_MCP_Inspector.cmd` または `run-inspector-safe.cmd` を推奨し、STDIO単体時は `npm run start`
 - **更新**: 更新前に `git status` で作業差分を確認し、`git pull --ff-only` → `npm install` → `npm run verify:stdio` を必須
 - **障害時切替**: `llm_health` が失敗した場合は、MCPクライアント側を直結設定（Gemini/Z.ai のOpenAI互換エンドポイント）へ切替し、Evidenceに記録する
@@ -325,8 +329,23 @@ vibe-mcp-flex-router-node は **MCPのLLMルーティング用途**に限定し�
 4. **Verify**: `checks/verify_repo.ps1`（Fast）で合格を確認する
 5. **証跡**: Verifyレポートと変更差分を Evidence に保存し、必要に応じて `_MANIFEST_SOURCES.md` を更新する
 
-Evidenceテンプレ（例）:
+**フロー図**:
 ```
+外部調査（一次情報収集）
+    ↓
+Evidence作成（evidence/research_import/YYYYMMDD_<topic>.md）
+    ↓
+設計書反映（該当Part.mdの編集）
+    ↓
+Verify（pwsh .\checks\verify_repo.ps1 Fast）
+    ↓
+証跡保存（verify_reports + diff → evidence/）
+    ↓
+Proof（ADRで決定事項を記録）
+```
+
+**Evidenceテンプレート（例）**:
+```markdown
 # <調査タイトル>
 
 ## URL
@@ -343,6 +362,9 @@ Evidenceテンプレ（例）:
 
 ## 設計へ落とすべき要点
 - 箇条書き
+
+## 反映先
+- Part28.md: R-2806（ルータ運用）
 ```
 
 ### R-2808: 一次情報優先ルール【MUST】
@@ -410,6 +432,14 @@ Evidenceテンプレ（例）:
 4. 再検証: `npm run verify:stdio` → `llm_health` を確認
 5. 証跡: 更新日と検証結果をEvidenceに記録
 
+#### ロールバック（Rollback）
+1. バージョン確認: `git log --oneline -5` で戻すべきコミットを確認
+2. ロールバック実行: `git reset --hard <commit-hash>`
+3. 依存復元: `npm install`
+4. 再検証: `npm run verify:stdio` → `llm_health` を確認
+5. 証跡: ロールバック理由とコミットハッシュをEvidenceに記録
+6. ADR作成: ロールバードした原因と対策を記録
+
 #### 障害復旧（Recovery）
 1. Inspector接続不可: ブラウザ再起動 → Inspector再起動 → `llm_health` 再確認
 2. 返答エラー: `.env` のキー有無を確認し、`provider` を固定して切り分け
@@ -417,15 +447,55 @@ Evidenceテンプレ（例）:
 4. 端末フリーズ: OSのタスク管理でプロセスを停止し、再起動する
 
 #### 障害時切替（Failover）
-1. Router障害: `llm_health` がFailなら直ちにMCPクライアント側の直接接続に切替
+
+**フェイルオーバー条件**:
+- `llm_health` が3回連続で失敗
+- `llm_chat` が30秒以上タイムアウト
+- Routerプロセスがクラッシュ（STDIO接続切断）
+- 返答に `provider: null` または `error` が含まれる
+
+**自動切替手順**:
+1. Router障害検出: `llm_health` がFailなら直ちにMCPクライアント側の直接接続に切替
 2. 切替先: Gemini/Z.ai のOpenAI互換エンドポイントを指定して応急運用
 3. 証跡: 切替理由・開始/終了時刻・影響範囲をEvidenceに記録
 
+**手動介入ポイント（HumanGate）**:
+- 自動切替が失敗した場合、`.MCP.json` を手動で書き換え
+- Router復帰後、切戻しの判断（人が確認してから元に戻す）
+- 長期障害（1時間以上）の場合、ADRで暫定運用を決定
+
+**切替先のエンドポイント例**:
+```json
+{
+  "mcpServers": {
+    "gemini-direct": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["../some-direct-mcp-client/server.mjs"],
+      "env": {
+        "GEMINI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+**復旧手順**:
+1. Router復帰を確認: `llm_health` が成功することを確認
+2. `.MCP.json` を元の設定に戻す
+3. MCPクライアントを再起動
+4. Evidenceに復旧記録を保存
+
 #### クライアント設定（Client Config）
 1. `.MCP.json.example` を基に `.MCP.json` を作成する
-2. `command` は `node`、`args` は `server.mjs` の**絶対パス**
-3. パスはJSONの仕様に従い `\\` でエスケープする
+2. `command` は `node`、`args` は `server.mjs` の**相対パス**
+3. パスはJSONの仕様に従いバックスラッシュをエスケープする
 
+**配置推奨**:
+- vibe-mcp-flex-router-node を `../vibe-mcp-flex-router-node/` に配置
+- vibe-spec-ssot のルートに `.MCP.json` を作成
+
+**`.MCP.json` 設定例（相対パス）**:
 ```json
 {
   "mcpServers": {
@@ -433,13 +503,17 @@ Evidenceテンプレ（例）:
       "type": "stdio",
       "command": "node",
       "args": [
-        "C:\\Users\\koji2\\Desktop\\vibe-mcp-flex-router-node\\server.mjs"
+        "../vibe-mcp-flex-router-node/server.mjs"
       ],
       "env": {}
     }
   }
 }
 ```
+
+**絶対パスが必要な場合の代替案**:
+- 環境変数を使用: `process.env.VIBE_ROUTER_PATH`
+- または、プロジェクトルートからの相対パスを解決するラッパースクリプトを使用
 
 #### ログ/証跡（Logs & Evidence）
 1. 起動ログとエラーはEvidenceに保存（標準エラーの内容のみ）
@@ -450,6 +524,40 @@ Evidenceテンプレ（例）:
 1. `.env` の内容をログ・チケット・チャットに貼らない
 2. `llm_health` のみで鍵の有無を確認する
 3. 不要な常時起動は避け、タスク単位で起動・停止する
+
+---
+
+### 手順F: 外部調査→根拠→設計書反映→Verify→証跡
+
+#### ステップ1: 外部調査
+1. 公式仕様・公式Repo・公式アナウンスを優先して収集
+2. URL、更新日を記録
+3. 一次情報がない場合のみ二次情報を使用
+
+#### ステップ2: Evidence作成
+1. `evidence/research_import/YYYYMMDD_<topic>.md` を作成
+2. テンプレートに従って記入
+3. 種別を明記（Primary / Secondary）
+
+#### ステップ3: 設計書反映
+1. 該当Part.mdを編集
+2. Evidenceのファイル名を参照として追加
+3. 反映箇所を明記
+
+#### ステップ4: Verify
+1. `pwsh .\checks\verify_repo.ps1 Fast` を実行
+2. PASSを確認（警告がある場合は対処）
+3. 必要に応じて修正
+
+#### ステップ5: 証跡保存
+1. Verifyレポートを `evidence/verify_reports/` に保存
+2. 変更差分を `git diff` で確認し保存
+3. 必要に応じて `_MANIFEST_SOURCES.md` を更新
+
+#### ステップ6: Proof（ADR）
+1. ADRで決定事項を記録
+2. 根拠Evidenceを参照
+3. 再発防止策を記述
 
 ---
 
@@ -811,9 +919,10 @@ function validateHeaders(headers) {
 - `context-packs/` : Context Pack保存先
 
 ### external/
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\README.md` : 運用手順の一次情報
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\server.mjs` : ツール定義（llm_chat/llm_health）
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\.MCP.json.example` : クライアント設定例
+- `../vibe-mcp-flex-router-node/README.md` : 運用手順の一次情報
+- `../vibe-mcp-flex-router-node/server.mjs` : ツール定義（llm_chat/llm_health）
+- `../vibe-mcp-flex-router-node/.MCP.json.example` : クライアント設定例
+- **注意**: 絶対パスは使用せず、相対パスで参照すること
 
 ### その他
 - [CLAUDE.md](../CLAUDE.md) : Claude Code 常設ルール
