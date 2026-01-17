@@ -15,3 +15,8 @@ export/
 
 .DS_Store
 Thumbs.db
+# local / generated / bulky artifacts
+out/
+evidence/research_import/
+sources/research_inbox/
+_imports/
