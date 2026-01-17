@@ -15,3 +15,8 @@ export/
 
 .DS_Store
 Thumbs.db
+
+# WORK transient paths
+WORK/tmp/
+WORK/out/
+WORK/_scratch/
