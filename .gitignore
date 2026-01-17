@@ -20,3 +20,12 @@ Thumbs.db
 WORK/tmp/
 WORK/out/
 WORK/_scratch/
+# build / export artifacts
+out/
+
+# bulky research drops (keep only curated or index)
+evidence/research_import/
+sources/research_inbox/
+
+# local imports (already local-only, but keep safe)
+_imports/
