@@ -37,10 +37,15 @@
 ## 3. 前提（Assumptions）
 
 1. **promptfooがインストールされている**（`npm install -g promptfoo`）
+   - 公式ドキュメント: [promptfoo.dev](https://www.promptfoo.dev/docs/)
+   - [promptfoo GitHub](https://github.com/promptfoo/promptfoo)
 2. **主要プロンプト・主要エージェント**が特定されている
 3. **期待出力・最低基準**が定義されている
 4. **CIパイプライン**（GitHub Actions等）が構築されている
 5. **Part10（Verify Gate）** との連携が確立されている
+6. **回帰テストのベストプラクティス**が策定されている
+   - [Why Regression Testing LLMs is Essential](https://adel-muursepp.medium.com/why-regression-testing-llms-is-essential-a-practical-guide-with-promptfoo-7b39b636bf91) : LLM回帰テストの重要性
+   - [LLM Evaluation Testing with promptfoo](https://kpavlov.me/blog/llm-evaluation-testing-with-promptfoo-a-practical-guide/) : promptfoo実践ガイド
 
 ---
 
@@ -416,6 +421,18 @@ promptfooは以下の品質レポートを生成する：
 - [docs/Part10.md](Part10.md) : Verify Gate
 - [docs/Part21.md](Part21.md) : 工程別AI割当
 - [docs/Part24.md](Part24.md) : 可観測性設計
+
+### promptfoo公式一次情報
+- [promptfoo Documentation](https://www.promptfoo.dev/docs/) : promptfoo公式ドキュメント
+- [promptfoo GitHub Repository](https://github.com/promptfoo/promptfoo) : promptfoo公式リポジトリ
+- [promptfoo Release Notes](https://www.promptfoo.dev/docs/releases/) : リリースノート
+- [AI Regulation 2025 (promptfoo Blog)](https://www.promptfoo.dev/blog/ai-regulation-2025/) : AI規制2025（promptfoo公式ブログ）
+
+### 回帰テスト・評価一次情報
+- [Why Regression Testing LLMs is Essential](https://adel-muursepp.medium.com/why-regression-testing-llms-is-essential-a-practical-guide-with-promptfoo-7b39b636bf91) : LLM回帰テストの重要性
+- [LLM Evaluation Testing with promptfoo](https://kpavlov.me/blog/llm-evaluation-testing-with-promptfoo-a-practical-guide/) : promptfoo実践ガイド
+- [Ultimate Guide to LLM Prompt Testing](https://imanishtyagi.medium.com/ultimate-guide-to-llm-prompt-testing-a-hands-on-tutorial-with-promptfoo-b43ac17298a4) : LLMプロンプトテスト究極ガイド
+- [Enterprise-Grade Prompt Evaluation](https://www.truefoundry.com/blog/enterprise-ready-prompt-evaluation-how-truefoundry-and-promptfoo-enable-confident-ai-at-scale) : エンタープライズ級プロンプト評価
 
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「2.5 回帰防止」「4.6 promptfooで"回帰しない"を機械化」）

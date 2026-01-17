@@ -31,6 +31,10 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 2. AI Agentは指示に従うが、**判断ミス・過剰実行・暴走** のリスクがある
 3. 人間の承認（HumanGate）は **最終防衛線** として機能する
 4. すべての変更は **再現可能・監査可能** でなければならない
+5. **OAuth 2.1ベースのMCP認証**が構築されている
+   - [OAuth 2.1 Authorization Framework (IETF Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/)
+   - [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization)
+   - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
 
 ## 4. 用語（Glossary参照：Part02）
 
@@ -435,12 +439,30 @@ deny[msg] {
 
 ## 12. 参照（パス）
 
-- docs/Part00.md（前提・目的）
-- docs/Part02.md（共通語彙）
-- docs/Part10.md（Verify Gate）
-- docs/Part11.md（並列タスク運用、今後定義）
-- glossary/GLOSSARY.md（用語定義）
-- decisions/0001-ssot-governance.md（SSOT運用ガバナンス）
-- decisions/0004-humangate-approvers.md（HumanGate承認者・SLA）
-- checks/README.md（検証手順）
-- CLAUDE.md（常設ルール）
+### docs/
+- [Part00.md](Part00.md)（前提・目的）
+- [Part02.md](Part02.md)（共通語彙）
+- [Part10.md](Part10.md)（Verify Gate）
+- [Part11.md](Part11.md)（並列タスク運用）
+- [Part28.md](Part28.md)（MCP連携設計）
+
+### MCP/OAuth 2.1一次情報
+- [Model Context Protocol Specification (2025-03-26)](https://modelcontextprotocol.io/specification/2025-03-26) : MCP公式仕様書
+- [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization) : MCP認証仕様
+- [OAuth 2.1 Authorization Framework (IETF Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/) : OAuth 2.1公式ドラフト
+- [RFC 8414: OAuth 2.0 Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html) : 認証サーバーメタデータ
+- [RFC 7591: OAuth 2.0 Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html) : 動的クライアント登録
+- [RFC 8707: Resource Indicators for OAuth 2.0](https://www.rfc-editor.org/rfc/rfc8707.html) : リソースインジケーター
+
+### glossary/
+- [glossary/GLOSSARY.md](../glossary/GLOSSARY.md)（用語定義）
+
+### decisions/
+- [0001-ssot-governance.md](../decisions/0001-ssot-governance.md)（SSOT運用ガバナンス）
+- [0004-humangate-approvers.md](../decisions/0004-humangate-approvers.md)（HumanGate承認者・SLA）
+
+### checks/
+- [README.md](../checks/README.md)（検証手順）
+
+### その他
+- [CLAUDE.md](../CLAUDE.md)（常設ルール）

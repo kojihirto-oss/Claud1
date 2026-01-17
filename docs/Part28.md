@@ -27,18 +27,25 @@
 - MCP Serverの構成・運用
 - Context Packの生成・キャッシュ・管理
 - IDE/CLIからのMCP呼出
+- MCP認証・セキュリティ（OAuth 2.1ベース）
 
 ### Out of Scope（適用外）
 - 個別AIのプロンプト構造（Part26で扱う）
-- MCPプロトコルの詳細仕様
+- MCPプロトコルの詳細実装（公式仕様書を参照）
 
 ---
 
 ## 3. 前提（Assumptions）
 
 1. **MCP Serverが構築されている**（mcp-server-context-builder等）
+   - 公式仕様: [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26)
+   - GitHub: [modelcontextprotocol](https://github.com/modelcontextprotocol)
 2. **各AIツールがMCP対応している**（Claude Code等）
 3. **SSOTの構造が固定されている**（Part00-Part30）
+4. **OAuth 2.1ベースの認証が構築されている**
+   - [OAuth 2.1 Authorization Framework (Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/)
+   - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
+   - [RFC 7591: Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html)
 
 ---
 
@@ -214,6 +221,52 @@ MCPはIDE/CLIから直接呼べるようにする：
 
 ---
 
+### 例外4: MCPセキュリティインシデント
+
+KBで抽出されたMCPセキュリティに関する攻撃ベクトルと対策：
+
+#### Confused Deputy Problem（混同された代理人問題）
+**攻撃内容**:
+- MCPプロキシサーバーが静的クライアントIDを第三者APIに使用する場合
+- 悪意あるクライアントが同意クッキーを悪用し、ユーザーの明示的な承認なしに認証コードを取得
+
+**対策**:
+- **Per-Client Consent Storage**: クライアントごとの同意状態を分離して保存
+- **Consent UI Requirements**: 明確な同意UIでリクエスト元クライアントを識別
+- **Redirect URI Validation**: リダイレクトURIを厳密に検証
+
+**根拠**: [MCP Security - Confused Deputy](https://modelcontextprotocol.io/specification/draft/basic/authorization#security-considerations)
+
+#### Token Passthrough（トークン直接通過）アンチパターン
+**問題**:
+- MCPサーバーがトークンを検証せずに下流APIに通過させる
+- 監査証跡の欠如、説明責任の欠如
+
+**対策**:
+- **MUST NOT accept any tokens** that were not explicitly issued for the MCP server
+- **Validate token claims**: roles, privileges, audience
+
+#### Session Hijack Prompt Injection（セッションハイジャック）
+**攻撃内容**:
+- 攻撃者がセッションIDを使用してMCPサーバーを呼び出す
+- MCPサーバーが追加の認証をチェックしない
+
+**対策**:
+- **MUST verify all inbound requests**
+- **MUST NOT use sessions for authentication**
+- **Use secure random session IDs**
+
+#### Local MCP Server Compromise（ローカルMCPサーバー侵害）
+**リスク**:
+- ローカルMCPサーバーはユーザーと同じ権限で実行される
+- 悪意ある「スタートアップ」コマンドが実行される可能性
+
+**対策**:
+- **Pre-Configuration Consent**: 新しいローカルMCPサーバー接続前に同意ダイアログを表示
+- **Sandboxed Environment**: サンドボックス環境で最小限の権限で実行
+
+---
+
 ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
 
 ### V-2801: MCP Serverの稼働確認
@@ -295,6 +348,19 @@ MCPはIDE/CLIから直接呼べるようにする：
 - [docs/Part26.md](Part26.md) : プロンプトエンジニアリング標準
 - [docs/Part29.md](Part29.md) : IDE統合設計
 - [docs/Part30.md](Part30.md) : エージェント協調モデル
+
+### MCP公式一次情報
+- [Model Context Protocol Specification (2025-03-26)](https://modelcontextprotocol.io/specification/2025-03-26) : MCP公式仕様書
+- [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization) : MCP認証仕様（OAuth 2.1ベース）
+- [Anthropic MCP Announcement](https://www.anthropic.com/news/model-context-protocol) : AnthropicによるMCP発表
+- [MCP GitHub Organization](https://github.com/modelcontextprotocol) : MCP公式GitHub組織
+
+### OAuth 2.1関連一次情報
+- [OAuth 2.1 Authorization Framework (IETF Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/) : OAuth 2.1公式ドラフト
+- [RFC 8414: OAuth 2.0 Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html) : 認証サーバーメタデータ仕様
+- [RFC 7591: OAuth 2.0 Dynamic Client Registration Protocol](https://www.rfc-editor.org/rfc/rfc7591.html) : 動的クライアント登録プロトコル
+- [RFC 9470: OAuth 2.0 Step Up Authentication Challenge](https://www.rfc-editor.org/rfc/rfc9470.html) : ステップアップ認証チャレンジ
+- [OAuth.net Specifications](https://oauth.net/specs/) : OAuth仕様のハブ
 
 ### sources/
 - [_imports/最終調査_20260115_020600/必ず入れたい.md](../_imports/最終調査_20260115_020600/必ず入れたい.md) : 追加すべき機能（MCP活用）

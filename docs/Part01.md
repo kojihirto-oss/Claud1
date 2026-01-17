@@ -396,6 +396,11 @@ DoD を「緩和」して成功扱いすることを禁止する。
 - [docs/Part10.md](Part10.md) : Verify Gate（検証手順・VRループ）
 - [docs/Part13.md](Part13.md) : Release Package（リリース手順）
 
+### DoD・品質管理一次情報
+- [Definition of Done (DoD) Guide](https://www.mountaingoalsoftware.com/definition-of-done/) : DoDガイドライン
+- [Continuous Delivery: Definition of Done](https://www.continuousdelivery.com/definition-of-done/) : 継続的デリバリーとDoD
+- [Software Testing Best Practices](https://www.softwaretestinghelp.com/software-testing-best-practices/) : ソフトウェアテストベストプラクティス
+
 ### sources/
 - [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md) : 原文（L39-80）
 

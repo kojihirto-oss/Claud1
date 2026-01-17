@@ -57,7 +57,7 @@ Fast検証でPASSした証跡のみを採用する。
 1. 発見：Incidentの兆候・影響範囲・参照根拠を確認する。
 2. 記録：Incident内容、根拠、対象ファイル、保存先を記録する。
 3. 修正：最小差分で対策を反映し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
 5. 監査：対応概要・参照パス・証跡一覧・DoDを点検し、再発防止策を確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -78,7 +78,7 @@ Fast検証でPASSした証跡のみを採用する。
 **判定条件**:
 1. 発見・記録・修正・検証・監査の記録がある
 2. PASS証跡のみ採用されている
-3. 証跡4点（link/parts/forbidden/sources）が揃っている
+3. 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 
 **合否**:
 - **PASS**: 1〜3を満たす
@@ -107,12 +107,11 @@ Fast検証でPASSした証跡のみを採用する。
 **保存先**: evidence/verify_reports/
 
 ### E-1903: 証跡4点（最小セット）
-**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity
 **保存先**: evidence/verify_reports/
-
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] Incident対応と再発防止策が記録されている

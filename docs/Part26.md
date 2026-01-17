@@ -361,6 +361,13 @@ IDE（VS CodeやCursor）内で、「これは設計相談（ChatGPT）」「こ
 - [docs/Part21.md](Part21.md) : 工程別AI割当
 - [docs/Part30.md](Part30.md) : エージェント協調
 
+### プロンプトエンジニアリング一次情報
+- [OpenAI: Best practices for prompt engineering](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api) : OpenAI公式プロンプトエンジニアリングガイド
+- [Prompt Engineering Guide](https://www.promptingguide.ai/) : プロンプトエンジニアリング総合ガイド
+- [Prompt Engineering Best Practices 2025](https://codesignal.com/blog/prompt-engineering-best-practices-2025/) : 2025年版プロンプトエンジニアリングベストプラクティス
+- [The Ultimate Guide to Prompt Engineering in 2025](https://www.lakera.ai/blog/prompt-engineering-guide) : 2025年版プロンプトエンジニアリング究極ガイド
+- [Complete Prompt Engineering Guide: 15 AI Techniques for 2025](https://www.dataunboxed.io/blog/the-complete-guide-to-prompt-engineering-15-essential-techniques-for-2025) : 15のAI技術ガイド
+
 ### sources/
 - _imports/最終調査_20260115_020600/必ず入れたい.md : 追加すべき機能
 > 注：このファイルは _imports/ ディレクトリにあり、git管理外の参考資料です

@@ -452,6 +452,12 @@ VIBEKANBAN は「人間の計画 → AI の実行 → 人間の承認」の型�
 - [docs/Part10.md](Part10.md) : Verify Gate
 - [docs/Part14.md](Part14.md) : 変更管理
 
+### Kanban・タスク管理一次情報
+- [The Official Guide to The Kanban Method](https://kanban.university/kanban-guide/) : Kanbanメソッド公式ガイド
+- [Kanban Project Management Guide 2025](https://karyakeeper.com/kanban-project-management/) : 2025年版Kanbanプロジェクト管理ガイド
+- [8 Kanban Board Best Practices](https://gmelius.com/blog/kanban-board-strategy-guide) : Kanbanボードベストプラクティス
+- [Kanban in Agile (2025): Flow & Efficiency](https://premieragile.com/kanban-in-agile-2025-flow-efficiency/) : 2025年版Agile Kanban
+
 ### sources/
 - [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md) : 原文（L143-197）
 

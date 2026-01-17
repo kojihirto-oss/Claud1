@@ -37,10 +37,16 @@
 ## 3. 前提（Assumptions）
 
 1. **LiteLLMがGateway/Router**として稼働している
+   - 公式ドキュメント: [LiteLLM Documentation](https://docs.litellm.ai/docs/)
+   - [LiteLLM GitHub](https://github.com/berriai/litellm)
 2. **各AIプロバイダのAPIキー**が環境変数または設定ファイルに保存されている
 3. **工程タグ**（Spec/Design/Build/Review等）が付与されている
 4. **予算上限**が設定されている（モデル別・工程タグ別）
 5. **Part21（工程別AI割当）**のフォールバック順に従う
+6. **コスト最適化ベストプラクティス**が策定されている
+   - [LLM Cost Optimization: Complete Guide](https://ai.koombea.com/blog/llm-cost-optimization) : コスト最適化包括ガイド
+   - [LLM Cost Control: Practical LLMOps Strategies](https://radicalbit.ai/resources/blog/cost-control/) : 実用的LLMOps戦略
+   - [API Rate Limits Explained: Best Practices](https://orq.ai/blog/api-rate-limit) : レート制限ベストプラクティス
 
 ---
 
@@ -421,6 +427,20 @@ LiteLLMは以下の自動復帰機能を実装する：
 - [docs/Part21.md](Part21.md) : 工程別AI割当
 - [docs/Part24.md](Part24.md) : 可観測性設計
 - [docs/Part25.md](Part25.md) : 統合ツール構成
+
+### LiteLLM公式一次情報
+- [LiteLLM Documentation](https://docs.litellm.ai/docs/) : LiteLLM公式ドキュメント
+- [LiteLLM GitHub Repository](https://github.com/berriai/litellm) : LiteLLM公式リポジトリ
+- [LiteLLM Fallbacks - Proxy Reliability](https://docs.litellm.ai/docs/proxy/reliability) : フォールバック設定
+- [LiteLLM Routing, Loadbalancing & Fallbacks](https://docs.litellm.ai/docs/routing-load-balancing) : ルーティング・ロードバランシング
+- [Model Fallbacks w/ LiteLLM](https://docs.litellm.ai/docs/tutorials/model_fallbacks) : モデルフォールバックチュートリアル
+
+### コスト最適化・レート制限一次情報
+- [LLM Cost Optimization: Complete Guide to Reducing Costs](https://ai.koombea.com/blog/llm-cost-optimization) : LLMコスト最適化包括ガイド
+- [LLM Cost Control: Practical LLMOps Strategies](https://radicalbit.ai/resources/blog/cost-control/) : 実用的LLMOps戦略
+- [API Rate Limits Explained: Best Practices](https://orq.ai/blog/api-rate-limit) : レート制限ベストプラクティス
+- [How to Reduce LLM Spending by 30% Without Sacrificing Performance](https://medium.com/@future_agi/how-to-reduce-llm-spending-by-30-without-sacrificing-performance-88101ddf8953) : コスト削減戦略
+- [End-to-End Optimization for Cost-Efficient LLMs](https://arxiv.org/html/2504.13471v2) : コスト効率の良いLLMの最適化（学術論文）
 
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「2.4 モデル運用の配管」「4.4 LiteLLMで"制限耐性"を自動化」「7. コスト最適化」）

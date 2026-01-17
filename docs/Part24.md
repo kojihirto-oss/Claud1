@@ -36,9 +36,15 @@
 ## 3. 前提（Assumptions）
 
 1. **Langfuseサーバ**が稼働している（セルフホストまたはクラウド）
+   - 公式ドキュメント: [Langfuse Documentation](https://langfuse.com/docs)
+   - [Langfuse GitHub](https://github.com/langfuse/langfuse)
 2. **各AIエージェント**がLangfuseにトレースを送信する
 3. **工程タグ**（Spec/Design/Build等）が付与されている
 4. **Part10（Verify Gate）** との連携が確立されている
+5. **可観測性ベストプラクティス**が策定されている
+   - [LLM Observability & Application Tracing Overview](https://langfuse.com/docs/observability/overview) : LLM可観測性概要
+   - [Get Started with Tracing](https://langfuse.com/docs/observability/get-started) : トレース入門
+   - [Model Usage & Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) : 使用量・コスト追跡
 
 ---
 
@@ -409,6 +415,18 @@ Langfuseのダッシュボードで以下を可視化する：
 - [docs/Part21.md](Part21.md) : 工程別AI割当
 - [docs/Part22.md](Part22.md) : 制限耐性設計
 - [docs/Part23.md](Part23.md) : 回帰防止設計
+
+### Langfuse公式一次情報
+- [Langfuse Documentation](https://langfuse.com/docs) : Langfuse公式ドキュメント
+- [Langfuse GitHub Repository](https://github.com/langfuse/langfuse) : Langfuse公式リポジトリ
+- [LLM Observability & Application Tracing Overview](https://langfuse.com/docs/observability/overview) : LLM可観測性概要
+- [Get Started with Tracing](https://langfuse.com/docs/observability/get-started) : トレース入門ガイド
+- [Model Usage & Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) : 使用量・コスト追跡
+
+### 可観測性・モニタリング一次情報
+- [LLM Monitoring and Observability: Hands-on with Langfuse](https://towardsdatascience.com/llm-monitoring-and-observability-hands-on-with-langfuse/) : Langfuse実践チュートリアル
+- [Top Open-Source LLM Observability Tools in 2025](https://medium.com/@thepracticaldeveloper/top-open-source-llm-observability-tools-in-2025-d2d5cbf4b932) : 2025年のLLM可観測性ツール
+- [Observability for Skills: Logs, Evals, and Regression Tests](https://skywork.ai/blog/observability-for-skills-best-practices-logs-evals-regression/) : ログ・評価・回帰テスト
 
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「2.6 可観測性」「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」）

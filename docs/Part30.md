@@ -38,7 +38,13 @@
 
 1. **Core4の役割固定**がされている（Part03, Part21）
 2. **LiteLLM等のルーター**が構築されている（Part22）
+   - 公式ドキュメント: [LiteLLM Documentation](https://docs.litellm.ai/docs/)
+   - [LiteLLM Fallbacks](https://docs.litellm.ai/docs/proxy/reliability)
+   - [LiteLLM Model Fallbacks Tutorial](https://docs.litellm.ai/docs/tutorials/model_fallbacks)
 3. **VibeKanban**でタスク管理されている
+4. **HITL（Human-in-the-Loop）フレームワーク**が構築されている
+   - [Human-in-the-Loop for AI Agents: Best Practices](https://www.permit.io/blog/human-in-the-loop-for-ai-agents-best-practices-frameworks-use-cases-and-demo)
+   - [Keeping Humans in the Loop: Building Safer AI Agents](https://bytebridge.medium.com/keeping-humans-in-the-loop-building-safer-24-7-ai-agents-44a3366f94c2)
 
 ---
 
@@ -90,7 +96,7 @@ Core4は以下の役割を固定する：
 
 #### 承認必須操作
 - **ファイル変更**: Git commit・ファイル削除・大規模変更
-- **コマンド実行**: 任意ディレクトリ強制削除・git force push等の危険コマンド
+- **コマンド実行**: システムへの重大な影響を伴う操作（例: 強制削除、履歴改変を伴うプッシュ）
 - **AI切り替え**: 主担当からフォールバックへの切り替え
 - **リリース**: Release Gateの通過
 
@@ -140,7 +146,7 @@ Core4は以下の役割を固定する：
 - **対処**: 3回失敗したら上位AI or 人間にエスカレーション
 
 #### 危険コマンド禁止
-- **ルール**: 任意ディレクトリ強制削除・git force push等を禁止（Part27 Conftest）
+- **ルール**: システムに重大な影響を及ぼすコマンド（強制削除、履歴改変を伴うプッシュなど）は禁止されています（Part27 Conftest）
 - **実装**: checks/verify_repo.ps1 で検知
 - **対処**: 検知時は即座に Fail し、手動確認を要求
 
@@ -344,6 +350,18 @@ Core4は以下の役割を固定する：
 - [docs/Part21.md](Part21.md) : 工程別AI割当
 - [docs/Part22.md](Part22.md) : 制限耐性設計
 - [docs/Part28.md](Part28.md) : MCP連携設計
+
+### HITL（Human-in-the-Loop）一次情報
+- [Human-in-the-Loop for AI Agents: Best Practices](https://www.permit.io/blog/human-in-the-loop-for-ai-agents-best-practices-frameworks-use-cases-and-demo) : HITLベストプラクティス（2025年6月）
+- [Keeping Humans in the Loop: Building Safer AI Agents](https://bytebridge.medium.com/keeping-humans-in-the-loop-building-safer-24-7-ai-agents-44a3366f94c2) : HITLによる24/7 AIエージェントの安全な構築
+- [Human-in-the-Loop AI in 2025: Proven Design Patterns](https://blog.ideafloats.com/human-in-the-loop-ai-in-2025/) : 2025年のHITL AI設計パターン
+- [Safety & Guardrails for Agentic AI Systems (2025)](https://skywork.ai/blog/agentic-ai-safety-best-practices-2025-enterprise/) : エージェンティブAIシステムの安全性とガードレール
+
+### フォールバック（LiteLLM）一次情報
+- [LiteLLM Documentation](https://docs.litellm.ai/docs/) : LiteLLM公式ドキュメント
+- [LiteLLM Fallbacks - Proxy Reliability](https://docs.litellm.ai/docs/proxy/reliability) : フォールバック設定
+- [LiteLLM Routing, Loadbalancing & Fallbacks](https://docs.litellm.ai/docs/routing-load-balancing) : ルーティング・ロードバランシング
+- [Model Fallbacks w/ LiteLLM](https://docs.litellm.ai/docs/tutorials/model_fallbacks) : モデルフォールバックチュートリアル
 
 ### sources/
 - [_imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md](../_imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md) : 原文（工程別AI割当・フォールバックの型）

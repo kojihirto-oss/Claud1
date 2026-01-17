@@ -458,6 +458,13 @@ LiteLLM側で、工程タグ別budget・モデル別budget・フォールバッ�
 - [docs/Part23.md](Part23.md) : 回帰防止設計
 - [docs/Part24.md](Part24.md) : 可観測性設計
 
+### 統合ツール一次情報
+- [Ollama Official Website](https://ollama.com) : Ollama公式サイト
+- [Ollama GitHub](https://github.com/ollama/ollama) : Ollama公式リポジトリ
+- [LM Studio Official Website](https://lmstudio.ai) : LM Studio公式サイト
+- [aichat GitHub](https://github.com/sigoden/aichat) : aichat公式リポジトリ
+- [llm GitHub](https://github.com/simonw/llm) : llm公式リポジトリ
+
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「4. "滑らかに回す"補助ツール群」「5. 代用・無料CLI」「6. "モデル選定"を最も精度高くやる手順」「7. コスト最適化」）
 > 注：このファイルは _imports/ ディレクトリにあり、git管理外の参考資料です
