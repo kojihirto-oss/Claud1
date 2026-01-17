@@ -45,6 +45,9 @@
    - [LLM Observability & Application Tracing Overview](https://langfuse.com/docs/observability/overview) : LLM可観測性概要
    - [Get Started with Tracing](https://langfuse.com/docs/observability/get-started) : トレース入門
    - [Model Usage & Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) : 使用量・コスト追跡
+   - [Traces](https://langfuse.com/docs/observability/traces) : トレース詳細
+   - [Evaluations](https://langfuse.com/docs/observability/evaluations) : 評価とスコアリング
+   - [Exports](https://langfuse.com/docs/observability/exports) : エクスポート
 
 ---
 
@@ -147,6 +150,8 @@ Langfuseは以下の評価を実装する：
 - 平均スコア・Pass率
 - 傾向分析（前回比）
 
+**根拠**: rev.md「2.6 可観測性」「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」
+
 ---
 
 ### R-2405: 改善ループの確立【SHOULD】
@@ -158,6 +163,13 @@ Langfuseは以下の評価を実装する：
 3. **改善策立案**: ADRで改善策を決定
 4. **改善実施**: プロンプト修正・モデル変更・コード修正
 5. **再評価**: Langfuseで結果を確認・評価記録
+
+#### 週次・月次の改善運用（必須項目の明文化）
+- **週次**: 失敗率・再試行率・フォールバック率・コスト急増のトップ3を確認し、改善候補を決定
+- **月次**: SLO達成率・品質スコアの推移・モデル/工程別コストを確認し、モデル/プロンプト/工程設計の変更を決定
+- **証跡**: `evidence/improvement/YYYYMMDD_improvement.md` に「見た指標」「変更内容」「期待効果」「再評価結果」を必ず記録
+
+**根拠**: rev.md「2.6 可観測性」「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」
 
 ---
 
@@ -180,6 +192,81 @@ Langfuseのダッシュボードで以下を可視化する：
 - 工程別ダッシュボード
 - モデル別ダッシュボード
 - 失敗分析ダッシュボード
+
+**根拠**: rev.md「2.6 可観測性」「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」
+
+---
+
+### R-2407: 観測対象メトリクスの固定【MUST】
+
+以下を**最低限の共通メトリクス**として観測・集計する：
+
+- **品質**: 評価スコア平均、Pass率、回帰率
+- **コスト**: USD消費額、トークン消費、工程別/モデル別コスト
+- **遅延**: p50/p95/p99、外部依存待ち時間
+- **失敗率**: 例外率、SLO違反率
+- **再試行率**: 再試行回数/リクエスト、再試行成功率
+- **フォールバック率**: 代替モデル/代替ルートの発生率
+
+**集計軸**: 工程タグ、モデル、環境（prod/stg/dev）、ユーザ/プロジェクト。
+
+**根拠**: rev.md「2.6 可観測性」
+
+---
+
+### R-2408: トレース設計の固定【MUST】
+
+1リクエストを一貫して追跡できるよう、以下の紐付けを行う：
+
+- **trace_id**: リクエスト単位の一意ID（全工程で継承）
+- **request_id / task_id**: 業務単位の識別子
+- **prompt_version**: プロンプト本文ではなくバージョンIDで参照
+- **model / model_config**: モデル名、温度・最大トークン・ツール設定
+- **input_data_ref**: 入力データID or ハッシュ（PIIは原文保存しない）
+- **output_ref**: 出力の保存先参照 or ハッシュ
+
+**要件**: trace_id と task_id を Langfuse の metadata に必ず載せ、再現と比較が可能な形にする。
+
+**根拠**: rev.md「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」
+
+---
+
+### R-2409: 保存先と保持方針の固定【MUST】
+
+- **Langfuse**: 生トレースは90日保持（容量逼迫時は最古から削除）
+- **evidence/**: 最低限の証跡を保存し、長期保管は要約/集計のみとする
+  - 最小要件: `evidence/verify_reports/`（最新4件） + `evidence/improvement/`（直近12ヶ月）
+  - 容量対策: プロンプト本文や生出力は保存せず、参照ID/ハッシュを残す
+
+**根拠**: rev.md「2.6 可観測性」「7. コスト最適化」
+
+---
+
+### R-2410: アラート条件の固定【MUST】
+
+**SLO/閾値**（初期値、変更はADRで記録）:
+
+- **失敗率**: 5分平均 > 2% で警告、> 5% で緊急
+- **遅延**: p95 > 8s（10分継続）で警告、> 12s で緊急
+- **コスト**: 1日消費が過去7日平均の2倍で警告、3倍で緊急
+- **フォールバック率**: 10分平均 > 5% で警告、> 10% で緊急
+
+**通知先/エスカレーション**:
+
+- 通知先: `ops-alerts`（チャット） + 当番メール
+- 15分以内に一次対応が無い場合、テックリードへエスカレーション
+
+**根拠**: rev.md「2.6 可観測性」「7. コスト最適化」
+
+---
+
+### R-2411: セキュリティ/プライバシー基準【MUST】
+
+- **記録してよい**: 監査に必要な識別子、統計情報、ハッシュ化済み入力/出力
+- **記録してはいけない**: APIキー/トークン、個人情報（氏名・連絡先・住所）、機微情報（契約/財務/健康）
+- **対策**: 入力/出力のマスキング・トークン化、Langfuseへの送信前フィルタ、権限別アクセス制御
+
+**根拠**: rev.md「2.6 可観測性」
 
 ---
 
@@ -251,6 +338,17 @@ Langfuseのダッシュボードで以下を可視化する：
 1. リアルタイム監視: 実行中のトレース・エラー率・コスト消費・遅延を確認
 2. 定期レポート: 日次・週次・月次レポートを確認
 3. カスタムダッシュボード: 工程別・モデル別・失敗分析用ダッシュボードを作成
+
+---
+
+### 手順F: 障害時の見る順番（Runbook）
+1. **全体SLO/アラート**: 失敗率・遅延・コスト急増のアラート有無を確認
+2. **直近トレース**: 直近30分の失敗トレースを工程タグで絞り込み
+3. **モデル/プロンプト別**: 特定モデル/特定プロンプトバージョンの失敗集中を確認
+4. **再試行/フォールバック**: 再試行率・フォールバック率の急増を確認
+5. **外部依存**: API/DB/外部サービスの遅延・障害を確認
+6. **対処**: 影響範囲を切り分け、モデル切替/機能制限/ロールバックを実施
+7. **証跡**: `evidence/improvement/YYYYMMDD_improvement.md` に原因・対処・再評価を記録
 
 ---
 
@@ -368,6 +466,13 @@ Langfuseのダッシュボードで以下を可視化する：
 
 ---
 
+### E-2406: エクスポート/保持方針
+**保存内容**: Langfuseからの月次エクスポート（集計値のみ）
+**参照パス**: `evidence/observability/YYYYMM_langfuse_export.json`
+**保存場所**: `evidence/observability/`
+
+---
+
 ## 10. チェックリスト
 
 - [x] 本Part24 が全12セクション（0〜12）を満たしているか
@@ -377,9 +482,14 @@ Langfuseのダッシュボードで以下を可視化する：
 - [x] 評価の実装（R-2404）が明記されているか
 - [x] 改善ループの確立（R-2405）が明記されているか
 - [x] ダッシュボードの活用（R-2406）が明記されているか
+- [x] 観測対象メトリクス（R-2407）が明記されているか
+- [x] トレース設計（R-2408）が明記されているか
+- [x] 保存先と保持方針（R-2409）が明記されているか
+- [x] アラート条件（R-2410）が明記されているか
+- [x] セキュリティ/プライバシー（R-2411）が明記されているか
 - [x] 各ルールに rev.md への参照が付いているか
 - [x] Verify観点（V-2401〜V-2404）が機械判定可能な形で記述されているか
-- [x] Evidence観点（E-2401〜E-2405）が参照パス付きで記述されているか
+- [x] Evidence観点（E-2401〜E-2406）が参照パス付きで記述されているか
 - [ ] 本Part24 を読んだ人が「どこで壊れたかが一撃で分かる」を理解できるか
 
 ---
@@ -394,9 +504,9 @@ Langfuseのダッシュボードで以下を可視化する：
 ---
 
 ### U-2402: トレースの保持期間
-**問題**: トレースデータをどの期間保持するか不明。
+**問題**: トレースの長期保管期間（90日超）の最終確定が未了。
 **影響Part**: Part24（本Part）
-**暫定対応**: 90日保持・アーカイブ移動。
+**暫定対応**: 90日保持・月次エクスポートで集計のみ保管。
 
 ---
 
@@ -422,11 +532,18 @@ Langfuseのダッシュボードで以下を可視化する：
 - [LLM Observability & Application Tracing Overview](https://langfuse.com/docs/observability/overview) : LLM可観測性概要
 - [Get Started with Tracing](https://langfuse.com/docs/observability/get-started) : トレース入門ガイド
 - [Model Usage & Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) : 使用量・コスト追跡
+- [Traces](https://langfuse.com/docs/observability/traces) : トレース詳細
+- [Evaluations](https://langfuse.com/docs/observability/evaluations) : 評価とスコアリング
+- [Exports](https://langfuse.com/docs/observability/exports) : エクスポート
 
 ### 可観測性・モニタリング一次情報
 - [LLM Monitoring and Observability: Hands-on with Langfuse](https://towardsdatascience.com/llm-monitoring-and-observability-hands-on-with-langfuse/) : Langfuse実践チュートリアル
 - [Top Open-Source LLM Observability Tools in 2025](https://medium.com/@thepracticaldeveloper/top-open-source-llm-observability-tools-in-2025-d2d5cbf4b932) : 2025年のLLM可観測性ツール
 - [Observability for Skills: Logs, Evals, and Regression Tests](https://skywork.ai/blog/observability-for-skills-best-practices-logs-evals-regression/) : ログ・評価・回帰テスト
+
+### OpenTelemetry一次情報
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/) : OTel公式ドキュメント
+- [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) : ログ/トレースの標準属性
 
 ### sources/
 - _imports/最終調査_20260115_020600/_kb/2026_01_版：最高精度_大規模_制限耐性_統合案_最終改善（rev.md : 原文（「2.6 可観測性」「4.5 Langfuseで"どこで壊れたか"を一撃で分かるようにする」）
