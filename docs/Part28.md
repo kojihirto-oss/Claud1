@@ -1,9 +1,9 @@
 # Part 28：MCP連携設計（Model Context Protocolによる動的コンテキスト生成）
 
 ## 0. このPartの位置づけ
-- **目的**: MCP（Model Context Protocol）を活用し、「タスクに必要な最小コンテキスト」を動的生成する仕組みを定義する
+- **目的**: MCP（Model Context Protocol）を活用し、「タスクに必要な最小コンテキスト」を動的生成・外部調査を標準化・LLMルーティングを制御する
 - **依存**: [Part03](Part03.md)（AI Pack）、[Part09](Part09.md)（Permission Tier）、[Part18](Part18.md)（MCP vs RAG境界）、[Part21](Part21.md)（工程別AI割当）、[Part29](Part29.md)（IDE統合）、[Part00](Part00.md)
-- **影響**: 全AI使用工程・コンテキスト管理・出力精度
+- **影響**: 全AI使用工程・コンテキスト管理・出力精度・外部調査品質・通信安定性
 - **Primary Sources**:
   - [FACTS_LEDGER](FACTS_LEDGER.md): F-0075（MCP vs RAG役割分離）、F-0011（MCP導入方針）
   - [ADR-0007](../decisions/0007-mcp-rag-boundary.md): D-0007-1〜D-0007-5（MCP vs RAG使い分け、sources/扱い、flex-router位置づけ）
@@ -19,6 +19,8 @@
 2. **ノイズ除去**: 関係ないファイル・過去のコンテキストによる幻覚を防止
 3. **自動生成**: 手動でコンテキストを収集する手間を削減
 4. **再現性**: 同じタスクなら同じコンテキストセットが生成される
+5. **安全な外部接続**: MCP経由のWeb検索・調査における厳格なルールの適用（一次情報優先・証跡化）
+6. **通信制御**: vibe-mcp-flex-router-node によるLLM通信の集約・制御・フェイルオーバー
 
 **根拠**: 「必ず入れたい.md」（Context Packの動的生成・MCP活用）
 
@@ -28,12 +30,13 @@
 
 ### Scope（適用対象）
 - 全AI工程でのコンテキスト生成
-- MCP Serverの構成・運用
+- MCP Serverの構成・運用（vibe-mcp-flex-router-node 含む）
 - Context Packの生成・キャッシュ・管理
 - IDE/CLIからのMCP呼出
 - MCP認証・セキュリティ（OAuth 2.1ベース）
 - MCP許可/禁止リスト、Permission Tierとの統合
 - Context Packフォーマット、保存場所、命名規則、差分管理、Evidence化
+- 外部調査フロー（MCP Web Search等）の標準運用
 
 ### Out of Scope（適用外）
 - 個別AIのプロンプト構造（Part26で扱う）
@@ -53,8 +56,8 @@
    - [OAuth 2.1 Authorization Framework (Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/)
    - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
    - [RFC 7591: Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html)
-5. **vibe-mcp-flex-router-node が配置されている**
-   - `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node` に配置済み
+6. **vibe-mcp-flex-router-node が配置されている**
+   - `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node`（標準パス）に配置済み
    - MCPツール `llm_chat` / `llm_health` / `llm_cache_clear` を提供
 
 ---
@@ -79,7 +82,10 @@
 
 **MCPで何をするか（許可リスト）**:
 - **許可対象**: 読み取り系MCP（Read-only Resources）
-- **許可操作**: ファイル読み取り、ディレクトリ一覧、ファイル検索
+- **許可操作**:
+  - ファイル読み取り、ディレクトリ一覧、ファイル検索
+  - Web検索/外部APIアクセス（HumanGate承認またはReadOnly Tierでの調査目的限定）
+    - ※ **必須**: R-2807（調査フロー）および R-2808（一次情報優先）を厳守すること
 - **許可データ**:
   - `docs/`（SSOT全文）
   - `decisions/`（ADR全文）
@@ -304,7 +310,12 @@ vibe-mcp-flex-router-node は **MCPのLLMルーティング用途**に限定し�
 
 - **役割**: MCPクライアントからのLLM呼び出しを `llm_chat` / `llm_health` / `llm_cache_clear` で中継し、Gemini/Z.ai へルーティングする
 - **配置**: ローカル端末（`C:\Users\koji2\Desktop\vibe-mcp-flex-router-node`）に常設し、STDIOでのみ起動する（HTTP公開しない）
-- **起動**: `Start_VIBE_MCP_Inspector.cmd` または `run-inspector-safe.cmd` を推奨し、STDIO単体時は `npm run start`
+- **必須運用**: 以下のライフサイクルを遵守する
+  - **起動**: `Start_VIBE_MCP_Inspector.cmd` または `run-inspector-safe.cmd`（STDIO単体は `npm run start`）
+  - **停止**: タスク完了時に停止（リソース節約）
+  - **更新**: 更新前に `git status` で作業差分を確認し、`git pull --ff-only` → `npm install` → `npm run verify:stdio`
+  - **ヘルスチェック**: `llm_health` でAPIキー状態とキャッシュ状態を確認
+  - **障害時フェイルオーバー**: `llm_health` 失敗時は直接接続へ切り替え
 - **更新**: 更新前に `git status` で作業差分を確認し、`git pull --ff-only` → `npm install` → `npm run verify:stdio` を必須
 - **障害時切替**: `llm_health` が失敗した場合は、MCPクライアント側を直結設定（Gemini/Z.ai のOpenAI互換エンドポイント）へ切替し、Evidenceに記録する
 - **用途限定**: `llm_chat` / `llm_health` / `llm_cache_clear` 以外の用途に拡張しない
@@ -811,9 +822,9 @@ function validateHeaders(headers) {
 - `context-packs/` : Context Pack保存先
 
 ### external/
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\README.md` : 運用手順の一次情報
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\server.mjs` : ツール定義（llm_chat/llm_health）
-- `C:\Users\koji2\Desktop\vibe-mcp-flex-router-node\.MCP.json.example` : クライアント設定例
+- `%USERPROFILE%\Desktop\vibe-mcp-flex-router-node\README.md` : 運用手順の一次情報
+- `%USERPROFILE%\Desktop\vibe-mcp-flex-router-node\server.mjs` : ツール定義（llm_chat/llm_health）
+- `%USERPROFILE%\Desktop\vibe-mcp-flex-router-node\.MCP.json.example` : クライアント設定例
 
 ### その他
 - [CLAUDE.md](../CLAUDE.md) : Claude Code 常設ルール
