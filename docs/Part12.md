@@ -40,7 +40,7 @@ Verify結果と変更記録は evidence/ に保存し、削除しない（アー
 Fast検証でPASSした証跡のみを採用する。
 
 ### R-1203: 証跡4点の最小セット【MUST】
-link/parts/forbidden/sources の4点を最小セットとして保存する。
+link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小セットとして保存する。
 
 ### R-1206: Evidence Pack 規格【MUST】
 Evidenceは以下の構成を満たす：
@@ -84,7 +84,7 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 **判定条件**:
 1. 発見・記録・修正・検証・監査の記録がある
 2. PASS証跡のみ採用されている
-3. 証跡4点（link/parts/forbidden/sources）が揃っている
+3. 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 
 **合否**:
 - **PASS**: 1〜3を満たす
@@ -113,12 +113,12 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 **保存先**: evidence/verify_reports/
 
 ### E-1203: 証跡4点（最小セット）
-**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity  
 **保存先**: evidence/verify_reports/（`.md` 形式）
 
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] Evidenceの参照パスが記録されている

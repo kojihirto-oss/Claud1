@@ -1,0 +1,2271 @@
+﻿PowerShell 7.5.4
+PS C:\Users\koji2> "C:\Users\koji2\Desktop\vibe-spec-ssot"
+C:\Users\koji2\Desktop\vibe-spec-ssot
+PS C:\Users\koji2> CODEX
+╭─────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.80.0)                   │
+│                                             │
+│ model:     gpt-5.2-codex   /model to change │
+│ directory: ~                                │
+╰─────────────────────────────────────────────╯
+
+
+  Tip: Use /compact when the conversation gets long to summarize history and
+  free up context.
+
+
+
+
+› あなたは「vibe-spec-ssot」の設計書（docs/Part00.md〜Part20.md）を、既存の
+  方針（Part15 Playbook / Part00 Verify運用 / Evidence運用）に整合させて完
+  成させるドキュメント編集エージェントです。ローカル PowerShell / Git を使
+  えます。
+
+
+  # 最重要：事故防止の厳守ルール（破ったら即中断して報告）
+  - 作業ディレクトリは必ず: C:\Users\koji2\Desktop\vibe-spec-ssot
+  - repoガード: `.git` が無い場所では何もしない
+  - `sources/` は絶対に変更しない（編集・生成・自動整形禁止）
+  - 破壊操作・強制操作はしない（force push / reset --hard / clean 等は禁
+  止）
+  - docs内に禁止コマンド文字列を「そのまま」書かない（必要なら表記を崩す）
+  - 1コミットに入れてよいのは「対象Part + PASS証跡4点のみ」（例外なし）
+  - verify は必ず `pwsh .\checks\verify_repo.ps1 -Mode Fast` を実行し、PASS
+  が出ない限りコミット禁止
+
+
+  # 目的
+  - Part00〜Part20のうち「テンプレ空欄・抽象的・参照不足」になっている箇所
+  を、最小差分で実務レベルに埋めて「完成」へ寄せる
+  - Part15の運用ループ（発見→記録→修正→検証→監査）と整合
+  - Part00のVerify/Evidence運用と整合（Fast PASS・証跡4点・差分最小・レ
+  ビュー/監査・sources無改変）
+
+
+  # 進め方（安全な自立実行）
+  A. 開始ガード（出力はそのまま貼る）
+  1) `Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot`
+  2) `Test-Path .git` が True であること
+  3) `git rev-parse --show-toplevel`
+  4) `git status -sb`
+  5) 作業ブランチを作る（例: claude/complete-20260111 など）。既にある場合
+  は別名にする
+     - 以後、そのブランチでのみ作業する
+
+
+  B. 作業対象の選定（0〜20を一気に「編集」しない）
+  - 1回のコミットで触るPartは「最大1つ」
+  - 0〜20を順番に見て、未完成（空欄が多い/抽象/参照不足/手順が空）のPartか
+  ら優先して埋める
+  - 既に実務粒度で完成しているPartは触らずスキップ（差分最小）
+
+
+  C. 各Partの編集要件（最小差分で“中身だけ”埋める）
+  対象: docs/PartXX.md（XX=00..20）
+  - 章立ては原則維持（テンプレ骨格を壊さない）
+  - 必ず入れる要素（短くても良いが“空欄禁止”）
+    1) 目的（このPartで何を達成するか）
+    2) 適用範囲（どの作業に適用か）
+    3) 前提（依存するPartや、必要な準備）
+    4) MUST / MUST NOT / SHOULD（運用ルール）
+    5) 手順：Part15の運用ループに沿った「実務粒度の番号付き手順」
+       - 発見→記録→修正→検証→監査 を必ず含める
+       - “証跡4点”“差分最小”“sources無改変”“Fast PASS”の確認ポイントを手順
+  内に入れる
+    6) 例外処理：検証FAIL/誤更新/汚染疑い/差分過多の復帰フロー（再検証ま
+  で）
+    7) 機械判定（Verify観点）：何をPASSにするか（Part00のV-0001..V-0004を意
+  識）
+    8) 監査観点（Evidence）：証跡の保存先と最小セット（4点）を明記
+    9) チェックリスト（DoD）：レビュー/監査/証跡/差分最小/sources無改変/
+  Fast PASS
+    10) 参照：docs内の相対パスのみで、関連Part・00_INDEX・FACTS_LEDGER等へ
+  リンク（リンク切れ禁止）
+
+
+  - 禁止事項
+    - リンクは必ず実在ファイルへ（verifyで壊れるので）
+    - 「危険なコマンド文字列」をそのまま書かない（検出されるため）
+    - 外部URLは必要最小限。どうしても必要なら理由を書き、内部運用を優先
+    - 大量な追記や章立て変更は禁止（最小差分）
+
+
+  D. Verify → Evidence → Commit（Partごとに必ずやる）
+  1) `pwsh .\checks\verify_repo.ps1 -Mode Fast` を実行し、Overall PASSを確
+  認
+  2) 最新timestamp(ts)を取得（例）:
+     `$ts = (Get-ChildItem .\evidence\verify_reports\*_link_check.md |
+     - evidence/verify_reports/${ts}_forbidden_check.md
+     - evidence/verify_reports/${ts}_sources_integrity.md
+  5) `git diff --cached --name-status` が5行であること（違ったら中断して報
+  告）
+  6) commit message:
+     `PartXX: fill blanks + align with Part15 playbook + verify evidence
+  (Fast PASS)`
+  7) push: `git push -u origin HEAD`
+
+
+  E. 0〜20の完了条件（Doneの定義）
+  - すべてのPartが「空欄なし」「手順が実務粒度」「例外復帰あり」「Verify/
+  Evidence/DoD/参照あり」
+  - `pwsh .\checks\verify_repo.ps1 -Mode Fast` が常にPASS
+  - すべての変更が「最小差分」で、sources無改変
+
+
+  # 追加オプション（ZAI API / MCPが使える場合のみ）
+  - もしZAI APIのMCPがこの環境で利用可能なら、ドキュメント運用の一般ベスト
+  プラクティス（監査・証跡・変更管理）を“短く要約”して反映してよい
+  - ただし外部情報の丸写しは禁止。内部運用に合う形で最小追記のみ
+  - どのPartを更新したか（順番）
+  - 各コミットのハッシュとメッセージ
+  - 各コミットで作られたts（証跡4点のファイル名）
+  - verifyが常にPASSだったこと
+  - もしスキップしたPartがあれば理由（既に完成していた等）
+  - 途中で停止した場合は「停止条件に該当した理由」と「次に人間がやるべき1
+
+
+─ Worked for 7s ────────────────────────────────────────────────────────────
+
+
+  - これらを今回の作業でそのまま使うべきか、無視（別ブランチ/別コミット）す
+    verify_reports/20260110_174609_forbidden_check.md', CRLF will be
+  └ branch 'claude/complete-20260111-clean' set up to track 'origin/claude/
+    Use '--' to separate paths from revisions, like this:
+    … +62 lines
+    (./00_INDEX.md) : 全体索弁E- [FACTS_LEDGER](./FACTS_LEDGER.md) : 事実台
+
+
+    - [00_INDEX](./00_INDEX.md) : 全体索引
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ Get-Content docs/Part00.md -TotalCount 200
+  └ # Part 00：ドキュメント憲法・読み方・運用の前提固定（SSOT/禁止事項/改版
+    規約/優先順位）
+    … +198 lines
+    ## 6. 手順（実行可能な粒度、番号付き）
+
+
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg "V-000" -n docs/Part00.md
+  └ 291:### V-0001: リンク切れ検出
+    299:### V-0002: Part00〜20 の存在確認
+    … +3 lines
+    381:- [x] Verify観点（V-0001〜V-0005）が機械判定可能な形で記述されている
+    か
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ Get-Content docs/Part00.md -TotalCount 380 | Select-Object -Skip 280
+  │ -First 70
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part16.md (+48 -6)
+     45
+     46 +### R-1605: sources/ 無改変【MUST NOT】
+     47 +sources/ は改変しない（追加のみ許可）。対象外のファイルに変更が出た
+場合は即時停止する。
+     48 +
+     49 +### R-1606: Fast PASS 必須【MUST】
+     50 +Fast検証でPASSするまでコミットしない。PASS証跡のみ採用する。
+     51 +
+     52 +### R-1607: 証跡4点の最小セット【MUST】
+     53 +link/parts/forbidden/sources の4点を最小セットとして保存する。
+     54 +
+     55  ## 6. 手順（実行可能な粒度、番号付き）
+     47 -1. 発見：不整合や不足点を特定し、影響範囲を確認する。
+     48 -2. 記録：発見内容、根拠、対象ファイルを記録する。
+     49 -3. 修正：最小差分で更新し、変更理由を短く記録する。
+     50 -4. 検証：Fast検証を実施し、PASS証跡を確認する。
+     51 -5. 監査：変更概要・証跡一覧を残し、参照パスを整える。
+     56 +1. 発見：不整合や不足点を特定し、影響範囲と参照根拠を確認する。
+     57 +2. 記録：発見内容、根拠、対象ファイル、作業メモの保存先を記録する。
+     58 +3. 修正：最小差分で更新し、sources/ 無改変を維持したまま変更理由を
+短く記録する。
+     59 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/
+sources）を保存する。
+     60 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、汚染や差分過多
+がないか確認する。
+     61
+        ⋮
+     68
+     69 +### 例外3: 誤更新が疑われる
+     70 +- 直前の変更を取り消し、影響範囲を再確認して再検証する。
+     71 +
+     72 +### 例外4: 汚染の疑いがある
+     73 +- 参照根拠を照合し、根拠不明な更新を除外して再検証する。
+     74 +
+     75 +### 例外5: 差分が過大
+     76 +- 更新を分割し、最小差分になるまで手順をやり直す。
+     77 +
+     78  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+        ⋮
+     82  2. PASS証跡のみ採用されている
+
+
+  ssot ... this time
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_014042_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part16.md
+    A    evidence/verify_reports/20260111_014042_forbidden_check.md
+    A    evidence/verify_reports/20260111_014042_link_check.md
+    A    evidence/verify_reports/20260111_014042_parts_check.md
+    A    evidence/verify_reports/20260111_014042_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part16: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean 930f7d4] Part16: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_014042_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push -u origin HEAD
+  └ remote:
+    remote: Create a pull request for 'claude/complete-20260111-clean' on
+    … +6 lines
+    To https://github.com/kojihirto-oss/Claud1.git
+     * [new branch]      HEAD -> claude/complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Review Part16 against Part00/Part15 requirements and identify missing
+      required elements.
+    ✔ Edit docs/Part16.md to add missing rules, steps, exception handling,
+      verify/evidence criteria, checklist, and references with minimal diff.
+
+
+• I’m putting together a concise summary of the recent update to docs/
+  Part16.md with commit hash and timestamp, confirming tests passed, and
+  noting that no other parts were changed. I’ll mention the stash created
+
+
+    verify evidence (Fast PASS)
+  - push: origin/claude/complete-20260111-clean に反映済み
+› 1
+    docs\Part08.md:34:## 11. 未決事項（推測禁止）
+    docs\Part13.md:34:## 11. 未決事項（推測禁止）
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ Get-Content docs/Part07.md -TotalCount 200
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part07.md (+102 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Specの凍結と承認を実務手順として固定し、後戻りと汚染を防ぐ
+      5 +- 依存：Part00（SSOT憲法）、Part09（Permission Tier）、
+Part10（Verify Gate）、Par
+         t12（Evidence）、Part14（変更管理）、Part15（運用ループ）
+      6 +- 影響：docs/ の仕様記述、凍結判断、証跡と監査の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Spec凍結の判断基準・必須要素・承認手順を明確化し、
+     10 +凍結後の変更が運用ループと証跡に従うよう統一する。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- docs/ のSpec凍結判断と更新手順
+     15 +- 凍結に必要な必須要素の確認
+     16 +- Verify/Evidenceの保存と監査対応
+     17 +
+     18 +### Out of Scope（対象外）
+     19 +- sources/ への更新
+     20 +- 実装コードやテスト設計の詳細（別Part）
+     21 +- 組織固有の承認者の人事規定
+     22
+     23  ## 3. 前提（Assumptions）
+     24 +1. docs/ が唯一のSSOTである
+     25 +2. Verify/Evidenceの定義は Part00/Part10/Part12 に従う
+     26 +3. 変更管理は Part14 に従う
+     27 +4. 運用ループは Part15 に従う
+     28
+     29  ## 4. 用語（Glossary参照：Part02）
+     30 +- **Spec**: 仕様記述（docs/ 内の要件・制約・合意事項）
+     31 +- **Freeze**: 仕様の凍結（変更には明示の手続きが必要な状態）
+     32 +- **Approval**: 承認（HumanGateを含む）
+     33
+     34  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     35 +### R-0701: 必須要素の充足【MUST】
+     36 +凍結前に、目的・スコープ・非スコープ・制約・成功条件・検証方針が明
+記されていること。
+     37 +
+     38 +### R-0702: 運用ループの順守【MUST】
+     39 +凍結作業は「発見 → 記録 → 修正 → 検証 → 監査」の順で実施する。
+     40 +
+     41 +### R-0703: 変更管理の適用【MUST】
+     42 +凍結後の変更は Part14 の手続きに従い、必要ならADRを先行する。
+     43 +
+     44 +### R-0704: sources/ 無改変【MUST NOT】
+     45 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     46
+     47 +### R-0705: Fast PASS 必須【MUST】
+     48 +Fast検証でPASSした証跡のみを採用する。
+     49 +
+     50 +### R-0706: 最小差分【SHOULD】
+     51 +凍結に無関係な整理は含めず、最小差分で更新する。
+     52 +
+     53  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     54 +1. 発見：凍結対象のSpecを特定し、必須要素の不足や矛盾を確認する。
+     55 +2. 記録：不足点、参照根拠、対象ファイル、作業メモの保存先を記録す
+る。
+     56 +3. 修正：最小差分でSpecを補完し、sources/ 無改変を維持する。
+     57 +4. 検証：Fast検証を実行し、証跡4点（link/parts/forbidden/sources）
+を保存する。
+     58 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、凍結可否を判断
+する。
+     59
+     60  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     61 +### 例外1: 検証が通らない
+     62 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     63 +
+     64 +### 例外2: 証跡が欠落
+     65 +- 検証を再実行して補完し、理由を記録する。
+     66 +
+     67 +### 例外3: 凍結後の変更要請
+     68 +- 変更管理（Part14）に従い、必要ならADRを先行し、再度凍結判断を行
+う。
+     69 +
+     70 +### 例外4: 差分が過大
+     71 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     72
+     73  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     74 +### V-0701: 必須要素の充足
+     75 +**判定条件**:
+     76 +1. 目的・スコープ・非スコープ・制約・成功条件・検証方針が記載されて
+いる
+     77 +2. 凍結対象が明記されている
+     78 +
+     79 +**合否**:
+     80 +- **PASS**: 1,2を満たす
+     81 +- **FAIL**: 必須要素が欠落している
+     82 +
+     83 +**ログ**: evidence/verify_reports/
+     84
+     85 +### V-0702: Part00 Verify要件との整合
+     86 +**判定条件**:
+     87 +1. V-0001〜V-0004のログが存在する
+     88 +2. sources/ の改変がない
+     89 +
+     90 +**合否**:
+     91 +- **PASS**: 1,2を満たす
+     92 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     93 +
+     94 +**ログ**: evidence/verify_reports/
+     95 +
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_014417_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part07.md
+    A    evidence/verify_reports/20260111_014417_forbidden_check.md
+    A    evidence/verify_reports/20260111_014417_link_check.md
+    A    evidence/verify_reports/20260111_014417_parts_check.md
+    A    evidence/verify_reports/20260111_014417_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part07: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean f0d567a] Part07: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_014417_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       930f7d4..f0d567a  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part07 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part07 with four PASS evidence files and push.
+
+
+• I'll include a clear summary of the updated Part07 with its commit hash,
+  timestamp evidence files, and verify pass status, alongside the earlier
+  Part16 update similarly detailed. I'll note that other parts remain
+  unreviewed and explain that as their reason for being "skipped," plus
+    verify evidence (Fast PASS)
+  - 証跡4点(Part16/ts=20260111_014042): evidence/
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part06.md (+105 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：IDE/司令塔の運用境界を固定し、安全プロファイルとレビュー主
+導でSSOTを保護する
+      5 +- 依存：Part00（SSOT憲法）、Part03（AI Pack）、Part09（Permission
+Tier）、Part10（
+         Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用
+ループ）
+      6 +- 影響：docs/ 更新の運用手順、作業境界、証跡と監査の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +IDE/司令塔（Antigravity）を「指揮と確認の場」として運用し、
+     10 +作業境界・安全プロファイル・レビュー主導を徹底してSSOTの汚染を防
+ぐ。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- IDE/司令塔（Antigravity）での運用手順
+     15 +- docs/ 更新における作業境界とレビュー主導
+     16 +- Verify/Evidenceの保存と監査対応
+     17
+     18 +### Out of Scope（対象外）
+     19 +- sources/ への更新
+     20 +- 実装コード・テスト設計の詳細（別Part）
+     21 +- 組織固有の承認者の人事規定
+     22 +
+     23  ## 3. 前提（Assumptions）
+     24 +1. IDE/司令塔は指揮・確認の場として運用する
+     25 +2. Permission Tierは Part09 に従う
+     26 +3. Verify/Evidenceは Part00/Part10/Part12 に従う
+     27 +4. 変更管理は Part14 に従う
+     28 +5. 運用ループは Part15 に従う
+     29
+     30  ## 4. 用語（Glossary参照：Part02）
+     31 +- **IDE/司令塔**: Antigravityを中心とした作業指揮・確認の場
+     32 +- **安全プロファイル**: ReadOnly/ExecLimited などの作業権限制御
+     33 +- **作業境界**: docs/ を中心とした変更範囲の制約
+     34
+     35  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     36 +### R-0601: 司令塔の役割固定【MUST】
+     37 +IDE/司令塔は「指揮・確認・レビュー」に限定し、無断の実装判断をしな
+い。
+     38 +
+     39 +### R-0602: 安全プロファイル適用【MUST】
+     40 +最小権限で作業し、必要時のみ承認を得て権限を上げる。
+     41 +
+     42 +### R-0603: レビュー主導【MUST】
+     43 +変更はレビュー前提で進め、発見・記録・検証の順序を省略しない。
+     44
+     45 +### R-0604: sources/ 無改変【MUST NOT】
+     46 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     47 +
+     48 +### R-0605: Fast PASS 必須【MUST】
+     49 +Fast検証でPASSした証跡のみを採用する。
+     50 +
+     51 +### R-0606: 最小差分【SHOULD】
+     52 +無関係な整理は含めず、最小差分で更新する。
+     53 +
+     54  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     55 +1. 発見：対象作業の範囲・依存・権限制約を確認する。
+     56 +2. 記録：発見内容、参照根拠、対象ファイル、作業メモの保存先を記録す
+る。
+     57 +3. 修正：最小差分で更新し、sources/ 無改変を維持する。
+     58 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/
+sources）を保存する。
+     59 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、レビュー判断を
+記録する。
+     60
+     61  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     62 +### 例外1: 検証が通らない
+     63 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     64 +
+     65 +### 例外2: 証跡が欠落
+     66 +- 検証を再実行して補完し、理由を記録する。
+     67 +
+     68 +### 例外3: 権限が不足・不一致
+     69 +- Permission Tierを見直し、必要ならHumanGateで承認を得て再実行す
+る。
+     70
+     71 +### 例外4: 汚染の疑い
+     72 +- 参照根拠を照合し、根拠不明な更新を除外して再検証する。
+     73 +
+     74  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     75 +### V-0601: 司令塔運用の記録
+     76 +**判定条件**:
+     77 +1. 発見・記録・修正・検証・監査の記録がある
+     78 +2. PASS証跡のみ採用されている
+     79 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     80
+     81 +**合否**:
+     82 +- **PASS**: 1〜3を満たす
+     83 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     84 +
+     85 +**ログ**: evidence/verify_reports/
+     86 +
+     87 +### V-0602: Part00 Verify要件との整合
+     88 +**判定条件**:
+     89 +1. V-0001〜V-0004のログが存在する
+     90 +2. sources/ の改変がない
+     91 +
+     92 +**合否**:
+     93 +- **PASS**: 1,2を満たす
+     94 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     95 +
+     96 +**ログ**: evidence/verify_reports/
+     97 +
+     98  ## 9. 監査観点（Evidenceに残すもの・参照パス）
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_014727_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part06.md
+    A    evidence/verify_reports/20260111_014727_forbidden_check.md
+    A    evidence/verify_reports/20260111_014727_link_check.md
+    A    evidence/verify_reports/20260111_014727_parts_check.md
+    A    evidence/verify_reports/20260111_014727_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part06: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean 4aa7c78] Part06: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_014727_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       f0d567a..4aa7c78  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part06 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part06 with four PASS evidence files and push.
+
+
+• Part06を補完し、IDE/司令塔運用をPart15/Part00に整合させました。変更は
+  docs/Part06.md のみです。
+
+
+    verify evidence (Fast PASS)
+  - 証跡4点(Part07/ts=20260111_014417): evidence/
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part05.md (+105 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Core4の役割固定と衝突裁定を運用手順として固定し、SSOTの整合
+性を守る
+      5 +- 依存：Part00（SSOT憲法）、Part03（AI Pack）、Part09（Permission
+Tier）、Part10（
+         Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用
+ループ）
+      6 +- 影響：AI運用の責任分界、作業境界、証跡と監査の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Core4の役割・権限・衝突裁定・エスカレーションを明文化し、
+     10 +作業が運用ループとVerify/Evidenceに整合するよう統一する。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- Core4（Claude/GPT/Gemini/Z.ai）の役割運用と裁定手順
+     15 +- 役割衝突時の記録・修正・検証・監査
+     16 +- Verify/Evidenceの保存と監査対応
+     17
+     18 +### Out of Scope（対象外）
+     19 +- sources/ への更新
+     20 +- 個別AIのプロンプト設計の詳細（別Part）
+     21 +- 組織固有の承認者の人事規定
+     22 +
+     23  ## 3. 前提（Assumptions）
+     24 +1. Core4の役割定義は Part03 に従う
+     25 +2. Permission Tierは Part09 に従う
+     26 +3. Verify/Evidenceは Part00/Part10/Part12 に従う
+     27 +4. 変更管理は Part14 に従う
+     28 +5. 運用ループは Part15 に従う
+     29
+     30  ## 4. 用語（Glossary参照：Part02）
+     31 +- **Core4**: 4つの課金AIの役割固定
+     32 +- **衝突裁定**: 役割の衝突や判断差を解消する手続き
+     33 +- **エスカレーション**: HumanGateへの承認要求
+     34
+     35  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     36 +### R-0501: 役割固定の遵守【MUST】
+     37 +Core4の役割は Part03 の定義に従い、越境を行わない。
+     38 +
+     39 +### R-0502: 衝突裁定の記録【MUST】
+     40 +判断差が出た場合は発見・記録・修正・検証・監査の順で裁定する。
+     41 +
+     42 +### R-0503: Permission Tierの順守【MUST】
+     43 +権限外の操作は行わず、必要ならHumanGateで承認を得る。
+     44
+     45 +### R-0504: sources/ 無改変【MUST NOT】
+     46 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     47 +
+     48 +### R-0505: Fast PASS 必須【MUST】
+     49 +Fast検証でPASSした証跡のみを採用する。
+     50 +
+     51 +### R-0506: 最小差分【SHOULD】
+     52 +無関係な整理は含めず、最小差分で更新する。
+     53 +
+     54  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     55 +1. 発見：役割衝突や判断差を特定し、影響範囲と参照根拠を確認する。
+     56 +2. 記録：発見内容、根拠、対象ファイル、作業メモの保存先を記録する。
+     57 +3. 修正：最小差分で裁定内容を反映し、sources/ 無改変を維持する。
+     58 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/
+sources）を保存する。
+     59 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、裁定結果を確定
+する。
+     60
+     61  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     62 +### 例外1: 検証が通らない
+     63 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     64 +
+     65 +### 例外2: 証跡が欠落
+     66 +- 検証を再実行して補完し、理由を記録する。
+     67 +
+     68 +### 例外3: 役割衝突が解消できない
+     69 +- HumanGateで裁定者を指定し、決定理由を記録する。
+     70
+     71 +### 例外4: 差分が過大
+     72 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     73 +
+     74  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     75 +### V-0501: 役割裁定の記録
+     76 +**判定条件**:
+     77 +1. 発見・記録・修正・検証・監査の記録がある
+     78 +2. PASS証跡のみ採用されている
+     79 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     80
+     81 +**合否**:
+     82 +- **PASS**: 1〜3を満たす
+     83 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     84 +
+     85 +**ログ**: evidence/verify_reports/
+     86 +
+     87 +### V-0502: Part00 Verify要件との整合
+     88 +**判定条件**:
+     89 +1. V-0001〜V-0004のログが存在する
+     90 +2. sources/ の改変がない
+     91 +
+     92 +**合否**:
+     93 +- **PASS**: 1,2を満たす
+     94 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     95 +
+     96 +**ログ**: evidence/verify_reports/
+     97 +
+     98  ## 9. 監査観点（Evidenceに残すもの・参照パス）
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_014932_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part05.md
+    A    evidence/verify_reports/20260111_014932_forbidden_check.md
+    A    evidence/verify_reports/20260111_014932_link_check.md
+    A    evidence/verify_reports/20260111_014932_parts_check.md
+    A    evidence/verify_reports/20260111_014932_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part05: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean 09241e7] Part05: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_014932_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       4aa7c78..09241e7  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part05 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part05 with four PASS evidence files and push.
+
+
+─ Worked for 1m 23s ────────────────────────────────────────────────────────
+
+
+• Part05を補完し、Core4運用の役割固定・衝突裁定・エスカレーションをPart15/
+  Part00に整合させました。変更は docs/Part05.md のみです。
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05
+  - 証跡4点(Part16/ts=20260111_014042): evidence/
+    verify_reports/20260111_014042_link_check.md evidence/
+    verify_reports/20260111_014042_parts_check.md evidence/
+    verify_reports/20260111_014042_forbidden_check.md evidence/
+    verify evidence (Fast PASS)
+  - 証跡4点(Part06/ts=20260111_014727): evidence/
+    verify_reports/20260111_014932_sources_integrity.md
+
+
+› 1
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part08.md (+106 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Context Packの生成と信頼境界を実務手順として固定し、過剰入
+力と汚染を防ぐ
+      5 +- 依存：Part00（SSOT憲法）、Part03（AI Pack）、Part09（Permission
+Tier）、Part10（
+         Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用
+ループ）
+      6 +- 影響：docs/ 更新の入力設計、参照根拠、証跡と監査の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Context Packの入力最小化・信頼境界・参照根拠の明示を統一し、
+     10 +AI運用がSSOTを逸脱しないようにする。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- Context Packの生成と更新手順
+     15 +- 入力最小化の判断基準
+     16 +- 参照根拠と信頼境界の記録
+     17 +- Verify/Evidenceの保存と監査対応
+     18
+     19 +### Out of Scope（対象外）
+     20 +- sources/ への更新
+     21 +- 個別AIのプロンプト設計の詳細（別Part）
+     22 +- 外部情報の収集手順（別Part）
+     23 +
+     24  ## 3. 前提（Assumptions）
+     25 +1. SSOTは docs/ に固定される
+     26 +2. Permission Tierは Part09 に従う
+     27 +3. Verify/Evidenceは Part00/Part10/Part12 に従う
+     28 +4. 変更管理は Part14 に従う
+     29 +5. 運用ループは Part15 に従う
+     30
+     31  ## 4. 用語（Glossary参照：Part02）
+     32 +- **Context Pack**: 作業に必要な最小限の参照束
+     33 +- **信頼境界**: 参照可能な根拠範囲（SSOT/Verify/Evidenceの優先順）
+     34 +- **入力最小化**: 必要最小限の情報に絞る運用
+     35
+     36  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     37 +### R-0801: Context Pack最小化【MUST】
+     38 +作業に必要な最小限の参照のみを含め、過剰な入力を避ける。
+     39 +
+     40 +### R-0802: 信頼境界の明示【MUST】
+     41 +参照根拠の優先順位（SSOT/Verify/Evidence）を明記する。
+     42 +
+     43 +### R-0803: 運用ループの順守【MUST】
+     44 +Context Packの更新は「発見 → 記録 → 修正 → 検証 → 監査」で実施す
+る。
+     45 +
+     46 +### R-0804: sources/ 無改変【MUST NOT】
+     47 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     48
+     49 +### R-0805: Fast PASS 必須【MUST】
+     50 +Fast検証でPASSした証跡のみを採用する。
+     51 +
+     52 +### R-0806: 最小差分【SHOULD】
+     53 +無関係な整理は含めず、最小差分で更新する。
+     54 +
+     55  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     56 +1. 発見：Context Packの不足・過剰・根拠不整合を特定する。
+     57 +2. 記録：発見内容、参照根拠、対象ファイル、保存先を記録する。
+     58 +3. 修正：最小差分でContext Packを更新し、sources/ 無改変を維持す
+る。
+     59 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/
+sources）を保存する。
+     60 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、信頼境界を確認
+する。
+     61
+     62  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     63 +### 例外1: 検証が通らない
+     64 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     65 +
+     66 +### 例外2: 証跡が欠落
+     67 +- 検証を再実行して補完し、理由を記録する。
+     68 +
+     69 +### 例外3: 参照根拠が不明
+     70 +- 未決事項として記録し、確定情報が得られるまで反映しない。
+     71 +
+     72 +### 例外4: 差分が過大
+     73 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     74
+     75  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     76 +### V-0801: Context Pack更新の記録
+     77 +**判定条件**:
+     78 +1. 発見・記録・修正・検証・監査の記録がある
+     79 +2. PASS証跡のみ採用されている
+     80 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     81 +
+     82 +**合否**:
+     83 +- **PASS**: 1〜3を満たす
+     84 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     85 +
+     86 +**ログ**: evidence/verify_reports/
+     87
+     88 +### V-0802: Part00 Verify要件との整合
+     89 +**判定条件**:
+     90 +1. V-0001〜V-0004のログが存在する
+     91 +2. sources/ の改変がない
+     92 +
+     93 +**合否**:
+     94 +- **PASS**: 1,2を満たす
+     95 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     96 +
+     97 +**ログ**: evidence/verify_reports/
+     98 +
+     99  ## 9. 監査観点（Evidenceに残すもの・参照パス）
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_015145_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part08.md
+    A    evidence/verify_reports/20260111_015145_forbidden_check.md
+    A    evidence/verify_reports/20260111_015145_link_check.md
+    A    evidence/verify_reports/20260111_015145_parts_check.md
+    A    evidence/verify_reports/20260111_015145_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part08: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean c11d0e1] Part08: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_015145_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       09241e7..c11d0e1  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part08 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part08 with four PASS evidence files and push.
+
+
+─ Worked for 1m 35s ────────────────────────────────────────────────────────
+
+
+• Part08を補完し、Context Pack運用をPart15/Part00に整合させました。変更は
+  docs/Part08.md のみです。
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05 → Part08
+  - コミット: 930f7d4 Part16: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part16/ts=20260111_014042): evidence/
+    verify_reports/20260111_014042_link_check.md evidence/
+    verify_reports/20260111_014042_parts_check.md evidence/
+    verify_reports/20260111_014042_forbidden_check.md evidence/
+    verify_reports/20260111_014042_sources_integrity.md
+  - 証跡4点(Part07/ts=20260111_014417): evidence/
+    verify_reports/20260111_014417_link_check.md evidence/
+    verify_reports/20260111_014417_parts_check.md evidence/
+    verify_reports/20260111_014417_forbidden_check.md evidence/
+    verify evidence (Fast PASS)
+  - 証跡4点(Part05/ts=20260111_014932): evidence/
+    verify_reports/20260111_015145_forbidden_check.md evidence/
+    verify_reports/20260111_015145_sources_integrity.md
+
+
+› 1
+       - 影響範囲（どのファイル・フォルダが変更されるか）
+    … +157 lines
+    ### その他
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part12.md (+100 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Evidenceの作成・保存・参照パスを固定し、監査可能性を維持す
+る
+      5 +- 依存：Part00（SSOT憲法）、Part09（Permission Tier）、
+Part10（Verify Gate）、Par
+         t14（変更管理）、Part15（運用ループ）
+      6 +- 影響：evidence/ の運用、Verify結果の扱い、監査の整合性
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Evidenceの最小セットと保存ルールを統一し、
+     10 +Verify/Evidenceが揃っていない変更を排除する。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- evidence/ に保存する証跡の作成・整理・参照
+     15 +- Verify結果の保存と参照パスの維持
+     16 +- 監査に必要な最小セットの確保
+     17 +
+     18 +### Out of Scope（対象外）
+     19 +- sources/ への更新
+     20 +- 実装コードの詳細手順（別Part）
+     21 +- 外部ツールの運用規約（組織ルール）
+     22
+     23  ## 3. 前提（Assumptions）
+     24 +1. docs/ が唯一のSSOTである
+     25 +2. Verify/Evidenceは Part00/Part10 に従う
+     26 +3. 変更管理は Part14 に従う
+     27 +4. 運用ループは Part15 に従う
+     28
+     29  ## 4. 用語（Glossary参照：Part02）
+     30 +- **Evidence**: 変更の根拠・検証・監査を支える証跡
+     31 +- **RUNLOG**: 作業実行のログ
+     32 +- **TRACE**: 参照元と変更の関連付け
+     33 +- **参照パス**: Evidenceの保存先を示すパス
+     34
+     35  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     36 +### R-1201: Evidence保存義務【MUST】
+     37 +Verify結果と変更記録は evidence/ に保存し、削除しない。
+     38
+     39 +### R-1202: PASS証跡のみ採用【MUST】
+     40 +Fast検証でPASSした証跡のみを採用する。
+     41 +
+     42 +### R-1203: 証跡4点の最小セット【MUST】
+     43 +link/parts/forbidden/sources の4点を最小セットとして保存する。
+     44 +
+     45 +### R-1204: sources/ 無改変【MUST NOT】
+     46 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     47 +
+     48 +### R-1205: 最小差分【SHOULD】
+     49 +無関係な整理は含めず、最小差分で更新する。
+     50 +
+     51  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     52 +1. 発見：必要な証跡の種類と保存先を特定する。
+     53 +2. 記録：対象ファイル、参照根拠、保存先のパスを記録する。
+     54 +3. 修正：最小差分でEvidenceを整理し、sources/ 無改変を維持する。
+     55 +4. 検証：Fast検証でPASSを確認し、証跡4点を保存する。
+     56 +5. 監査：Evidence一覧・参照パス・DoDを点検し、不足がないか確認す
+る。
+     57
+     58  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     59 +### 例外1: 検証が通らない
+     60 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     61 +
+     62 +### 例外2: 証跡が欠落
+     63 +- 検証を再実行して補完し、理由を記録する。
+     64 +
+     65 +### 例外3: 誤更新が疑われる
+     66 +- 直前の変更を取り消し、影響範囲を再確認して再検証する。
+     67
+     68 +### 例外4: 差分が過大
+     69 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     70 +
+     71  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     72 +### V-1201: Evidence最小セットの確認
+     73 +**判定条件**:
+     74 +1. 発見・記録・修正・検証・監査の記録がある
+     75 +2. PASS証跡のみ採用されている
+     76 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     77 +
+     78 +**合否**:
+     79 +- **PASS**: 1〜3を満たす
+     80 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     81 +
+     82 +**ログ**: evidence/verify_reports/
+     83
+     84 +### V-1202: Part00 Verify要件との整合
+     85 +**判定条件**:
+     86 +1. V-0001〜V-0004のログが存在する
+     87 +2. sources/ の改変がない
+     88 +
+     89 +**合否**:
+     90 +- **PASS**: 1,2を満たす
+     91 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     92 +
+     93 +**ログ**: evidence/verify_reports/
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_015412_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part12.md
+    A    evidence/verify_reports/20260111_015412_forbidden_check.md
+    A    evidence/verify_reports/20260111_015412_link_check.md
+    A    evidence/verify_reports/20260111_015412_parts_check.md
+    A    evidence/verify_reports/20260111_015412_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part12: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean 54ea2a4] Part12: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_015412_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       c11d0e1..54ea2a4  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part12 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part12 with four PASS evidence files and push.
+
+
+─ Worked for 1m 55s ────────────────────────────────────────────────────────
+
+
+• Part12を補完し、Evidence運用をPart15/Part00に整合させました。変更は docs/
+  Part12.md のみです。
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05 → Part08 → Part12
+  - コミット: 930f7d4 Part16: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part16/ts=20260111_014042): evidence/
+    verify_reports/20260111_014042_link_check.md evidence/
+    verify_reports/20260111_014042_parts_check.md evidence/
+    verify_reports/20260111_014042_forbidden_check.md evidence/
+    verify_reports/20260111_014042_sources_integrity.md
+  - コミット: f0d567a Part07: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part07/ts=20260111_014417): evidence/
+    verify_reports/20260111_014417_link_check.md evidence/
+    verify_reports/20260111_014417_parts_check.md evidence/
+    verify_reports/20260111_014417_forbidden_check.md evidence/
+    verify_reports/20260111_014417_sources_integrity.md
+  - 証跡4点(Part06/ts=20260111_014727): evidence/
+    verify_reports/20260111_014727_link_check.md evidence/
+    verify_reports/20260111_014727_parts_check.md evidence/
+    verify_reports/20260111_014727_forbidden_check.md evidence/
+    verify evidence (Fast PASS)
+  - 証跡4点(Part08/ts=20260111_015145): evidence/
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part13.md (+104 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Releaseの不変成果物運用を固定し、再現性と監査可能性を担保す
+る
+      5 +- 依存：Part00（SSOT憲法）、Part01（DoD）、Part09（Permission
+Tier）、Part10（Veri
+         fy Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用ルー
+プ）
+      6 +- 影響：RELEASE/ の生成・保存、manifest/sha256/SBOM の整合性
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Releaseを不変成果物として扱い、manifest/sha256/SBOMと証跡の整合を維
+持する。
+     10
+     11  ## 2. 適用範囲（Scope / Out of Scope）
+     12 +### Scope（対象）
+     13 +- RELEASE/ の作成・保存・参照
+     14 +- manifest/sha256/SBOM の生成と保存
+     15 +- Releaseに関するVerify/Evidenceの保存
+     16
+     17 +### Out of Scope（対象外）
+     18 +- sources/ への更新
+     19 +- 実装コードの詳細手順（別Part）
+     20 +- 配布先の運用（外部手続き）
+     21 +
+     22  ## 3. 前提（Assumptions）
+     23 +1. Releaseは不変成果物である
+     24 +2. Verify/Evidenceは Part00/Part10/Part12 に従う
+     25 +3. 変更管理は Part14 に従う
+     26 +4. 運用ループは Part15 に従う
+     27
+     28  ## 4. 用語（Glossary参照：Part02）
+     29 +- **Release**: 不変の成果物単位
+     30 +- **manifest**: Release構成の一覧
+     31 +- **sha256**: 整合性検証のハッシュ
+     32 +- **SBOM**: 依存関係の構成情報
+     33
+     34  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     35 +### R-1301: Release不変【MUST】
+     36 +Releaseは作成後に改変しない（更新は新規Releaseで行う）。
+     37 +
+     38 +### R-1302: 証跡と整合【MUST】
+     39 +Releaseには manifest/sha256/SBOM を必ず付与し、Evidenceに保存する。
+     40
+     41 +### R-1303: HumanGate必須【MUST】
+     42 +Release生成・確定はHumanGate承認の対象とする。
+     43 +
+     44 +### R-1304: sources/ 無改変【MUST NOT】
+     45 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     46 +
+     47 +### R-1305: Fast PASS 必須【MUST】
+     48 +Fast検証でPASSした証跡のみを採用する。
+     49 +
+     50 +### R-1306: 最小差分【SHOULD】
+     51 +無関係な整理は含めず、最小差分で更新する。
+     52 +
+     53  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     54 +1. 発見：Release対象と必須成果物（manifest/sha256/SBOM）を確認す
+る。
+     55 +2. 記録：対象ファイル、参照根拠、保存先を記録する。
+     56 +3. 修正：最小差分でRelease情報を整備し、sources/ 無改変を維持する。
+     57 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/
+sources）を保存する。
+     58 +5. 監査：Releaseの不変性・参照パス・証跡一覧・DoDを点検する。
+     59
+     60  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     61 +### 例外1: 検証が通らない
+     62 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへ
+エスカレーションする。
+     63 +
+     64 +### 例外2: 証跡が欠落
+     65 +- 検証を再実行して補完し、理由を記録する。
+     66 +
+     67 +### 例外3: Releaseの汚染が疑われる
+     68 +- Releaseを破棄し、新規Releaseとして作り直す。
+     69
+     70 +### 例外4: 差分が過大
+     71 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     72 +
+     73  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     74 +### V-1301: Release証跡の確認
+     75 +**判定条件**:
+     76 +1. 発見・記録・修正・検証・監査の記録がある
+     77 +2. PASS証跡のみ採用されている
+     78 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     79
+     80 +**合否**:
+     81 +- **PASS**: 1〜3を満たす
+     82 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     83 +
+     84 +**ログ**: evidence/verify_reports/
+     85 +
+     86 +### V-1302: Part00 Verify要件との整合
+     87 +**判定条件**:
+     88 +1. V-0001〜V-0004のログが存在する
+     89 +2. sources/ の改変がない
+     90 +
+     91 +**合否**:
+     92 +- **PASS**: 1,2を満たす
+     93 +- **FAIL**: ログ欠落、または sources/ 改変がある
+     94 +
+     95 +**ログ**: evidence/verify_reports/
+     96 +
+     97  ## 9. 監査観点（Evidenceに残すもの・参照パス）
+
+
+
+
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+    verify_reports/20260111_015613_sources_integrity.md', CRLF will be
+    replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part13.md
+    A    evidence/verify_reports/20260111_015613_forbidden_check.md
+    A    evidence/verify_reports/20260111_015613_link_check.md
+    A    evidence/verify_reports/20260111_015613_parts_check.md
+    A    evidence/verify_reports/20260111_015613_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part13: fill blanks + align with Part15 playbook + verify
+  │ evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean fd5a175] Part13: fill blanks + align
+    with Part15 playbook + verify evidence (Fast PASS)
+    … +7 lines
+     create mode 100644 evidence/
+    verify_reports/20260111_015613_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-
+  ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       54ea2a4..fd5a175  claude/complete-20260111-clean -> claude/
+    complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part13 sections to required operational detail aligned with
+      Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part13 with four PASS evidence files and push.
+
+
+─ Worked for 1m 22s ────────────────────────────────────────────────────────
+
+
+• Part13を補完し、Release運用をPart15/Part00に整合させました。変更は docs/
+  Part13.md のみです。
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05 → Part08 → Part12 → Part13
+  - コミット: 930f7d4 Part16: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part16/ts=20260111_014042): evidence/
+    verify_reports/20260111_014042_link_check.md evidence/
+    verify_reports/20260111_014042_parts_check.md evidence/
+    verify_reports/20260111_014042_forbidden_check.md evidence/
+    verify_reports/20260111_014042_sources_integrity.md
+  - コミット: f0d567a Part07: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part07/ts=20260111_014417): evidence/
+    verify_reports/20260111_014417_link_check.md evidence/
+    verify_reports/20260111_014417_parts_check.md evidence/
+    verify_reports/20260111_014417_forbidden_check.md evidence/
+    verify_reports/20260111_014417_sources_integrity.md
+  - コミット: 4aa7c78 Part06: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part06/ts=20260111_014727): evidence/
+    verify_reports/20260111_014727_link_check.md evidence/
+    verify_reports/20260111_014727_parts_check.md evidence/
+    verify_reports/20260111_014727_forbidden_check.md evidence/
+    verify_reports/20260111_014727_sources_integrity.md
+  - 証跡4点(Part05/ts=20260111_014932): evidence/
+    verify_reports/20260111_014932_link_check.md evidence/
+    verify_reports/20260111_014932_parts_check.md evidence/
+    verify_reports/20260111_014932_forbidden_check.md evidence/
+    verify_reports/20260111_014932_sources_integrity.md
+  - コミット: c11d0e1 Part08: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part08/ts=20260111_015145): evidence/
+    verify_reports/20260111_015145_link_check.md evidence/
+    verify_reports/20260111_015145_parts_check.md evidence/
+    verify_reports/20260111_015145_forbidden_check.md evidence/
+    verify_reports/20260111_015145_sources_integrity.md
+  - コミット: 54ea2a4 Part12: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part12/ts=20260111_015412): evidence/
+    verify_reports/20260111_015412_link_check.md evidence/
+    verify_reports/20260111_015412_parts_check.md evidence/
+    verify_reports/20260111_015412_forbidden_check.md evidence/
+    verify_reports/20260111_015412_sources_integrity.md
+  - コミット: fd5a175 Part13: fill blanks + align with Part15 playbook +
+    verify evidence (Fast PASS)
+  - 証跡4点(Part13/ts=20260111_015613): evidence/
+    verify_reports/20260111_015613_link_check.md evidence/
+    verify_reports/20260111_015613_parts_check.md evidence/
+    verify_reports/20260111_015613_forbidden_check.md evidence/
+    verify_reports/20260111_015613_sources_integrity.md
+  - verify: すべてFastでOverall PASS
+  - スキップ: Part01–04, 09–11, 14–20は未確認のため未着手
+
+
+  次の一手はどれにしますか？
+
+
+  1. 次の未完成Partを選定して続行
+  2. stash内容の確認（WIP: stash current changes）
+  3. ここで一旦終了
+
+
+
+
+› 3
+
+
+
+
+• 了解です。ここで終了します。
+
+
+  作業報告
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05 → Part08 → Part12 → Part13
+  - コミットと証跡:
+      - 930f7d4 Part16: fill blanks + align with Part15 playbook + verify
+        evidence (Fast PASS)
+          - ts=20260111_014042: evidence/
+            verify_reports/20260111_014042_link_check.md evidence/
+            verify_reports/20260111_014042_parts_check.md evidence/
+            verify_reports/20260111_014042_forbidden_check.md evidence/
+            verify_reports/20260111_014042_sources_integrity.md
+      - f0d567a Part07: fill blanks + align with Part15 playbook + verify
+        evidence (Fast PASS)
+          - ts=20260111_014417: evidence/
+            verify_reports/20260111_014417_link_check.md evidence/
+            verify_reports/20260111_014417_parts_check.md evidence/
+            verify_reports/20260111_014417_forbidden_check.md evidence/
+            verify_reports/20260111_014417_sources_integrity.md
+      - 4aa7c78 Part06: fill blanks + align with Part15 playbook + verify
+        evidence (Fast PASS)
+          - ts=20260111_014727: evidence/
+            verify_reports/20260111_014727_link_check.md evidence/
+            verify_reports/20260111_014727_parts_check.md evidence/
+            verify_reports/20260111_014727_forbidden_check.md evidence/
+            verify_reports/20260111_014727_sources_integrity.md
+      - 09241e7 Part05: fill blanks + align with Part15 playbook + verify
+        evidence (Fast PASS)
+          - ts=20260111_014932: evidence/
+            verify_reports/20260111_014932_link_check.md evidence/
+            verify_reports/20260111_014932_parts_check.md evidence/
+            verify_reports/20260111_014932_forbidden_check.md evidence/
+            verify_reports/20260111_014932_sources_integrity.md
+      - c11d0e1 Part08: fill blanks + align with Part15 playbook + verify
+        evidence (Fast PASS)
+          - ts=20260111_015145: evidence/
+            verify_reports/20260111_015145_sources_integrity.md
+          - ts=20260111_015613: evidence/
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part18.md (+108 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Operation Registry（司令塔UI）の運用を固定し、状態遷移と次アクションを迷いなく実行できるようにする
+      5 +- 依存：Part00（SSOT憲法）、Part04（作業管理）、Part06（IDE/司令塔運用）、Part09（Permission Tier）、Part10（Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用ループ）
+      6 +- 影響：作業の状態遷移、次アクションの指示、監査用の記録整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Operation Registry（司令塔UI）の表示と更新手順を標準化し、
+     10 +Busy/NextStep と状態遷移を運用ループに沿って固定する。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- Operation Registry の更新と参照
+     15 +- Busy/NextStep の記録と表示
+     16 +- 状態遷移（READY/DOING/VERIFYING/REPAIRING/DONE/BLOCKED）
+     17 +- Verify/Evidenceの保存と監査対応
+     18 +
+     19 +### Out of Scope（対象外）
+     20 +- sources/ への更新
+     21 +- UI実装の詳細（別Part）
+     22 +- 組織固有の画面デザイン方針
+     23
+     24  ## 3. 前提（Assumptions）
+     25 +1. 司令塔UIは作業の指示と確認の場である
+     26 +2. VIBEKANBANの状態遷移は Part04 に従う
+     27 +3. Permission Tierは Part09 に従う
+     28 +4. Verify/Evidenceは Part00/Part10/Part12 に従う
+     29 +5. 運用ループは Part15 に従う
+     30
+     31  ## 4. 用語（Glossary参照：Part02）
+     32 +- **Operation Registry**: 司令塔UIの操作一覧・現在状態・次アクションの記録
+     33 +- **Busy**: 実行中タスクの要約
+     34 +- **NextStep**: 次に行うべき最短手順
+     35 +- **状態遷移**: READY/DOING/VERIFYING/REPAIRING/DONE/BLOCKED の移行
+     36
+     37  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     38 +### R-1801: 状態遷移の順守【MUST】
+     39 +状態遷移は Part04 の定義に従い、飛ばしや戻しを行わない。
+     40
+     41 +### R-1802: Busy/NextStepの明示【MUST】
+     42 +現在の作業状況（Busy）と次アクション（NextStep）を必ず記録する。
+     43 +
+     44 +### R-1803: 運用ループの順守【MUST】
+     45 +Operation Registryの更新は「発見 → 記録 → 修正 → 検証 → 監査」で実施する。
+     46 +
+     47 +### R-1804: sources/ 無改変【MUST NOT】
+     48 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     49 +
+     50 +### R-1805: Fast PASS 必須【MUST】
+     51 +Fast検証でPASSした証跡のみを採用する。
+     52 +
+     53 +### R-1806: 最小差分【SHOULD】
+     54 +無関係な整理は含めず、最小差分で更新する。
+     55 +
+     56  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     57 +1. 発見：Operation Registryの不足・不整合・状態遷移の誤りを特定する。
+     58 +2. 記録：発見内容、参照根拠、対象ファイル、保存先を記録する。
+     59 +3. 修正：最小差分で更新し、Busy/NextStep を明示する。sources/ 無改変を維持する。
+     60 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+     61 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、状態遷移の整合を確認する。
+     62
+     63  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     64 +### 例外1: 検証が通らない
+     65 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへエスカレーションする。
+     66 +
+     67 +### 例外2: 証跡が欠落
+     68 +- 検証を再実行して補完し、理由を記録する。
+     69 +
+     70 +### 例外3: 状態遷移が破綻
+     71 +- 直前の変更を取り消し、状態遷移の根拠を再確認して再検証する。
+     72 +
+     73 +### 例外4: 差分が過大
+     74 +- 変更を分割し、最小差分になるまで手順をやり直す。
+     75
+     76  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     77 +### V-1801: Operation Registry更新の記録
+     78 +**判定条件**:
+     79 +1. 発見・記録・修正・検証・監査の記録がある
+     80 +2. PASS証跡のみ採用されている
+     81 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     82 +
+     83 +**合否**:
+     84 +- **PASS**: 1〜3を満たす
+     85 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     86 +
+     87 +**ログ**: evidence/verify_reports/
+     88
+     89 +### V-1802: Part00 Verify要件との整合
+
+
+    [INFO] Evidence saved to: C:\Users\koji2\Desktop\vibe-spec-ssot\evidence\verify_reports
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+  └ ## claude/complete-20260111-clean...origin/claude/complete-20260111-clean
+     M docs/Part18.md
+    … +2 lines
+    ?? evidence/verify_reports/20260111_084334_parts_check.md
+    ?? evidence/verify_reports/20260111_084334_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git add docs/Part18.md evidence/verify_reports/20260111_084334_link_check.md evidence/verify_reports/20260111_084334_parts_check.md evidence/verify_reports/20260111_084334_forbidden_check.md evidence/
+  │ verify_reports/20260111_084334_sources_integrity.md
+  └ warning: in the working copy of 'evidence/verify_reports/20260111_084334_forbidden_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084334_link_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084334_parts_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084334_sources_integrity.md', CRLF will be replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part18.md
+    A    evidence/verify_reports/20260111_084334_forbidden_check.md
+    A    evidence/verify_reports/20260111_084334_link_check.md
+    A    evidence/verify_reports/20260111_084334_parts_check.md
+    A    evidence/verify_reports/20260111_084334_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part18: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean 1241d02] Part18: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+     5 files changed, 176 insertions(+), 10 deletions(-)
+    … +2 lines
+     create mode 100644 evidence/verify_reports/20260111_084334_parts_check.md
+     create mode 100644 evidence/verify_reports/20260111_084334_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+       fd5a175..1241d02  claude/complete-20260111-clean -> claude/complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part18 sections to required operational detail aligned with Part15/Part00.
+  - 証跡4点(Part16/ts=20260111_014042): evidence/verify_reports/20260111_014042_link_check.md evidence/verify_reports/20260111_014042_parts_check.md evidence/verify_reports/20260111_014042_forbidden_check.md
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part19.md (+106 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：Incident/監査/改善サイクルを固定し、再発防止とルール改訂を安全に回す
+      5 +- 依存：Part00（SSOT憲法）、Part09（Permission Tier）、Part10（Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用ループ）
+      6 +- 影響：運用停止判断、改善ループ、監査証跡の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +Incident発生時のStop-the-line、監査、改善、ルール改訂を標準化し、
+     10 +再発防止とSSOT整合を維持する。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- Incident対応（Stop-the-line）
+     15 +- 監査の実施と証跡保存
+     16 +- 改善策の立案とルール改訂
+     17 +- Verify/Evidenceの保存と監査対応
+     18
+     19 +### Out of Scope（対象外）
+     20 +- sources/ への更新
+     21 +- 実装コードの詳細手順（別Part）
+     22 +- 組織固有の人事評価・懲戒規定
+     23 +
+     24  ## 3. 前提（Assumptions）
+     25 +1. SSOTは docs/ に固定される
+     26 +2. Permission Tierは Part09 に従う
+     27 +3. Verify/Evidenceは Part00/Part10/Part12 に従う
+     28 +4. 変更管理は Part14 に従う
+     29 +5. 運用ループは Part15 に従う
+     30
+     31  ## 4. 用語（Glossary参照：Part02）
+     32 +- **Incident**: 事故・重大不整合・運用停止が必要な事象
+     33 +- **Stop-the-line**: 作業停止と原因究明の優先宣言
+     34 +- **監査**: 証跡の確認と遵守状況の検証
+     35 +- **改善サイクル**: 再発防止の手順（記録→修正→検証→監査）
+     36
+     37  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     38 +### R-1901: Stop-the-lineの発動【MUST】
+     39 +重大な不整合や汚染疑いが出た場合は作業を停止し、原因究明を優先する。
+     40 +
+     41 +### R-1902: Incident記録の保存【MUST】
+     42 +Incidentの内容・影響範囲・対応履歴をEvidenceに保存する。
+     43 +
+     44 +### R-1903: ルール改訂はADR先行【MUST】
+     45 +再発防止のためのルール改訂はADRを先行し、Part14に従う。
+     46 +
+     47 +### R-1904: sources/ 無改変【MUST NOT】
+     48 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     49 +
+     50 +### R-1905: Fast PASS 必須【MUST】
+     51 +Fast検証でPASSした証跡のみを採用する。
+     52 +
+     53 +### R-1906: 最小差分【SHOULD】
+     54 +無関係な整理は含めず、最小差分で更新する。
+     55
+     56  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     57 +1. 発見：Incidentの兆候・影響範囲・参照根拠を確認する。
+     58 +2. 記録：Incident内容、根拠、対象ファイル、保存先を記録する。
+     59 +3. 修正：最小差分で対策を反映し、sources/ 無改変を維持する。
+     60 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+     61 +5. 監査：対応概要・参照パス・証跡一覧・DoDを点検し、再発防止策を確認する。
+     62
+     63  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     64 +### 例外1: 検証が通らない
+     65 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへエスカレーションする。
+     66 +
+     67 +### 例外2: 証跡が欠落
+     68 +- 検証を再実行して補完し、理由を記録する。
+     69 +
+     70 +### 例外3: Incidentの影響が広範
+     71 +- 変更を分割し、対象範囲を切り分けて再検証する。
+     72 +
+     73 +### 例外4: 再発が継続
+     74 +- ADRでルール改訂を提案し、承認後に再対応する。
+     75
+     76  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     77 +### V-1901: Incident対応の記録
+     78 +**判定条件**:
+     79 +1. 発見・記録・修正・検証・監査の記録がある
+     80 +2. PASS証跡のみ採用されている
+     81 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     82
+     83 +**合否**:
+     84 +- **PASS**: 1〜3を満たす
+     85 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     86 +
+     87 +**ログ**: evidence/verify_reports/
+
+
+    [INFO] Evidence saved to: C:\Users\koji2\Desktop\vibe-spec-ssot\evidence\verify_reports
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+  └ ## claude/complete-20260111-clean...origin/claude/complete-20260111-clean
+     M docs/Part19.md
+    … +2 lines
+    ?? evidence/verify_reports/20260111_084616_parts_check.md
+    ?? evidence/verify_reports/20260111_084616_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git add docs/Part19.md evidence/verify_reports/20260111_084616_link_check.md evidence/verify_reports/20260111_084616_parts_check.md evidence/verify_reports/20260111_084616_forbidden_check.md evidence/
+  │ verify_reports/20260111_084616_sources_integrity.md
+  └ warning: in the working copy of 'evidence/verify_reports/20260111_084616_forbidden_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084616_link_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084616_parts_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_084616_sources_integrity.md', CRLF will be replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part19.md
+    A    evidence/verify_reports/20260111_084616_forbidden_check.md
+    A    evidence/verify_reports/20260111_084616_link_check.md
+    A    evidence/verify_reports/20260111_084616_parts_check.md
+    A    evidence/verify_reports/20260111_084616_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part19: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean f4b023c] Part19: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+     5 files changed, 174 insertions(+), 10 deletions(-)
+    … +2 lines
+     create mode 100644 evidence/verify_reports/20260111_084616_parts_check.md
+     create mode 100644 evidence/verify_reports/20260111_084616_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       1241d02..f4b023c  claude/complete-20260111-clean -> claude/complete-20260111-clean
+  └ ✔ Fill Part19 sections to required operational detail aligned with Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part19 with four PASS evidence files and push.
+
+
+  - 証跡4点(Part07/ts=20260111_014417): evidence/verify_reports/20260111_014417_link_check.md evidence/verify_reports/20260111_014417_parts_check.md evidence/verify_reports/20260111_014417_forbidden_check.md
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part20.md (+100 -10)
+      3  ## 0. このPartの位置づけ
+      4 -- 目的：
+      5 -- 依存：
+      6 -- 影響：
+      4 +- 目的：導入・教育・最短運用手順を固定し、新規参加者が迷わずSSOT運用できるようにする
+      5 +- 依存：Part00（SSOT憲法）、Part01（DoD）、Part09（Permission Tier）、Part10（Verify Gate）、Part12（Evidence）、Part14（変更管理）、Part15（運用ループ）
+      6 +- 影響：オンボーディング、運用開始手順、監査と証跡の整合
+      7
+      8  ## 1. 目的（Purpose）
+      9 +新規参加者向けに最短運用手順とチェックリストを提供し、
+     10 +Verify/Evidenceの運用が一貫するようにする。
+     11
+     12  ## 2. 適用範囲（Scope / Out of Scope）
+     13 +### Scope（対象）
+     14 +- 新規参加者のオンボーディング
+     15 +- 最短運用手順（初回セットアップと検証）
+     16 +- FAQとチェックリストの提示
+     17 +- Verify/Evidenceの保存と監査対応
+     18 +
+     19 +### Out of Scope（対象外）
+     20 +- sources/ への更新
+     21 +- 組織固有の研修プログラム
+     22 +- 実装コードの詳細手順（別Part）
+     23
+     24  ## 3. 前提（Assumptions）
+     25 +1. SSOTは docs/ に固定される
+     26 +2. Permission Tierは Part09 に従う
+     27 +3. Verify/Evidenceは Part00/Part10/Part12 に従う
+     28 +4. 変更管理は Part14 に従う
+     29 +5. 運用ループは Part15 に従う
+     30
+     31  ## 4. 用語（Glossary参照：Part02）
+     32 +- **オンボーディング**: 新規参加者の導入・教育プロセス
+     33 +- **最短運用手順**: 最小ステップでSSOT運用を開始する手順
+     34 +- **FAQ**: よくある質問と回答
+     35
+     36  ## 5. ルール（MUST / MUST NOT / SHOULD）
+     37 +### R-2001: 最短運用手順の遵守【MUST】
+     38 +新規参加者は最短運用手順に従い、手順を省略しない。
+     39
+     40 +### R-2002: Evidence保存の徹底【MUST】
+     41 +Fast検証のPASS証跡を保存し、証跡4点を揃える。
+     42 +
+     43 +### R-2003: sources/ 無改変【MUST NOT】
+     44 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     45 +
+     46 +### R-2004: 最小差分【SHOULD】
+     47 +無関係な整理は含めず、最小差分で更新する。
+     48 +
+     49  ## 6. 手順（実行可能な粒度、番号付き）
+     19 -1.
+     20 -2.
+     21 -3.
+     50 +1. 発見：必要な参照Partと運用ルールを確認する。
+     51 +2. 記録：参照根拠、対象ファイル、保存先を記録する。
+     52 +3. 修正：最小差分で初期手順を整備し、sources/ 無改変を維持する。
+     53 +4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+     54 +5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、導入手順の妥当性を確認する。
+     55
+     56  ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
+     57 +### 例外1: 検証が通らない
+     58 +- 修正に戻して再検証し、最大3ループで解決できない場合はHumanGateへエスカレーションする。
+     59 +
+     60 +### 例外2: 証跡が欠落
+     61 +- 検証を再実行して補完し、理由を記録する。
+     62 +
+     63 +### 例外3: 手順が過大
+     64 +- 手順を分割し、最短運用手順として再構成する。
+     65 +
+     66 +### 例外4: 再発が継続
+     67 +- ADRで手順改訂を提案し、承認後に再対応する。
+     68
+     69  ## 8. 機械判定（Verify観点：判定条件・合否・ログ）
+     70 +### V-2001: 導入手順の記録
+     71 +**判定条件**:
+     72 +1. 発見・記録・修正・検証・監査の記録がある
+     73 +2. PASS証跡のみ採用されている
+     74 +3. 証跡4点（link/parts/forbidden/sources）が揃っている
+     75 +
+     76 +**合否**:
+     77 +- **PASS**: 1〜3を満たす
+     78 +- **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
+     79 +
+     80 +**ログ**: evidence/verify_reports/
+     81 +
+
+
+    [INFO] Evidence saved to: C:\Users\koji2\Desktop\vibe-spec-ssot\evidence\verify_reports
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+  └ ## claude/complete-20260111-clean...origin/claude/complete-20260111-clean
+     M docs/Part20.md
+    … +2 lines
+    ?? evidence/verify_reports/20260111_085029_parts_check.md
+    ?? evidence/verify_reports/20260111_085029_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git add docs/Part20.md evidence/verify_reports/20260111_085029_link_check.md evidence/verify_reports/20260111_085029_parts_check.md evidence/verify_reports/20260111_085029_forbidden_check.md evidence/
+  │ verify_reports/20260111_085029_sources_integrity.md
+  └ warning: in the working copy of 'evidence/verify_reports/20260111_085029_forbidden_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085029_link_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085029_parts_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085029_sources_integrity.md', CRLF will be replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part20.md
+    A    evidence/verify_reports/20260111_085029_forbidden_check.md
+    A    evidence/verify_reports/20260111_085029_link_check.md
+    A    evidence/verify_reports/20260111_085029_parts_check.md
+    A    evidence/verify_reports/20260111_085029_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part20: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean c35adb8] Part20: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+     5 files changed, 168 insertions(+), 10 deletions(-)
+    … +2 lines
+     create mode 100644 evidence/verify_reports/20260111_085029_parts_check.md
+     create mode 100644 evidence/verify_reports/20260111_085029_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       f4b023c..c35adb8  claude/complete-20260111-clean -> claude/complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part20 sections to required operational detail aligned with Part15/Part00.
+
+
+─ Worked for 1m 27s ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+• Part20を補完し、導入・教育・最短運用手順をPart15/Part00に整合させました。変更は docs/Part20.md のみです。
+  - 証跡4点(Part06/ts=20260111_014727): evidence/verify_reports/20260111_014727_link_check.md evidence/verify_reports/20260111_014727_parts_check.md evidence/verify_reports/20260111_014727_forbidden_check.md
+    evidence/verify_reports/20260111_015412_sources_integrity.md
+  - コミット: c35adb8 Part20: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+
+
+
+
+• Edited Desktop\vibe-spec-ssot\docs\Part17.md (+42 -6)
+     45
+     46 +### R-1705: sources/ 無改変【MUST NOT】
+     47 +sources/ の改変は禁止（追加のみ許可）。検出時は作業を停止する。
+     48 +
+     49 +### R-1706: Fast PASS 必須【MUST】
+     50 +Fast検証でPASSした証跡のみを採用する。
+     51 +
+     52 +### R-1707: 証跡4点の最小セット【MUST】
+     53 +link/parts/forbidden/sources の4点を最小セットとして保存する。
+     54 +
+     55  ## 6. 手順（実行可能な粒度、番号付き）
+     47 -1. 発見：対象の不整合や運用課題を特定する。
+     48 -2. 記録：発見内容、根拠、対象ボタンを記録する。
+     49 -3. 修正：最小差分で手順を更新する。
+     50 -4. 検証：Fast検証でPASSを確認し、Evidenceを整理する。
+
+
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ pwsh .\checks\verify_repo.ps1 -Mode Fast
+  └ [INFO] === Repository Verification Started ===
+    [INFO] Mode: Fast
+    … +23 lines
+    [INFO] Evidence saved to: C:\Users\koji2\Desktop\vibe-spec-ssot\evidence\verify_reports
+    [PASS] Overall Status: PASS
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ $ts = (Get-ChildItem .\evidence\verify_reports\*_link_check.md | Sort-Object LastWriteTime -Descending | Select-Object -First 1).BaseName.Replace("_link_check","")
+  │ $ts
+  └ 20260111_085729
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git restore --staged .
+  └ (no output)
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git add docs/Part17.md evidence/verify_reports/20260111_085729_link_check.md evidence/verify_reports/20260111_085729_parts_check.md evidence/verify_reports/20260111_085729_forbidden_check.md evidence/
+  │ verify_reports/20260111_085729_sources_integrity.md
+  └ warning: in the working copy of 'evidence/verify_reports/20260111_085729_forbidden_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085729_link_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085729_parts_check.md', CRLF will be replaced by LF the next time Git touches it
+    warning: in the working copy of 'evidence/verify_reports/20260111_085729_sources_integrity.md', CRLF will be replaced by LF the next time Git touches it
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git diff --cached --name-status
+  └ M    docs/Part17.md
+    A    evidence/verify_reports/20260111_085729_forbidden_check.md
+    A    evidence/verify_reports/20260111_085729_link_check.md
+    A    evidence/verify_reports/20260111_085729_parts_check.md
+    A    evidence/verify_reports/20260111_085729_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git commit -m "Part17: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)"
+  └ [claude/complete-20260111-clean b88ffe8] Part17: fill blanks + align with Part15 playbook + verify
+    evidence (Fast PASS)
+    … +3 lines
+     create mode 100644 evidence/verify_reports/20260111_085729_parts_check.md
+     create mode 100644 evidence/verify_reports/20260111_085729_sources_integrity.md
+
+
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ git push
+  └ To https://github.com/kojihirto-oss/Claud1.git
+       c35adb8..b88ffe8  claude/complete-20260111-clean -> claude/complete-20260111-clean
+
+
+• Updated Plan
+  └ ✔ Fill Part17 sections to required operational detail aligned with Part15/Part00.
+    ✔ Run Fast verify and collect evidence reports.
+    ✔ Commit Part17 with four PASS evidence files and push.
+
+
+─ Worked for 1m 37s ──────────────────────────────────────────────────────────────────────────────────
+
+
+• Part17を補完し、運用OS接続の手順・証跡・例外をPart15/Part00に整合させました。変更は docs/Part17.md
+  のみです。
+
+
+  - 更新順: Part16 → Part07 → Part06 → Part05 → Part08 → Part12 → Part13 → Part18 → Part19 → Part20 →
+    Part17
+  - コミット: 930f7d4 Part16: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+  - 証跡4点(Part16/ts=20260111_014042): evidence/verify_reports/20260111_014042_link_check.md
+    evidence/verify_reports/20260111_014042_parts_check.md evidence/
+    verify_reports/20260111_014042_forbidden_check.md evidence/
+    verify_reports/20260111_014042_sources_integrity.md
+  - コミット: f0d567a Part07: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+  - 証跡4点(Part07/ts=20260111_014417): evidence/verify_reports/20260111_014417_link_check.md
+    evidence/verify_reports/20260111_014417_parts_check.md evidence/
+    verify_reports/20260111_014417_forbidden_check.md evidence/
+    verify_reports/20260111_014417_sources_integrity.md
+  - コミット: 4aa7c78 Part06: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+  - 証跡4点(Part06/ts=20260111_014727): evidence/verify_reports/20260111_014727_link_check.md
+    evidence/verify_reports/20260111_014727_parts_check.md evidence/
+    verify_reports/20260111_014727_forbidden_check.md evidence/
+    verify_reports/20260111_014727_sources_integrity.md
+  - コミット: 09241e7 Part05: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+  - 証跡4点(Part05/ts=20260111_014932): evidence/verify_reports/20260111_014932_link_check.md
+    evidence/verify_reports/20260111_014932_parts_check.md evidence/
+    verify_reports/20260111_014932_forbidden_check.md evidence/
+    verify_reports/20260111_014932_sources_integrity.md
+  - コミット: c11d0e1 Part08: fill blanks + align with Part15 playbook + verify evidence (Fast PASS)
+    evidence/verify_reports/20260111_015613_parts_check.md evidence/
+    evidence/verify_reports/20260111_084616_parts_check.md evidence/
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ Get-Content docs/Part03.md -TotalCount 120
+  └ # Part 03：AI Pack（Core4/Antigravity/MCP・役割固定・コンテキスト共有）
+
+
+    … +116 lines
+    2. **Mission Control**: エージェントが計画→実行→検証する
+    3. **ブラウザ・ターミナル・エディタの同期**を前提に、作業の迷いをゼロにする
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ Get-Content docs/Part03.md -TotalCount 520 | Select-Object -Last 160
+  └ **実行方法**: `evidence/mcp_logs/` の存在確認
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg --glob "docs/Part*.md" -n "目的：\s*$|依存：\s*$|影響：\s*$"
+  └ (no output)
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+✔ You approved codex to run Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot ... this time
+  └ (no output)
+
+
+─ Worked for 59s ─────────────────────────────────────────────────────────────────────────────────────
+  Part01–04, 09–11, 14–16 は既に実務粒度で埋まっており、最小差分方針に従って未編集のままにしています。
+
+
+  次の一手はどれにしますか？
+
+
+  1. 既存Partの整合レビュー（Part00/Part15/証跡4点/fast pass/sources無改変）
+  2. stash内容の確認（WIP: stash current changes）
+  3. ここで一旦終了
+
+
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ $parts = Get-ChildItem .\docs\Part*.md | Sort-Object Name
+    Part      HasEvidence4 HasFast HasSourcesNoChange HasLoop
+    … +16 lines
+    Part20.md         True    True               True   False
+
+
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "sources/ 無改変|証跡4点|Fast検証" docs/Part15.md
+  └ (no output)
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "## 5\. ルール|## 6\. 手順|## 10\. チェックリスト" docs/Part15.md
+  └ 39:## 5. ルール（MUST / MUST NOT / SHOULD）
+    87:## 6. 手順（実行可能な粒度、番号付き）
+    193:## 10. チェックリスト
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "sources/ 無改変|証跡4点|Fast検証" docs/Part14.md
+  └ (no output)
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "## 5\. ルール|## 6\. 手順|## 10\. チェックリスト" docs/Part14.md
+  └ 66:## 5. ルール（MUST / MUST NOT / SHOULD）
+    231:## 6. 手順（実行可能な粒度、番号付き）
+    777:## 10. チェックリスト
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "証跡4点|sources/ 無改変" docs/Part10.md
+  └ (no output)
+
+
+• I’m reviewing which parts have missing evidence and source protections, especially in Parts 14 and
+  15, which seem to lack explicit checklists for critical evidence rules. I also noticed some
+  inconsistencies in evidence path naming—like “VAULT/EVIDENCE” vs. the expected “evidence/”—that
+  could cause confusion. There’s a question about forbidden command strings appearing subtly in
+  Part09, but that may not be a big issue. Next, I want to pinpoint exact lines in Part10 to clarify
+  its checklist gaps.
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "## 5\. ルール|## 6\. 手順|## 10\. チェックリスト" docs/Part10.md
+  └ 65:## 5. ルール（MUST / MUST NOT / SHOULD）
+    193:## 6. 手順（実行可能な粒度、番号付き）
+    377:## 10. チェックリスト
+
+
+• Ran Set-Location C:\Users\koji2\Desktop\vibe-spec-ssot
+  │ rg -n "VAULT/EVIDENCE" docs/Part02.md
+  └ 304:**保存先**: `VAULT/EVIDENCE/term_changes/`
+    315:**保存先**: `VAULT/EVIDENCE/term_changes/`
+
+
+• I'll organize the findings by severity with specific file and line references, note questions about
+  alignment on evidence paths and checklist items, and clarify that no code changes or tests were
+  performed during this review. This way, the user gets a clear, prioritized overview with actionable
+  points.
+
+
+─ Worked for 1m 55s ──────────────────────────────────────────────────────────────────────────────────
+
+
+• Findings
+
+
+  - High: Core operational playbook lacks explicit “証跡4点/fast pass/sources無改変” enforcement in
+    rules/steps/checklist, so Part15 no longer fully reflects the required operational loop; see docs/
+    Part15.md:39, docs/Part15.md:87, docs/Part15.md:193.
+  - High: Change-management procedure similarly omits the same operational safeguards in its rules/
+    steps/checklist, so Part14 is out of alignment with the repo’s current evidence/verify
+    expectations; see docs/Part14.md:66, docs/Part14.md:231, docs/Part14.md:777.
+  - Medium: Verify Gate documentation doesn’t mention the “証跡4点”/sources integrity requirement in
+    its operational steps/checklist, which can cause teams to run Fast Verify without collecting the
+    required evidence set; see docs/Part10.md:65, docs/Part10.md:193, docs/Part10.md:377.
+  - Medium: Evidence paths in Part02 point to VAULT/EVIDENCE/…, which conflicts with the repo’s
+    evidence/ conventions in Part00/Part12 and may misdirect storage; see docs/Part02.md:304, docs/
+    Part02.md:315.
+
+
+  Questions
+
+
+  - Should Part15/Part14/Part10 be updated to explicitly require “証跡4点 / Fast PASS / sources無改変”
+    in rules, steps, and checklists to match the current Part00/Part15 alignment standard?
+  - Is VAULT/EVIDENCE/term_changes/ in Part02 intentional, or should it be moved under evidence/ to
+    match the rest of the SSOT conventions?
+
+
+  No files changed in this review. If you want, I can patch the three parts plus Part02 in separate
+  commits following the same verify/evidence workflow.

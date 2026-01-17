@@ -1,0 +1,365 @@
+# VCG/VIBE SSOT Design Master 設計調査レポート（Part2）
+# ツール統合アーキテクチャ・Git運用設計・混乱ポイント
+
+---
+
+# ■■■ 第4部: ツール統合アーキテクチャ提案（2026年最新） ■■■
+
+## 4.1 ツール別最適担当表
+
+| 作業カテゴリ | 具体的な作業 | 推奨ツール | Permission Tier | 理由・根拠 |
+|-------------|-------------|-----------|-----------------|-----------|
+| SSOT構成解析 | 全Partリンク整合性チェック、用語揺れ検出 | Claude Code CLI + verify_repo.ps1 | ReadOnly→PatchOnly | 低遅延、MCP完全統合 |
+| 仕様検討・ADR起草 | ADR作成、複数案比較 | ChatGPT (GPT-4.5) | ReadOnly | SSOT編集権限、最高精度 |
+| コード実装・テスト | verify_repo.ps1実装、テスト | Claude Code | ExecLimited | Permission Tier制御、自動rollback |
+| 外部仕様調査 | 公式ドキュメント取得、GitHub Issue/PR情報 | Gemini CLI + MCP web | ReadOnly | ウェブ検索、長文コンテキスト |
+| 軽量タスク・ログ要約 | Verify失敗ログの要約、Evidenceパック整理 | Z.ai Lite | PatchOnly | コスト最小化、本流に影響させない |
+| RAG参照・Context Pack生成 | リポジトリ内SSOT検索 | MCP filesystem + RAG (Qdrant/Chroma) | ReadOnly | 高精度検索、キャッシュ効率 |
+
+## 4.2 MCP活用プロンプト例
+
+### プロンプト1: GitHub Issue整合性チェック
+```
+[MCP: github / resources/list + resources/read]
+タスク: 未クローズissueを一覧化し、docs/SSOT との整合性を確認
+出力: 
+- Issue ID / 対応ADR
+- ギャップ検出（SSOT未反映なら明記）
+- 推奨アクション（ADR新規 or docs更新）
+```
+
+### プロンプト2: Permission Tier違反検出
+```
+[MCP: mcp-inspector + filesystem]
+タスク: 直近24時間の Claude Code/CLI コマンドを監査
+チェック:
+- 禁止コマンド実行（rm -rf, git push origin main）
+- ReadOnly MCP の書込試行
+- ExecLimited の制限外実行
+出力: evidence/audit/YYYYMMDD_tier_violation.md
+```
+
+### プロンプト3: MCP Cache一貫性チェック
+```
+[MCP: local filesystem + resources/list]
+タスク: ~/.claude/.mcp_cache/ とSSOT(docs/)の同期確認
+基準:
+- Resources: 6h以内 = OK
+- Tools: 24h以内 = OK
+- Prompts: 7d以内 = OK
+古い場合: mcp-inspector --refresh-all 推奨
+```
+
+### プロンプト4: SSOT→RAG同期確認
+```
+[MCP: resources/read + RAG Verification]
+タスク: 
+1. docs/ の全 .md ファイルを列挙
+2. sha256 hash を計算
+3. RAGキャッシュと比較
+4. 不一致あれば「RAG Update Required」記録
+```
+
+### プロンプト5: Agent Handoff ワークフロー検証
+```
+[MCP: GitHub + vscode-agents metadata]
+タスク: .github/agents/*.agent.md の handoff チェーンが正常か検証
+確認:
+- plan.agent.md → agent.agent.md への handoff 成功
+- コンテキスト（prompt変数）の正しい受け渡し
+- 各エージェント実行後の Evidence 記録
+```
+
+## 4.3 RAG/ナレッジ運用強化案
+
+### 多層RAG構造（キャッシュ戦略）
+```
+Layer 1: Local RAG (Claude Code内蔵)
+  対象: docs/Part00～20（SSOT）
+  更新: セッション起動時 + git pull後
+  キャッシュ: ~/.claude/.rag_cache/embeddings.json
+
+Layer 2: Remote RAG (Claude Desktop MCP)
+  対象: GitHub Issues/Discussions/Wiki
+  更新: 6時間ごと（自動）
+  API: GitHub MCP resources/list
+
+Layer 3: 統合RAG (複数MCP)
+  対象: Google Drive / Slack / 社内DB
+  更新: Permission Tier で制御
+```
+
+### Evidence自動検証パイプライン
+1. MCP実行時の自動記録
+   - Output: evidence/mcp_logs/YYYYMMDD_HHMMSS.json
+   - Format: {"mcp_server", "tool_name", "result_hash", "duration_ms"}
+
+2. Fast Verify（自動・5秒以内）
+   - JSON schema 合致確認
+   - Output: evidence/verify_reports/
+
+3. Full Verify（定期・30分以内）
+   - 外部URLチェック、依存関係検証
+   - Output: evidence/verify_reports/
+
+## 4.4 導入リスクと回避策
+
+| リスク | 発生シーン | 回避策 | Evidence記録 |
+|--------|-----------|--------|-------------|
+| APIコスト増加 | Remote MCP頻繁呼び出し | キャッシュ(TTL)運用、Batch API活用 | cost_log_YYYYMMDD.json |
+| コンテキスト汚染 | 複数MCP結果の矛盾 | SSOT（docs/）を最優先、Verify Gate検証 | conflict_YYYYMMDD.md |
+| Permission昇格バイパス | ローカルAgent→Cloud Agent委譲時 | Handoff時にPermission再確認 | handoff_audit_YYYYMMDD.md |
+| 誤情報伝播 | 古いResourcesがキャッシュされたまま | 毎日cache freshness check | cache_invalidation_YYYYMMDD.md |
+| MCPサーバーダウン | Remote MCP接続不可 | Graceful fallback（ReadOnly cache） | mcp_unavailable_YYYYMMDD.md |
+| ハルシネーション | RAGが古いembeddings参照 | Verify Gateで最新SSOT確認 | hallucination_YYYYMMDD.md |
+
+---
+
+# ■■■ 第5部: Git/GitHub運用設計最適化 ■■■
+
+## 5.1 混乱ポイント一覧（P0/P1/P2）
+
+### P0（重大：運用破綻リスク）
+
+| ID | 混乱ポイント | 具体例 | 原因 | 初心者への影響 |
+|----|-------------|--------|------|---------------|
+| P0-1 | ブランチ名義が不明確 | feat/123 と feature/fix-bug が混在 | 命名規則の明記なし | PR差し戻し/競合頻発 |
+| P0-2 | main/integrate/featの役割不明 | featブランチをmainに直接push | 階層関係・マージ順序が図示されていない | 検証抜きのリリース |
+| P0-3 | マージ競合の事故防止策がない | conflict marker が見落とされマージ実行 | 競合検出ツール未実装 | マージ失敗/コード混在 |
+| P0-4 | ロールバック手順が不明確 | 誤マージ後にgit reset vs revertで迷う | 破壊的変更対応がPart09に分散 | 回復遅延/本流汚染 |
+| P0-5 | Verify GateとGit操作の連携欠落 | Fast VerifyとPRマージが独立実行 | タイミング指定がない | 検証未了でリリース |
+
+### P1（高：初心者が迷う）
+
+| ID | 混乱ポイント | 具体例 | 原因 |
+|----|-------------|--------|------|
+| P1-1 | ローカル rebase vs merge の使い分け | どちらを使うか不明 | Git philosophy未明記 |
+| P1-2 | origin同期のタイミング | PRマージ前にgit pullすべきか | 手順の単線化がない |
+| P1-3 | recent-3ポリシー未実装 | evidence/に古いファイルが蓄積 | 保持期限・削除ルール未定義 |
+| P1-4 | AI Permission TierとGit操作の対応欠落 | PatchOnly AIがgit merge実行できるか不明 | Permissionと操作の対応表がない |
+| P1-5 | PRテンプレート未整備 | 何を書くべきか不明 | チェックリスト形式の明記なし |
+
+### P2（中：効率化の余地）
+
+| ID | 混乱ポイント | 具体例 |
+|----|-------------|--------|
+| P2-1 | init→main mergeの「1本道」がない | 各自が独自の手順で実行 |
+| P2-2 | コマンド例が不足 | 誰が何を実行するかが明記されていない |
+| P2-3 | branch protection rules未明記 | mainへの直接pushが防止されているか不明 |
+
+## 5.2 3層ブランチ戦略
+
+### Layer 1: Feature Branch（feat/***）
+- 目的: 個別タスクの作業ブランチ
+- 命名規則: feat/<TICKET-ID>-<description> 例: feat/123-add-user-auth
+- 生成元: origin/main の最新から毎回新規作成
+- 保護設定: 直接push禁止、PR + Fast Verify PASSでmerge
+- 有効期限: 14日（未マージの古いブランチは削除）
+- 特別な型:
+  - bugfix/ID-description: バグ修正
+  - hotfix/ID-description: 緊急修正（HumanGate承認必須）
+  - spike/ID-description: 調査・PoC
+
+### Layer 2: Integrate Branch（integrate）
+- 目的: Featureブランチからの変更を統合・検証
+- 生成元: 初期はorigin/mainから作成
+- マージ受け入れ: PRベース（Squash or Rebase and merge）
+- 保護設定: PR + Full Verify（CI/CD含む）+ HumanGate承認必須
+- 検証項目: リンク切れ、用語揺れ、Part間整合、未決事項、セキュリティスキャン
+- 有効期限: 7日（テスト完了後はmainへマージ）
+
+### Layer 3: Main Branch（main）
+- 目的: 本流・リリース対象
+- マージ元: integrateのみ
+- マージ方法: Create merge commit（--no-ff）で履歴を残す
+- 保護設定: PR + 全CI/CD通過 + GPG署名必須
+- ロールバック: git revertで履歴を保存（git reset使用禁止）
+- リリース: main上でタグを付け、Release Packageを生成
+
+## 5.3 迷いゼロ運用フロー（チェックリスト）
+
+### Phase A: ブランチ作成
+```bash
+# 1. リモート最新取得
+git fetch origin main
+
+# 2. 最新mainからブランチ作成
+git checkout -b feat/<TICKET-ID>-<description> origin/main
+
+# 3. 命名規則確認
+# feat/123-add-user-auth 形式であること
+```
+
+### Phase B: ローカル作業
+```bash
+# 4. 実装・編集
+code docs/Part10.md
+
+# 5. ステージング
+git add docs/Part10.md
+
+# 6. コミット（conventional commits形式）
+git commit -m "feat(Part10): Add Verify Gate implementation"
+
+# 7. ローカルFast Verify実行
+pwsh ./checks/verify_repo.ps1 -Mode Fast
+
+# 8. PASS確認後、Evidence保存
+# evidence/verify_reports/YYYYMMDD_HHMMSS_*.md に結果保存
+```
+
+### Phase C: リモート同期・PR作成
+```bash
+# 9. PR作成前にmain追従（競合防止）
+git fetch origin main
+git rebase origin/main
+
+# 10. 競合発生時は解決→rebase --continue
+# 解決後、再Verify必須
+pwsh ./checks/verify_repo.ps1 -Mode Fast
+
+# 11. リモートpush
+git push -u origin feat/<TICKET-ID>-<description>
+
+# 12. PR作成（GitHub CLI推奨）
+gh pr create \
+  --title "feat(Part10): Add Verify Gate implementation" \
+  --body-file .github/PULL_REQUEST_TEMPLATE.md \
+  --base integrate \
+  --head feat/<TICKET-ID>-<description>
+```
+
+### Phase D: PRマージ→Release
+```bash
+# 13. PRレビュー完了を待つ
+# - Reviewer承認
+# - CI/CDパイプラインGreen
+# - Fast Verify + Full Verify PASS
+
+# 14. マージ方法選択
+# 通常推奨: 「Squash and merge」
+
+# 15. マージ完了後、featureブランチ削除
+# GitHub自動削除オプション有効化推奨
+```
+
+## 5.4 Conflict Marker 検出と解決手順
+
+### 発生時の対応
+```bash
+# 競合ファイル一覧
+git diff --name-only --diff-filter=U
+
+# marker検出
+grep -r "<<<<<<<\|=======" --include="*.md" --include="*.py"
+```
+
+### 手動解決（エディタで）
+```
+<<<<<<< HEAD (当分支の内容)
+実装内容 A
+=======
+実装内容 B (マージ元の内容)
+>>>>>>> origin/main
+```
+→ どちらか一方を残すか、両方を統合するか判断しmarkerを削除
+
+### 解決後
+```bash
+git add <resolved-file>
+git rebase --continue  # or git merge --continue
+```
+
+### Fast Verifyに追加すべき項目
+- V-0504: Conflict markerの残存チェック（FAIL: 1個以上のmarkerが存在）
+- 手順: grep -r "<<<<<<\|=======" docs/ checks/ evidence/
+
+## 5.5 誤マージのロールバック
+
+### パターン1: マージ直後（未push）
+```bash
+git merge --abort  # マージ前の状態に戻す
+```
+
+### パターン2: マージ済み（リモートにpush済み）
+```bash
+# ❌ git reset --hard HEAD~1 は使用禁止（履歴が消える）
+# ✅ git revert を使う（履歴が残る）
+git revert -m 1 <merge-commit-hash>
+git push origin main
+```
+
+### ロールバック後の対応
+1. evidence/ に「revert理由」を記録
+2. ADRを追加（再発防止策を明記）
+3. 影響を受けた関連ブランチに通知
+
+---
+
+# ■■■ 第6部: Verify Gate改善案 ■■■
+
+## 6.1 Fast Verifyに「Conflict Marker検出」を追加
+
+| 項目 | V-0505 |
+|------|--------|
+| 検査内容 | docs/, checks/, evidence/ にconflict markerがないか |
+| 実行方法 | grep -r "<<<<<<\|=======" --include="*.md" |
+| 合否判定 | PASS: 0件 / FAIL: 1個以上検出 |
+| FAIL時の対応 | PRマージを自動ブロック |
+| ログ保存 | evidence/verify_reports/YYYYMMDD_HHMMSS_conflict_check.md |
+
+## 6.2 Evidence命名規則の統一
+
+### 統一フォーマット
+```
+YYYYMMDD_HHMMSS_<verify-mode>_<status>.md
+
+例:
+20260111_230526_Fast_PASS.md
+20260111_231500_Full_FAIL.md
+```
+
+### 拡張子の統一
+- 全てのEvidence: .md（Markdown）
+- Part10とPart12で .md に統一
+
+## 6.3 保持ポリシー（recent-3）
+
+### ルール
+- evidence/verify_reports/ にログ保存
+- recent-3保持（最新3件のみ）
+- 削除ポリシー: 7日超のログを自動削除（cron or script）
+
+### 実装例（PowerShell）
+```powershell
+$limit = 3
+$reports = Get-ChildItem -Path "evidence/verify_reports" -Filter "*_${TicketID}_*.md" |
+    Sort-Object CreationTime -Descending
+
+if ($reports.Count -gt $limit) {
+    $filesToDelete = $reports | Select-Object -Skip $limit
+    foreach ($file in $filesToDelete) {
+        $archiveDir = "evidence/archive/$(Get-Date -Format 'yyyy')"
+        if (!(Test-Path $archiveDir)) {
+            New-Item -ItemType Directory -Path $archiveDir | Out-Null
+        }
+        Move-Item -Path $file.FullName -Destination $archiveDir -Force
+    }
+}
+```
+
+## 6.4 誤検知対策
+
+| 誤検知パターン | 原因 | 改善策 |
+|---------------|------|--------|
+| バックアップファイルのリンクを検出 | *.bak ファイルを検査対象に含めている | --ignore-pattern '*.bak' オプション追加 |
+| 自動生成コードの差分検出 | 生成ファイルを検査対象に含めている | ホワイトリスト機能追加 |
+| 禁止語彙の誤検出 | コメント内の記述を検出 | コンテキスト判定追加 |
+
+## 6.5 漏れ対策
+
+| 漏れパターン | 原因 | 改善策 |
+|-------------|------|--------|
+| 未解決conflict | Full Verifyに git diff --check 未追加 | whitespace/競合marker検出追加 |
+| 外部リンク切れ | Fast Verifyで外部URL未チェック | Full Verifyに外部リンクチェック追加 |
+| CHANGELOG未更新 | R-1403の機械判定なし | CHANGELOG更新チェック追加 |

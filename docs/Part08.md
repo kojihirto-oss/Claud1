@@ -56,7 +56,7 @@ Fast検証でPASSした証跡のみを採用する。
 1. 発見：Context Packの不足・過剰・根拠不整合を特定する。
 2. 記録：発見内容、参照根拠、対象ファイル、保存先を記録する。
 3. 修正：最小差分でContext Packを更新し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、信頼境界を確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -106,12 +106,11 @@ Fast検証でPASSした証跡のみを採用する。
 **保存先**: evidence/verify_reports/
 
 ### E-0803: 証跡4点（最小セット）
-**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity
 **保存先**: evidence/verify_reports/
-
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] 信頼境界と参照根拠が記録されている
@@ -135,3 +134,9 @@ Fast検証でPASSした証跡のみを採用する。
 - [Part15](./Part15.md) : 運用ループ
 - [00_INDEX](./00_INDEX.md) : 全体索引
 - [FACTS_LEDGER](./FACTS_LEDGER.md) : 事実台帳
+
+### Gitコミットメッセージ一次情報
+- [Git - git-commit Documentation](https://git-scm.com/docs/git-commit) : Git公式コミットドキュメント
+- [8 Git Commit Message Best Practices for 2025](https://blog.pullnotifier.com/blog/8-git-commit-message-best-practices-for-2025) : 2025年版コミットメッセージベストプラクティス
+- [How to Write a Good Git Commit Message](https://www.gitkraken.com/learn/git/best-practices/git-commit-message) : 良いコミットメッセージの書き方
+- [Conventional Commits](https://www.conventionalcommits.org/) : Conventional Commits仕様

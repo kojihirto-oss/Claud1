@@ -27,6 +27,7 @@
 - 仕様準拠が **機械的に担保** される
 - 変更が最小化される（最小差分・影響範囲の限定）
 - 検証・証跡・再現性・ロールバックが常備される
+- **すべての変更が説明可能**（全コミットがタスク/ADR/証跡と紐づく）
 
 **根拠**: [FACTS_LEDGER F-0020](FACTS_LEDGER.md)（プロジェクト目的）
 
@@ -69,8 +70,8 @@
 - **Evidence**: [glossary/GLOSSARY.md#Evidence](../glossary/GLOSSARY.md)
 - **Release**: [glossary/GLOSSARY.md#Release](../glossary/GLOSSARY.md)
 - **VRループ**: [glossary/GLOSSARY.md#VRループ](../glossary/GLOSSARY.md)
-- **SBOM**: [glossary/GLOSSARY.md#SBF](../glossary/GLOSSARY.md)（Software Bill of Materials）
-- **VIBEKANBAN**: [glossary/GLOSSARY.md#VIBEKANBAN](../glossary/GLOSSARY.md)
+- **SBOM**: [glossary/GLOSSARY.md#SBOM](../glossary/GLOSSARY.md)（Software Bill of Materials）
+- **VIBEKANBAN**: [glossary/GLOSSARY.md#VIBEKANBAN](../glossary/GLOSSARY.md)（※要定義）
 
 詳細は [glossary/GLOSSARY.md](../glossary/GLOSSARY.md) を参照。
 
@@ -394,6 +395,11 @@ DoD を「緩和」して成功扱いすることを禁止する。
 - [docs/Part09.md](Part09.md) : Permission Tier（AI権限管理）
 - [docs/Part10.md](Part10.md) : Verify Gate（検証手順・VRループ）
 - [docs/Part13.md](Part13.md) : Release Package（リリース手順）
+
+### DoD・品質管理一次情報
+- [Definition of Done (DoD) Guide](https://www.mountaingoalsoftware.com/definition-of-done/) : DoDガイドライン
+- [Continuous Delivery: Definition of Done](https://www.continuousdelivery.com/definition-of-done/) : 継続的デリバリーとDoD
+- [Software Testing Best Practices](https://www.softwaretestinghelp.com/software-testing-best-practices/) : ソフトウェアテストベストプラクティス
 
 ### sources/
 - [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md) : 原文（L39-80）

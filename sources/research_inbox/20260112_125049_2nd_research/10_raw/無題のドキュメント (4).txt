@@ -1,0 +1,78 @@
+﻿調査報告：設計書（長文SSOT）を“最新情報込みで高精度”に作る最適解（2026視点）
+あなたの結論（Web UIは長文・一貫性・再現性が弱い）は、最新の開発者向けエージェント設計と一致します。いま「一番事故りにくく、精度を最大化しやすい」方法は “Docs as Code（設計書をコード同様に扱う）＋CLIエージェント＋MCPで根拠を固定化＋Verify/証跡” の組み合わせです。MCP自体が「LLMアプリ↔外部データ/ツール」を標準化する目的で設計されており、IDEやCLIエージェントと併用して“根拠のある生成”を作りやすい方向に進んでいます。(Model Context Protocol)
+________________
+
+
+1) 結論：最適な全体構成（おすすめ “1本”）
+最適解（推奨）：
+A. IDE＋CLIを主戦場にして、外部の最新情報はMCP/検索で取得→SSOTに保存→その根拠だけで執筆→Verifyでゲート
+この形が「長文」「一貫性」「事故防止」「更新容易性」を同時に満たします。(Model Context Protocol)
+理由（要点）：
+* CLIエージェントは“リポジトリを読んで、差分を作って、コマンド実行まで”できるため、長文設計書を“分割→統合→検証”の工程に落とし込みやすいです。(OpenAI Developers)
+* 最新情報は「取得してSSOTに固定」しない限り再現性が出ないので、MCP/検索で根拠を取って保存（更新日つき）→その材料で書くのが安定します。(Model Context Protocol)
+* 事故（権限過大・ツール汚染・秘密漏えい）対策は、MCP公式が 最小権限（least privilege）を段階的に上げるなど具体策を示しています。(Model Context Protocol)
+________________
+
+
+2) 選択肢比較（何が“最善”かの根拠）
+WebのLLM UI（ブラウザ）
+向く： 企画相談、短い草案、比較検討
+向かない： 長文の最終設計書（出力制限・途中崩れ・証跡/差分/自動検証が弱い）
+→ あなたの用途（Part00–Part20級のSSOT）では主戦場にしないのが妥当。
+CLIエージェント（推奨の中核）
+* OpenAI Codex CLI：ローカル端末で動くコーディングエージェント。差分を扱い、/review でローカルレビューも可能。(OpenAI Developers)
+* Claude Code：ターミナル常駐型のエージェント。テスト実行→修正反復→コミット、の運用Tipsが公式から出ています。(Claude Code)
+* Gemini CLI：ReActループで内蔵ツール＋ローカル/リモートMCPサーバを使える前提で設計されており、最新情報取り込みや外部連携がしやすい。(Google for Developers)
+→ 長文設計書は「分割生成」「差分管理」「検証」「証跡」が命なので、CLIエージェントが最も適合。
+IDEエージェント（サブ：編集・レビュー・局所修正に強い）
+VS Codeの“agent/背景エージェント”は、作業領域を分ける（worktree等）発想を前提に安全に回す設計が説明されています。(Visual Studio Code)
+Cursorはルール（永続コンテキスト）を仕込んで一貫性を上げる思想が明確です。(Cursor)
+→ ただし、長文を一気に作る主戦場はCLIの方が安定しやすい。
+ローカルLLM
+強み： 機密・オフライン・整形/分類の前処理
+弱点： “最新情報”が自力で入らない（ここが致命点になりやすい）
+→ ローカルLLMは「内部文書の加工」専用に寄せるのが最善。最新情報の確定はMCP/検索側に寄せる。
+________________
+
+
+3) “最善運用”の具体ワークフロー（そのまま設計書に入る形）
+フロー：Research → Freeze → Write → Verify → Review → Release
+1. Research（最新情報取得）
+   * MCP/検索（例：Gemini CLIはMCP連携前提）で一次情報に当たる。(Google for Developers)
+2. Freeze（根拠の固定化）
+   * 取得したページ/抜粋/要点を sources/ に保存し、**取得日・タイトル・要約・重要引用（短く）**を添える。
+3. Write（設計書更新：分割・差分最小）
+   * CLIエージェントに「更新対象Part」「追加/置換する見出し」「根拠（sources）だけ」を渡して書かせる。
+4. Verify（機械検証＋証跡）
+   * リンクチェック、整合性チェック、禁止事項チェック等のVerifyを回してログを残す（あなたのSSOT思想と相性◎）。
+5. Review（AIレビュー＋人間承認）
+   * Codex CLIの /review のように、差分ベースでレビューを掛ける。(OpenAI Developers)
+6. Release（コミット/タグ/証跡保持）
+   * “何を根拠に何を変えたか”が追える形で確定。
+このフローで、ハルシネーションは「根拠の材料をSSOTに固定」することで構造的に抑えられます（気合ではなく仕組み）。(Model Context Protocol)
+________________
+
+
+4) 2026運用で“事故を減らす”必須ガード（MCP込み）
+MCPはJSON-RPCベースのクライアント/ホスト/サーバ構造で、境界と権限設計が重要です。(Model Context Protocol)
+特に外部取得・APIキー・サーバ権限が絡むので、公式の Security Best Practices（段階的最小権限、スコープ設計など） は設計書に明記すべきです。(Model Context Protocol)
+また、MCPサーバのデバッグ/検証は MCP Inspector が公式に用意されており、接続・ツール呼び出し・レスポンス確認を体系的に行えます。(Model Context Protocol)
+________________
+
+
+5) ツールの“最適役割分担”（おすすめ）
+* 執筆（SSOT更新の主役）：Claude Code か Codex CLI
+   * テスト実行→修正反復の運用Tipsが公式にあるのはClaude Code側。(Anthropic)
+   * 差分レビュー導線（/review）が明確なのはCodex CLI側。(OpenAI Developers)
+* 最新情報の取り込み・外部連携（研究役）：Gemini CLI（MCP前提の設計）(Google Cloud Documentation)
+* MCPサーバの検証：MCP Inspector(Model Context Protocol)
+* IDE（編集・局所修正・レビュー）：VS Code / Cursor（ただしworktree等で衝突回避）(Visual Studio Code)
+________________
+
+
+最終まとめ（あなたの質問への答え）
+* 今回のIDE＋CLI中心は“最善に近い”。
+* 精度をさらに上げる鍵は、**「最新情報をMCP/検索で取得→SSOTに固定→その根拠だけで書く→Verify/Reviewでゲート」**に寄せ切ること。(Model Context Protocol)
+* **ローカルLLMは補助（内部文書の加工）**に寄せるのが最適（最新情報確定には不利）。
+* The Verge
+* The Verge

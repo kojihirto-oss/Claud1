@@ -10,3 +10,6 @@
 
 ## webclips
 - 外部根拠（URL / 取得日 / 要旨）
+
+## research_imports
+- [mcp_sources_20260116_130700.md](../../evidence/research_import/mcp_sources_20260116_130700.md) / Google Search / 2026-01-16 / MCP Authorization & Security Considerations summary.

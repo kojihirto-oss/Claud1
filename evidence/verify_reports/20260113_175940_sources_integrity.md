@@ -1,0 +1,3 @@
+[PASS] sources_integrity: No modifications detected (0 changes)
+Timestamp: 2026-01-13 17:59:40
+Note: sources/ is read-only (append-only exceptions allowed with ADR)

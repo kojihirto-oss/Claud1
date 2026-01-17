@@ -95,13 +95,13 @@ function Test-LinkIntegrity {
         $Report = "[PASS] link_check: All internal links are valid (0 broken links)`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
         $Report += "Files checked: $($MarkdownFiles.Count)"
-        Write-Host "  ✓ PASS - All links valid" -ForegroundColor Green
+        Write-Host "  [PASS] - All links valid" -ForegroundColor Green
         $script:AllPassed = $script:AllPassed -and $true
     } else {
         $Report = "[FAIL] link_check: Found $($BrokenLinks.Count) broken link(s)`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n`n"
         $Report += ($BrokenLinks -join "`n")
-        Write-Host "  ✗ FAIL - $($BrokenLinks.Count) broken link(s)" -ForegroundColor Red
+        Write-Host "  [FAIL] - $($BrokenLinks.Count) broken link(s)" -ForegroundColor Red
         $script:AllPassed = $false
     }
 
@@ -138,8 +138,8 @@ function Test-PartsIntegrity {
         "## 12. 参照（パス）"
     )
 
-    # Check Part00-20 files
-    for ($i = 0; $i -le 20; $i++) {
+    # Check Part00-30 files
+    for ($i = 0; $i -le 30; $i++) {
         $PartNum = $i.ToString("00")
         $PartFile = Join-Path $DocsDir "Part$PartNum.md"
 
@@ -165,14 +165,14 @@ function Test-PartsIntegrity {
     if ($Violations.Count -eq 0) {
         $Report = "[PASS] parts_integrity: All Parts follow template structure`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
-        $Report += "Parts checked: Part00-20 (21 files)"
-        Write-Host "  ✓ PASS - Part structure valid" -ForegroundColor Green
+        $Report += "Parts checked: Part00-30 (31 files)"
+        Write-Host "  [PASS] - Part structure valid" -ForegroundColor Green
         $script:AllPassed = $script:AllPassed -and $true
     } else {
         $Report = "[FAIL] parts_integrity: Found $($Violations.Count) violation(s)`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n`n"
         $Report += ($Violations -join "`n")
-        Write-Host "  ✗ FAIL - $($Violations.Count) violation(s)" -ForegroundColor Red
+        Write-Host "  [FAIL] - $($Violations.Count) violation(s)" -ForegroundColor Red
         $script:AllPassed = $false
     }
 
@@ -228,13 +228,13 @@ function Test-ForbiddenPatterns {
         $Report = "[PASS] forbidden_patterns: No dangerous patterns detected (0 matches)`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
         $Report += "Patterns checked: $($ForbiddenPatterns.Count)"
-        Write-Host "  ✓ PASS - No forbidden patterns" -ForegroundColor Green
+        Write-Host "  [PASS] - No forbidden patterns" -ForegroundColor Green
         $script:AllPassed = $script:AllPassed -and $true
     } else {
         $Report = "[FAIL] forbidden_patterns: Found $($Detections.Count) detection(s)`n"
         $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n`n"
         $Report += ($Detections -join "`n")
-        Write-Host "  ✗ FAIL - $($Detections.Count) forbidden pattern(s)" -ForegroundColor Red
+        Write-Host "  [FAIL] - $($Detections.Count) forbidden pattern(s)" -ForegroundColor Red
         $script:AllPassed = $false
     }
 
@@ -261,7 +261,7 @@ function Test-SourcesIntegrity {
         if (-not (Test-Path $SourcesDir)) {
             $Report = "[PASS] sources_integrity: sources/ directory not found (acceptable)`n"
             $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-            Write-Host "  ✓ PASS - sources/ not present" -ForegroundColor Green
+            Write-Host "  [PASS] - sources/ not present" -ForegroundColor Green
             $script:AllPassed = $script:AllPassed -and $true
             $Report | Out-File -FilePath $ReportPath -Encoding utf8
             $script:Results['sources_integrity'] = @{
@@ -275,10 +275,10 @@ function Test-SourcesIntegrity {
         $GitStatus = git status --porcelain sources/ 2>&1
 
         if ($LASTEXITCODE -eq 0 -and $GitStatus) {
-            $ModifiedFiles = $GitStatus | Where-Object { $_ -match '^\s*[MADRCU]' }
+            $ModifiedFiles = $GitStatus | Where-Object { $_ -match '^\[s*([MADRCU])' }
 
             foreach ($Line in $ModifiedFiles) {
-                if ($Line -match '^\s*([MADRCU])\s+(.+)$') {
+                if ($Line -match '^\[s*([MADRCU])\s+(.+)$') {
                     $Status = $Matches[1]
                     $FilePath = $Matches[2]
                     $Modifications += "[MODIFIED] $Status $FilePath"
@@ -291,7 +291,7 @@ function Test-SourcesIntegrity {
             $Report = "[PASS] sources_integrity: No modifications detected (0 changes)`n"
             $Report += "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
             $Report += "Note: sources/ is read-only (append-only exceptions allowed with ADR)"
-            Write-Host "  ✓ PASS - sources/ unmodified" -ForegroundColor Green
+            Write-Host "  [PASS] - sources/ unmodified" -ForegroundColor Green
             $script:AllPassed = $script:AllPassed -and $true
         } else {
             $Report = "[FAIL] sources_integrity: Found $($Modifications.Count) modification(s)`n"
@@ -299,7 +299,7 @@ function Test-SourcesIntegrity {
             $Report += "VIOLATION: sources/ is read-only (no edits/deletes/overwrites allowed)`n`n"
             $Report += ($Modifications -join "`n")
             $Report += "`n`nTo fix: git checkout sources/"
-            Write-Host "  ✗ FAIL - sources/ has $($Modifications.Count) change(s)" -ForegroundColor Red
+            Write-Host "  [FAIL] - sources/ has $($Modifications.Count) change(s)" -ForegroundColor Red
             $script:AllPassed = $false
         }
 
@@ -336,21 +336,21 @@ Write-Host "============================================" -ForegroundColor Cyan
 
 foreach ($Check in $Results.Keys | Sort-Object) {
     $Result = $Results[$Check]
-    $Status = if ($Result.Passed) { "PASS ✓" } else { "FAIL ✗" }
+    $Status = if ($Result.Passed) { "[PASS]" } else { "[FAIL]" }
     $Color = if ($Result.Passed) { "Green" } else { "Red" }
     Write-Host ("  {0,-20} : {1}" -f $Check, $Status) -ForegroundColor $Color
 }
 
 Write-Host "`n  Overall Result: " -NoNewline
 if ($AllPassed) {
-    Write-Host "PASS ✓" -ForegroundColor Green
+    Write-Host "[PASS]" -ForegroundColor Green
     Write-Host "`nAll checks passed. You may proceed to commit." -ForegroundColor Green
     Write-Host "Next steps:" -ForegroundColor Cyan
     Write-Host "  1. git add evidence/verify_reports/*" -ForegroundColor Gray
     Write-Host "  2. git add docs/Part10.md  # (or your modified files)" -ForegroundColor Gray
     Write-Host "  3. git commit -m 'Part10: ... (Fast verify PASS $(Get-Date -Format 'yyyy-MM-dd'))'" -ForegroundColor Gray
 } else {
-    Write-Host "FAIL ✗" -ForegroundColor Red
+    Write-Host "[FAIL]" -ForegroundColor Red
     Write-Host "`nVerification failed. DO NOT commit." -ForegroundColor Red
     Write-Host "Review the reports in evidence/verify_reports/ and fix the issues." -ForegroundColor Yellow
 }
@@ -363,4 +363,3 @@ foreach ($Check in $Results.Keys | Sort-Object) {
 
 # Exit with appropriate code
 exit $(if ($AllPassed) { 0 } else { 1 })
-

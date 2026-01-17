@@ -1,0 +1,570 @@
+# VCG/VIBE SSOT Design Master 設計調査レポート（Part3）
+# 運用事故シナリオ・未決事項・実装スクリプト例
+
+---
+
+# ■■■ 第7部: 運用事故シナリオと予防策 ■■■
+
+## シナリオ1: 誤ったsources/の改変が検出されない
+
+### 発生経路
+1. AIが sources/ を「整理」名目で編集
+2. V-0004 未実装で検出不可
+3. merge実行
+4. 「sources不変」ルール形骸化
+
+### 予防策
+- 即座に checks/verify_sources_integrity.ps1 実装
+- CI/CDで自動実行
+- sources/ への write 権限を IDE/MCP レベルで遮断
+- Evidenceに失敗ログ保存（削除禁止）
+
+---
+
+## シナリオ2: HumanGate承認が暗黙的にスキップ
+
+### 発生経路
+1. 破壊的変更が必要
+2. 「誰が承認？いつまで？」不明
+3. 「暫定変更、後でADR作成」と判断
+4. ADRなし状態でmerge
+5. SSOT信頼喪失
+
+### 予防策
+- HumanGateフロー明確化（修正案#1）
+- SLA: ADR作成→72h Review→承認/却下
+- 72h超過で automatic escalate
+- ADRなきcommitはCIでreject
+
+---
+
+## シナリオ3: MCP Toolが無制御実行→機密情報混入
+
+### 発生経路
+1. MCP Toolで読み込みファイル（APIキー混入）
+2. sources/保存
+3. Part00 U-0003暫定対応のまま
+4. Incident時対応不明
+5. 情報漏洩
+
+### 予防策
+- User Consent + Tool Safety Gate 実装
+- Data Privacy Boundary 明記
+- Automated secret scanning（SBOM生成時）
+- Part19にMCP Tool事故SOP追加
+- VAULTに機密情報保管
+
+---
+
+## シナリオ4: Verify FAILを無視してコミット
+
+### 発生経路
+1. 開発者が時間的制約からVerify FAILを無視
+2. HumanGate承認を得ずに「後で修正」とコミット
+3. 壊れた状態がmainブランチにマージ
+
+### 予防策
+- 技術的対策: pre-commit hookでVerify強制実行
+- 運用対策: CI/CDでVerify PASSを必須条件に設定
+- 文化的対策: 「Verify FAILは即時修正」をプロジェクト規範に
+
+### pre-commit hook例
+```bash
+#!/bin/sh
+pwsh ./checks/verify_repo.ps1 -Mode Fast
+if [ $? -ne 0 ]; then
+    echo "Verify FAIL: コミットを中止します"
+    exit 1
+fi
+```
+
+---
+
+## シナリオ5: 複数AIが同一ファイルを同時編集
+
+### 発生経路
+1. ChatGPTがPart03を修正中
+2. Claude Codeが同じPart03を別作業で修正
+3. Gitコンフリクト発生
+4. コンフリクト解決ロジックがなく、ファイル破損
+
+### 予防策
+- 技術的対策: 1Part=1Branch原則の自動検出スクリプト
+- 運用対策: VIBEKANBANに「編集中Part」欄を追加し可視化
+- ツール対策: Mission Controlで作業領域をロック
+
+### 検出スクリプト例
+```bash
+# 現在編集中のPartを検出
+git diff --name-only | grep -o 'Part[0-9]\+' | sort -u
+```
+
+---
+
+## シナリオ6: sources/を誤って編集
+
+### 発生経路
+1. AIに「sources/を整理して」と指示
+2. AIがsources/内のファイルを編集・削除
+3. Verify Gate未実装で検出されず
+4. mainにマージ
+5. 監査ログの完全性が失われる
+
+### 予防策
+- sources/への書き込み権限をPermission Tierで制限
+- pre-commit hookでsources/の変更を検出・拒否
+- CI/CDでsources/の改変を自動検出
+
+---
+
+## シナリオ7: Claude CodeがADRなしでdocs/変更
+
+### 発生経路
+1. 緊急修正として直接編集
+2. V-1402（ADR先行ルール検証）で自動FAIL
+3. しかしCI連携がないためmainへの直接Push可能
+4. SSOT破壊
+
+### 予防策
+- CI連携でmainブランチへの直接Pushを禁止（Branch protection）
+- ADR先行ルールの機械判定実装
+- HumanGate承認なしの変更をreject
+
+---
+
+## シナリオ8: 承認者不在でHotfixが48時間停滞
+
+### 発生経路
+1. 本番障害発生
+2. Hotfix PR作成
+3. HumanGate承認者が休暇中
+4. 承認者未定義のため自動エスカレーションなし
+5. 2日間放置
+6. 障害拡大
+
+### 予防策
+- 代理承認者 + 緊急連絡手段 + 自動エスカレーションをPart09に明記
+- GitHubの "Require approvals from specific people" を有効化
+- EmergencyApproverプロトコルを有効化（Part19）
+
+---
+
+# ■■■ 第8部: 未決事項リスト ■■■
+
+## P0（要即時対応）
+
+| ID | Part | 項目 | 現状 | 期限 | 確認方法 |
+|----|------|------|------|------|----------|
+| U-0022 | Part09 | HumanGate権限者の明示 | 不明 | 2026-01-31 | CLAUDE.md確認 |
+| U-0023 | Part00 | Verify Script実装スケジュール | 未実装 | 2026-01-31 | checks/実装確認 |
+| U-0004 | Part00 | Verify自動実行タイミング | 手動 | 2026-01-31 | CI/CD設定確認 |
+| U-0001 | Part00 | ADR承認フロー | 暫定 | 2026-01-31 | GitHub Actions チェック |
+
+## P1（高優先度）
+
+| ID | Part | 項目 | 現状 | 期限 | 確認方法 |
+|----|------|------|------|------|----------|
+| U-0003 | Part00 | 機密情報の扱い | 暫定 | 2026-02-28 | VAULT構造・暗号化ツール選定 |
+| U-0020 | Part03 | MCP OAuth実装 | 新規 | 2026-02-28 | MCP Server lib確認 |
+| U-0021 | 新規 | VAULT暗号化ツール選定 | 新規 | 2026-02-28 | git-crypt/age/OpenSSL比較 |
+| U-0102 | Part01 | SBOM生成ツール | 暫定 | 2026-02-28 | ツール可用性確認 |
+| U-0103 | Part01 | セキュリティ閾値 | CVSS 7.0 | 2026-02-28 | 環境に合わせて調整 |
+| U-1402 | Part10 | チェックスクリプトの自動化 | 未定 | 2026-02-28 | CI連携検討 |
+
+## P2（中優先度）
+
+| ID | Part | 項目 | 現状 | 期限 | 確認方法 |
+|----|------|------|------|------|----------|
+| U-0002 | Part00 | sources/保存期限 | 無期限 | 2026-03-31 | ディスク容量計測 |
+| U-0101 | Part01 | メトリクス計測頻度 | 月次 | 2026-03-31 | 自動化ツール検討 |
+| U-1404 | Part14 | セマンティックバージョニング | 未定義 | 2026-03-31 | SemVer標準参照 |
+| U-2101 | Part21 | ツールAPI費用上限 | 未設定 | 2026-03-31 | 予算策定 |
+
+## 新規追加すべき未決事項
+
+| ID | Part | 項目 | 確認方法 |
+|----|------|------|----------|
+| U-AUDIT-1 | Part03 | Z.ai (GLM-4.7) 日本語対応状況 | 公式ドキュメント確認 |
+| U-AUDIT-2 | Part03 | Google Antigravity公開状況 | 2026年1月時点の公開機能とAPI仕様確認 |
+| U-AUDIT-3 | Part10 | Verifyスクリプト実装状況 | checks/ディレクトリ確認 |
+| U-AUDIT-4 | Part03 | 「軽量モデル」の明確な定義 | トークン単価？パラメータ数？ |
+
+---
+
+# ■■■ 第9部: 実装スクリプト例 ■■■
+
+## 9.1 verify_repo.ps1（メイン検証スクリプト）
+
+```powershell
+<#
+.SYNOPSIS
+    VCG/VIBE SSOT リポジトリの整合性検証
+.DESCRIPTION
+    Part10 Verify Gate の実装
+    Fast: V-0001〜V-0004
+    Full: Fast + 追加検証
+#>
+
+param(
+    [ValidateSet("Fast", "Full")]
+    [string]$Mode = "Fast",
+    [switch]$AutoCleanup,
+    [switch]$Verbose
+)
+
+# ===== Fast Verify =====
+
+function Test-Links {
+    # Fast-1: リンク切れ検出
+    $linkPattern = '\[([^\]]+)\]\(([^)]+)\.md\)'
+    $allLinks = Select-String -Path docs/*.md -Pattern $linkPattern -AllMatches
+    $broken = $allLinks.Matches | Where-Object { 
+        -not (Test-Path "docs/$($_.Groups[2].Value).md") 
+    }
+    
+    if ($broken.Count -eq 0) {
+        Write-Host "[PASS] link_check: All internal links valid" -ForegroundColor Green
+        return $true
+    } else {
+        Write-Host "[FAIL] link_check: $($broken.Count) broken links found" -ForegroundColor Red
+        $broken | ForEach-Object { Write-Host "  - $($_.Groups[0].Value)" -ForegroundColor Yellow }
+        return $false
+    }
+}
+
+function Test-PartsExist {
+    # Fast-2: Part00-20 存在確認
+    $required = 0..20 | ForEach-Object { "docs/Part$('{0:D2}' -f $_).md" }
+    $missing = $required | Where-Object { -not (Test-Path $_) }
+    
+    if ($missing.Count -eq 0) {
+        Write-Host "[PASS] parts_exist: All Parts present" -ForegroundColor Green
+        return $true
+    } else {
+        Write-Host "[FAIL] parts_exist: Missing $($missing.Count) files" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Test-ForbiddenCommands {
+    # Fast-3: 禁止コマンド検出
+    $patterns = @('rm -r -f', 'git push --force', 'curl \| sh')
+    $found = $patterns | ForEach-Object { 
+        Select-String -Path docs/*.md -Pattern $_ -Quiet 
+    }
+    
+    if ($found -contains $true) {
+        Write-Host "[FAIL] forbidden_patterns: Dangerous command found" -ForegroundColor Red
+        return $false
+    } else {
+        Write-Host "[PASS] forbidden_patterns: No dangerous commands" -ForegroundColor Green
+        return $true
+    }
+}
+
+function Test-SourcesIntegrity {
+    # Fast-4: sources 改変検出
+    $diff = git diff --name-only HEAD -- sources/
+    
+    if ($diff) {
+        Write-Host "[FAIL] sources_integrity: Modified files detected" -ForegroundColor Red
+        return $false
+    } else {
+        Write-Host "[PASS] sources_integrity: No changes" -ForegroundColor Green
+        return $true
+    }
+}
+
+function Test-ConflictMarkers {
+    # Fast-5: Conflict Marker 検出
+    $markers = Select-String -Path docs/*.md, checks/*.ps1 -Pattern '<<<<<<<|=======' -Quiet
+    
+    if ($markers) {
+        Write-Host "[FAIL] conflict_markers: Conflict markers found" -ForegroundColor Red
+        return $false
+    } else {
+        Write-Host "[PASS] conflict_markers: No conflict markers" -ForegroundColor Green
+        return $true
+    }
+}
+
+# ===== Fast Verify 実行 =====
+$results = @(
+    (Test-Links),
+    (Test-PartsExist),
+    (Test-ForbiddenCommands),
+    (Test-SourcesIntegrity),
+    (Test-ConflictMarkers)
+)
+
+$allPass = $results -notcontains $false
+
+# ===== Evidence 出力 =====
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$status = if ($allPass) { "PASS" } else { "FAIL" }
+$evidencePath = "evidence/verify_reports/${timestamp}_${Mode}_${status}.md"
+
+@"
+# Verify Report
+- Mode: $Mode
+- 実行日時: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+- 結果: $status
+- コミット: $(git rev-parse HEAD)
+
+## チェック結果
+- link_check: $(if ($results[0]) {"PASS"} else {"FAIL"})
+- parts_exist: $(if ($results[1]) {"PASS"} else {"FAIL"})
+- forbidden_patterns: $(if ($results[2]) {"PASS"} else {"FAIL"})
+- sources_integrity: $(if ($results[3]) {"PASS"} else {"FAIL"})
+- conflict_markers: $(if ($results[4]) {"PASS"} else {"FAIL"})
+"@ | Out-File $evidencePath -Encoding utf8
+
+Write-Host "`nEvidence saved: $evidencePath" -ForegroundColor Cyan
+
+if ($allPass) {
+    Write-Host "`n[OVERALL PASS] All $Mode checks passed." -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "`n[OVERALL FAIL] Some checks failed." -ForegroundColor Red
+    exit 1
+}
+```
+
+## 9.2 pre-commit hook（Git Hook）
+
+```bash
+#!/bin/sh
+# .git/hooks/pre-commit
+# sources/ 保護 & Conflict Marker 検出
+
+# 1. sources/ 改変禁止
+MODIFIED_SOURCES=$(git diff --cached --name-only | grep '^sources/')
+if [ -n "$MODIFIED_SOURCES" ]; then
+    echo "[ERROR] sources/ の改変は禁止されています:"
+    echo "$MODIFIED_SOURCES"
+    echo "追記のみ許可されています。"
+    exit 1
+fi
+
+# 2. Conflict Marker 検出
+CONFLICT_MARKERS=$(git diff --cached --name-only | xargs grep -l '<<<<<<<\|=======' 2>/dev/null)
+if [ -n "$CONFLICT_MARKERS" ]; then
+    echo "[ERROR] Conflict markers が検出されました:"
+    echo "$CONFLICT_MARKERS"
+    exit 1
+fi
+
+# 3. Fast Verify 実行（オプション）
+# pwsh ./checks/verify_repo.ps1 -Mode Fast
+# if [ $? -ne 0 ]; then
+#     echo "[ERROR] Verify FAIL: コミットを中止します"
+#     exit 1
+# fi
+
+exit 0
+```
+
+## 9.3 cleanup_evidence.ps1（証跡ローテーション）
+
+```powershell
+<#
+.SYNOPSIS
+    Evidence ファイルの recent-3 ローテーション
+#>
+
+param(
+    [string]$EvidenceDir = "evidence/verify_reports",
+    [int]$Limit = 3
+)
+
+$reports = Get-ChildItem -Path $EvidenceDir -Filter "*.md" |
+    Sort-Object CreationTime -Descending
+
+if ($reports.Count -gt $Limit) {
+    Write-Host "Rotating evidence (Keeping latest $Limit)" -ForegroundColor Yellow
+    
+    $filesToArchive = $reports | Select-Object -Skip $Limit
+    $archiveDir = "evidence/archive/$(Get-Date -Format 'yyyy')"
+    
+    if (!(Test-Path $archiveDir)) {
+        New-Item -ItemType Directory -Path $archiveDir | Out-Null
+    }
+    
+    foreach ($file in $filesToArchive) {
+        Move-Item -Path $file.FullName -Destination $archiveDir -Force
+        Write-Host "  Archived: $($file.Name)" -ForegroundColor Gray
+    }
+}
+
+Write-Host "Evidence cleanup complete." -ForegroundColor Green
+```
+
+## 9.4 quarterly_audit.sh（四半期監査スクリプト）
+
+```bash
+#!/bin/bash
+# 四半期監査スクリプト
+
+EVIDENCE_DIR="evidence/audit/$(date +%Y)Q$(( ($(date +%-m)-1)/3+1 ))"
+mkdir -p $EVIDENCE_DIR
+
+echo "# 四半期監査レポート: $(date +%Y)-Q$(( ($(date +%-m)-1)/3+1 ))" > $EVIDENCE_DIR/audit_report.md
+echo "" >> $EVIDENCE_DIR/audit_report.md
+echo "## 実行日: $(date +%Y-%m-%d)" >> $EVIDENCE_DIR/audit_report.md
+
+# 1. ADR遵守率計算
+total_commits=$(git log --since="3 months ago" --oneline | wc -l)
+adr_commits=$(git log --since="3 months ago" --grep="ADR-" --oneline | wc -l)
+compliance_rate=$((adr_commits * 100 / total_commits))
+echo "- **ADR遵守率**: $compliance_rate% ($adr_commits/$total_commits)" >> $EVIDENCE_DIR/audit_report.md
+
+# 2. APIコスト集計
+if [ -d "evidence/metrics" ]; then
+    total_cost=$(cat evidence/metrics/api_cost_*.csv 2>/dev/null | awk -F',' '{sum+=$7} END {print sum}')
+    echo "- 四半期APIコスト: \$${total_cost:-0}" >> $EVIDENCE_DIR/audit_report.md
+fi
+
+# 3. Incident発生回数
+incident_count=$(ls evidence/incidents/INCIDENT_*.md 2>/dev/null | wc -l)
+echo "- 発生したIncident: $incident_count 件" >> $EVIDENCE_DIR/audit_report.md
+
+# 4. HumanGateエスカレーション回数
+escalation_count=$(ls evidence/humangate_escalations/*.md 2>/dev/null | wc -l)
+echo "- HumanGateエスカレーション: $escalation_count 回" >> $EVIDENCE_DIR/audit_report.md
+
+echo "" >> $EVIDENCE_DIR/audit_report.md
+echo "監査完了。レポート: $EVIDENCE_DIR/audit_report.md"
+```
+
+---
+
+# ■■■ 第10部: 参考資料・一次情報ソース ■■■
+
+## 公式ドキュメント
+
+| ソース | URL | 内容 |
+|--------|-----|------|
+| MCP Spec | https://modelcontextprotocol.io | Model Context Protocol 仕様 |
+| Claude Code | https://docs.anthropic.com/en/docs/build-with-claude/claude-code | Claude Code 公式ドキュメント |
+| GitHub Docs | https://docs.github.com | GitHub 公式ドキュメント |
+| git-scm | https://git-scm.com/docs | Git 公式ドキュメント |
+| CycloneDX | https://cyclonedx.org | SBOM 標準仕様 |
+| SemVer | https://semver.org | Semantic Versioning 仕様 |
+
+## 参照した一次情報（取得日付き）
+
+| 情報 | URL | 取得日 |
+|------|-----|--------|
+| MCP User Consent必須化 | MCP Spec 2025-11-25 | 2026-01-11 |
+| MCP OAuth 2.1 + RFC 8707 | MCP Spec 2025-06-18 | 2026-01-11 |
+| GitHub Branch Protection | docs.github.com | 2025-12-15 |
+| PowerShell Best Practices | learn.microsoft.com/powershell | 2025-12-20 |
+| AWS ADR Best Practice | AWS Documentation | 2025 |
+| UK GDS ADR Framework | gov.uk | 2025-12-07 |
+
+## 根拠ルール
+
+1. 一次情報（公式ドキュメント/公式GitHub/標準化団体）を最優先
+2. YouTube/note/X は「新情報の発見」用途でOK、採用判断は一次情報で裏取り
+3. 重要な主張には必ずURLと取得日を添える
+4. 可能なら複数ソースでクロスチェック
+5. 推測で断定しない、不明点は「未決事項」として明記
+
+---
+
+# ■■■ 第11部: 完全実装マニフェスト ■■■
+
+## ディレクトリ構成（完全版）
+
+```
+vibe-spec-ssot/
+├── docs/
+│   ├── Part00.md 〜 Part20.md
+│   ├── FACTS_LEDGER.md
+│   └── README.md
+├── glossary/
+│   └── GLOSSARY.md
+├── decisions/
+│   ├── 0001-ssot-governance.md
+│   ├── ADR_TEMPLATE.md
+│   └── ...
+├── sources/
+│   ├── 生データ/
+│   └── _MANIFEST_SOURCES.md
+├── evidence/
+│   ├── verify_reports/          # Fast/Full Verify結果
+│   ├── mcp_logs/                # MCP実行ログ
+│   ├── claude_logs/             # Claude Codeログ
+│   ├── rag_updates/             # RAG更新ログ
+│   ├── context_packs/           # Context Pack
+│   ├── humangate_approvals/     # 承認ログ
+│   ├── incidents/               # Incidentレポート
+│   ├── metrics/                 # APIコスト・パフォーマンス
+│   ├── audit/                   # 四半期監査レポート
+│   └── archive/                 # アーカイブ
+├── checks/
+│   ├── verify_repo.ps1          # メイン検証スクリプト
+│   ├── verify_sources_integrity.ps1
+│   ├── cleanup_evidence.ps1
+│   └── README.md
+├── scripts/
+│   ├── rag_update.sh            # RAG自動更新
+│   ├── quarterly_audit.sh       # 監査スクリプト
+│   └── init_vibekanban.sh       # VIBEKANBAN初期化
+├── .mcp/
+│   └── config.json              # MCPサーバー定義
+├── .claude/
+│   └── config.json              # Claude Code設定
+├── .git/hooks/
+│   └── pre-commit               # Git Hook
+├── VIBEKANBAN/
+│   ├── 000_INBOX/
+│   ├── 100_SPEC/
+│   ├── 200_BUILD/
+│   ├── 300_VERIFY/
+│   ├── 400_REPAIR/
+│   └── 900_RELEASE/
+├── VAULT/                       # 機密情報（暗号化）
+└── RELEASE/
+    └── RELEASE_YYYYMMDD_HHMMSS/ # 不変成果物
+```
+
+## 実装優先度
+
+### Phase 1: 即時対応（2026-01-31まで）
+1. HumanGate承認フロー明確化（修正案#1）
+2. Part10/Part12矛盾解消（修正案#2）
+3. verify_repo.ps1 実装
+4. pre-commit hook 設置
+5. Glossary未定義用語追加（修正案#5）
+
+### Phase 2: 2月末まで
+1. MCPセキュリティコンプライアンス（修正案#3）
+2. ADRテンプレート作成（修正案#4）
+3. sources/改変検出スクリプト実装（修正案#6）
+4. CI/CD連携設定
+5. VAULT構造・暗号化ツール選定
+
+### Phase 3: 3月末まで
+1. RAG/ナレッジ運用強化
+2. 四半期監査プロセス確立
+3. 全未決事項の解決
+4. 運用ドキュメント整備
+
+---
+
+# 【レポート終了】
+
+本レポートは、VCG/VIBE SSOT Design Master に対する複数LLMによるDEEPリサーチ結果を
+統合・整理したものです。
+
+記載内容:
+- P0問題: 10件（要即時対応）
+- P1改善: 6件
+- P2改善: 5件
+- 修正案: 6件
+- 事故シナリオ: 8件
+- 未決事項: 16件以上
+- 実装スクリプト: 4件
+
+全ての提案は一次情報優先、SSOT整合、実行可能性を担保しています。

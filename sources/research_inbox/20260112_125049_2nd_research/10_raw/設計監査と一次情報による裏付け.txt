@@ -1,0 +1,252 @@
+﻿VCG/VIBE SSOT Design Master 設計監査レポート (2026年度版)
+1. エグゼクティブサマリーと監査の背景
+本レポートは、VCG/VIBE プロジェクトにおける Single Source of Truth (SSOT) 設計書（DESIGN_MASTER）および関連する設計調査レポート（Part1-3）に対する、包括的かつ厳格な設計監査結果である。本監査の目的は、設計段階で「未決（Pending）」または「曖昧（Ambiguous）」として残された事項を、2026年1月時点の技術標準およびセキュリティ基準（NIST SP 800-53 Rev.5, GitHub Enterprise Rulesets, Model Context Protocol 仕様）に基づき、実装可能なレベルまで「決め切る」ことにある。
+特に、自律型AIエージェント（Claude Code, ChatGPT等）が開発プロセスに深く介入する本プロジェクトにおいては、人間の承認プロセス（HumanGate）と機械的な検証プロセス（VerifyGate）の欠陥は、即座にコンテキストの汚染とSSOTの崩壊を招く。本レポートでは、これらのリスクを「P0（致命的）」として分類し、具体的な修正案と実装コードを提示する。
+1.1 2026年の技術的コンテキスト
+本監査は、以下の2026年時点の技術的前提に基づき実施された。
+* Model Context Protocol (MCP) の成熟: 2025年の仕様改定により、MCPサーバーはOAuth 2.1リソースサーバーとして振る舞い、明示的なユーザー同意（User Consent）が必須化された 1。
+* GitHub Rulesets の標準化: 従来のブランチ保護ルールはレガシーとなり、より柔軟なバイパス制御とメタデータ制限が可能な「Repository Rulesets」がガバナンスの主軸となっている 4。
+* エージェントの自律性とリスク: エージェントによるファイル操作の副作用（誤削除、機密情報の混入）を防ぐため、OSレベルおよびGitフックレベルでの多層防御が求められている 7。
+________________
+A. 結論：最優先で修正すべき上位10項目 (P0/P1/P2)
+本セクションでは、設計書および現状の実装計画において、直ちに修正・追記が必要な項目を重要度順に列挙する。これらは「推奨」ではなく、システムが正常かつ安全に稼働するための「必須要件」である。
+
+
+優先度
+	ID
+	項目名
+	問題の核心と理由
+	影響とリスク
+	P0
+	01
+	HumanGateの具体的権限定義と実装手段の欠落
+	「人間が承認する」という方針のみで、その技術的手段（GitHub Rulesets vs Branch Protection）や承認者の定義（Role）が不在。2026年のGitHub仕様では、緊急時のバイパス手段を含めたRuleset設計が不可欠である 6。
+	緊急時（P0インシデント）に承認者が不在で修正がデプロイできない「承認デッドロック」が発生する。または、権限のないエージェントが承認をすり抜ける。
+	P0
+	02
+	VerifyGateにおける「Local PASS / Remote FAIL」問題
+	ローカルでの検証通過が、マージ後の整合性を保証しない。CI上で「ブランチを最新化してから検証する」強制力が設計に含まれていない 9。
+	マージ後にメインブランチが破損し、SSOTの信頼性が失墜する。エージェントが壊れたmainを基点に学習・生成を続け、エラーが連鎖的に拡大する。
+	P0
+	03
+	MCPセキュリティの旧仕様（2024年以前）準拠
+	設計がMCPの最新セキュリティ要件（OAuth 2.1, User Consent）を反映していない。特にリソースへの書き込み権限に対する同意フローが欠落している 2。
+	自律エージェントによる意図しないファイル削除、機密情報の外部送信、または権限昇格攻撃（Confused Deputy Attack）のリスク。
+	P0
+	04
+	Evidence保持方針とGitリポジトリ容量の矛盾
+	「全ての証跡を残す（監査要件）」と「リポジトリを軽量に保つ（Git推奨）」が対立しており、解決策（Tiered Storage）が提示されていない 11。
+	リポジトリサイズが肥大化し（>5GB）、Clone/Fetchがタイムアウトする。または、容量削減のために証跡を削除し、コンプライアンス違反となる。
+	P0
+	05
+	sources/ ディレクトリの改変検知ロジック不備
+	SSOTの根拠となる sources/ が「追記のみ（Append-Only）」である保証を、単純な git diff に依存している。リネームや内容改ざんを検知できない可能性がある 13。
+	原本データが汚染され、そこから生成されるドキュメントやコードの正当性が証明できなくなる。
+	P1
+	06
+	「One Path」Git運用フローの未定義
+	integrate ブランチの役割が曖昧で、どこから分岐し、どこへ戻るかが図示されていない。エージェントが不適切な分岐点（Stale Branch）を選択する原因となる 14。
+	マージ競合の多発、コミット履歴の複雑化（スパゲッティ化）、およびリリース切り戻し時の混乱。
+	P1
+	07
+	緊急時対応（Break Glass）プロトコルの欠如
+	HumanGateが機能不全に陥った際（承認者全滅など）の特権的な回復手順が設計されていない。セキュリティ監査上、バイパス手順の明記は必須である 15。
+	サービス停止時に復旧作業が着手できず、ビジネス損失が拡大する。バイパス時の監査ログが残らず、事後追跡が不可能になる。
+	P1
+	08
+	Verifyスクリプトの実装不在
+	設計書内で「verify_repo.ps1が存在する前提」で話が進んでいるが、実体がない。仕様と実態の乖離（Drift）の典型例である 13。
+	検証プロセスが形骸化し、開発者ごとの品質にばらつきが生じる。
+	P2
+	09
+	ADR（設計判断記録）のライフサイクル未定義
+	ADRが作られることは定義されているが、「いつSuperseded（廃止）されるか」「承認フローは何か」が不明確 13。
+	古い設計判断と新しい設計判断が矛盾したまま共存し、エージェントが古い情報を参照して誤ったコードを生成する。
+	P2
+	10
+	Evidenceファイル形式の不統一
+	ログファイルが .txt だったり .md だったりと統一されておらず、機械的な解析やリンク参照が困難 13。
+	監査時の検索コスト増大、GitHub UIでの視認性低下。
+	________________
+B. 設計書への追記案と詳細仕様
+上記の結論に基づき、DESIGN_MASTER（SSOT設計書）に対して行うべき具体的な追記・修正内容を提示する。これらは即座にPR（Pull Request）として起案されるべき内容である。
+追記案 1: HumanGateの定義とGitHub Rulesetsの実装
+対象ファイル: docs/Part09.md (Security & Governance)
+挿入箇所: 5.1.4 HumanGate Approval Process の直後
+【追記内容文案】
+5.1.5 HumanGateの実装詳細 (GitHub Rulesets準拠)
+本プロジェクトにおける「HumanGate」は、精神論ではなく、GitHub Enterprise/Teamプランで提供される Repository Rulesets 機能を用いて強制的に適用される。
+1. 承認の階層構造 (Approval Hierarchy)
+   * L1: Peer Review (日常的な変更)
+      * 対象: feat/* から integrate へのマージ。
+      * 要件: 最低1名の承認（Code Owner または maintainer）。
+      * 目的: コードの品質確認、誤字脱字の修正、基本動作の確認。
+   * L2: Gatekeeper Review (リリース判定)
+      * 対象: integrate から main へのマージ。
+      * 要件: DesignAuthority チーム（特定された上級設計者）からの承認が必須。
+      * 目的: SSOT整合性の最終確認、ADR準拠チェック。
+   * L3: Emergency Bypass (緊急対応)
+      * 対象: 全ブランチに対する強制操作。
+      * 権限保持者: Organization Admin のみ。
+      * 条件: インシデントチケット（P0）の発行と事後監査ログの提出。
+2. Ruleset設定仕様 (JSON構成イメージ)
+従来のBranch Protectionではなく、以下のルールセットを main および integrate に適用する。
+JSON
+{
+ "name": "SSOT Governance Protection",
+ "target": "branch",
+ "enforcement": "active",
+ "rules":
+     }
+   },
+   {
+     "type": "non_fast_forward", // マージコミットまたはSquashを強制
+     "parameters": {}
+   }
+ ],
+ "bypass_actors":
+}
+
+3. 監査証跡 (Audit Trail)
+   * すべてのHumanGate承認イベントはGitHubのAudit Logに記録される。
+   * 緊急時のバイパス操作（repo.ruleset_bypass イベント）は、即座に監査アラートを発報し、evidence/audit/YYYYMM_emergency_report.md として理由書を作成・コミットする義務を負う 15。
+________________
+追記案 2: VerifyGateの実装とCI強制
+対象ファイル: docs/Part10.md (Automated Verification)
+挿入箇所: 6.1 VerifyGate Logic の置換・拡充
+【追記内容文案】
+6.1 VerifyGateの実装とCI連携
+VerifyGateは、ローカル環境での「事前チェック」と、CI環境（GitHub Actions）での「強制執行」の2段階で構成される。
+6.1.1 スクリプト仕様: checks/verify_repo.ps1
+本スクリプトはPowerShell Coreで実装され、クロスプラットフォーム（Windows/Linux/macOS）で動作する。
+   * Mode: Fast (Local)
+   * 実行タイミング: 開発者のコミット直前 (Pre-commit hook推奨)。
+   * チェック内容:
+   * Markdown構文チェック。
+   * 内部リンク切れの検出。
+   * 禁止文字列（秘密鍵、Conflict Marker <<<<<<<）の検出。
+   * 所要時間: 5秒以内。
+   * Mode: Full (CI)
+   * 実行タイミング: プルリクエスト作成時、およびマージ直前。
+   * チェック内容:
+   * Fastモードの全項目。
+   * Sources Integrity Check: sources/ ディレクトリ内の全ファイルについて、_MANIFEST_SOURCES.md に記載されたSHA-256ハッシュとの照合を行う。新規追加は許可するが、既存ファイルの変更・削除はエラーとする 13。
+   * External Link Check: 外部URLの生存確認（タイムアウト3秒）。
+   * Glossary Consistency: ドキュメント内で使用されている専門用語が glossary/GLOSSARY.md に定義されているか検証。
+   * 所要時間: 3分以内。
+6.1.2 CIにおける "Remote Fail" 防止策
+ローカルでPassしても、マージ先の main が進んでいる場合にCIでFailする事態を防ぐため、GitHub Rulesetの "Require branches to be up to date before merging" を有効化する 10。
+これにより、PRマージ前に必ず git rebase origin/main 相当の処理が要求され、検証スクリプトは「マージ後の完全な状態」に対して実行されることが保証される。
+________________
+追記案 3: Evidence保持方針の確定 (Tiered Storage)
+対象ファイル: docs/Part12.md (Evidence Management)
+挿入箇所: 全体の改訂
+【追記内容文案】
+R-1201: Evidence Tiered Storage Strategy (階層型証跡管理)
+NIST SP 800-53 (Control AU-11) の監査要件と、Gitリポジトリのパフォーマンス維持（推奨5GB以下）を両立させるため、以下の「階層型ストレージ戦略」を採用する 11。
+   1. Tier 1: Hot Evidence (Active Workspace)
+   * 場所: evidence/verify_reports/
+   * 対象: 直近の開発サイクルで生成された検証レポート。
+   * 保持ポリシー (Recent-3): 最新の成功(PASS)、最新の失敗(FAIL)、およびその1つ前のレポートの「計3ファイル」のみを保持する。
+   * 目的: 開発者の即時確認、デバッグ用。
+   2. Tier 2: Cold Evidence (Archive)
+   * 場所: evidence/archive/YYYY/MM/
+   * 対象: Tier 1から溢れたテキストベースの証跡（Markdown, JSON）。
+   * 保持ポリシー: 永続保持（Permanent）。
+   * 自動化: verify_repo.ps1 実行時に、Tier 1の溢れたファイルを自動的にこのディレクトリへ移動（git mv）する。決して削除（rm）はしない。
+   * 目的: 監査証跡の保存。テキストデータであるため容量への影響は軽微である。
+   3. Tier 3: Frozen Artifacts (External Storage)
+   * 場所: GitHub Actions Artifacts または 外部S3バケット。
+   * 対象: バイナリデータ、スクリーンショット、巨大なログダンプ（>50MB）。
+   * 保持ポリシー: 外部ストレージのライフサイクルに従う（例: 1年）。リポジトリ内には「保存場所へのリンクファイル（.url または.md）」のみを記録する。
+   * 目的: リポジトリ容量の爆発防止 12。
+________________
+追記案 4: "One Path" Git運用フロー
+対象ファイル: docs/Part02.md (Workflow & Standards)
+挿入箇所: 5.2 Git Strategy の詳細化
+【追記内容文案】
+5.2.1 "One Path" Operational Workflow
+エージェントと人間が協働する環境において、分岐の複雑さは致命的なミスを誘発する。したがって、以下の「一本道（One Path）」運用を厳守する。
+原則:
+   * すべての変更は main から始まり、integrate を経由して、main に戻る。
+   * integrate ブランチは「リリースの待合室」であり、長期的な開発作業の基点にしてはならない 14。
+ステップバイステップ:
+   1. Start: git checkout main && git pull (最新の真実を取得)
+   2. Branch: git checkout -b feat/KEY-123-description (作業ブランチ作成)
+   3. Develop: コード変更、コミット。
+   4. Verify (Local): ./checks/verify_repo.ps1 -Mode Fast (ローカル検証)
+   5. Sync: git fetch origin && git rebase origin/integrate (統合ブランチとの同期。重要)
+   * Note: ここで競合が発生した場合、ローカルで解消する。
+   6. Push: git push origin feat/KEY-123-description
+   7. PR: feat -> integrate へのPull Requestを作成。
+   8. Gate: CI (Full Verify) PASS && HumanGate PASS。
+   9. Merge: Squash & Merge で integrate に取り込み。
+   10. Release: 定期的に integrate -> main へのPRを作成し、L2承認を経てマージ。
+   11. Reset: リリース後、integrate は main の位置までFast-Forwardされるか、再作成される。
+復旧運用 (Recovery):
+誤ったマージが発生した場合、git revert -m 1 <commit-hash> を使用して「打ち消しコミット」を積む。git reset --hard による歴史改変は、共有ブランチ（integrate/main）においては厳禁とする 21。
+________________
+C. 未確定事項（Yes/No クエスチョン）
+以下の事項は、設計監査において論理的には推奨されるが、プロジェクトのビジネス判断や組織ポリシーに依存するため、最終的な決裁が必要である。
+   1. Q1: VAULT（機密情報）の暗号化に、チーム共通鍵ではなく「個人ごとのGPG鍵」を強制しますか？
+   * Yes: セキュリティ強度は高いが、オンボーディングの手間が増える。
+   * No: 運用は楽だが、鍵漏洩時のリスクが高い（全交換が必要）。
+   * 推奨: Yes (2026年のセキュリティ基準では個別の説明責任が求められるため)
+   2. Q2: エージェント（AI）による sources/ への「新規ファイルの追加」を、人間による承認なしで許可しますか？
+   * Yes: 開発速度が向上する。
+   * No: データの品質が保証されないリスクがある。
+   * 推奨: No (HumanGateを通すべきである。ただし、Tier 1 レベルで可とする)
+   3. Q3: 7日以上前のEvidenceログファイルを、Gitリポジトリからも削除（完全消去）することを許容しますか？
+   * Yes: リポジトリサイズを極限まで小さくできる。
+   * No: 監査証跡として不完全となる。
+   * 推奨: No (NISTコンプライアンス違反となるため、Tier 2 Archiveへの移動を採用すべき)
+   4. Q4: CIでの検証時間が「5分」を超えた場合、検証項目を削減して速度を優先しますか？
+   * Yes: 開発体験（DX）を優先。
+   * No: 安全性を優先。
+   * 推奨: No (VerifyGateの信頼性がSSOTの命であるため、時間は許容すべき)
+________________
+D. 参照URL一覧（一次情報のみ）
+本レポートの根拠となった2025-2026年時点の一次情報ソースは以下の通りである。
+   1. Model Context Protocol (MCP)
+   * Specification - Authorization (2025-11-25 Update): https://modelcontextprotocol.io/specification/2025-11-25 7
+   * Security Best Practices (2025-06-18): https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices 22
+   * OAuth 2.1 & User Consent: https://modelcontextprotocol.io/specification/draft/basic/authorization 23
+   2. GitHub / Git Standards
+   * About Protected Branches: https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches 9
+   * About Rulesets (Repository Rules): https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets 4
+   * Audit Log Events: https://docs.github.com/en/organizations/keeping-your-organization-secure/managing-security-settings-for-your-organization/audit-log-events-for-your-organization 16
+   * Repository Size Limits: https://docs.github.com/en/repositories/creating-and-managing-repositories/repository-limits 19
+   3. NIST (Security Controls)
+   * SP 800-53 Rev. 5 (Audit & Accountability): https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final 24
+   * Log Management (SP 800-92): https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-92r1.ipd.pdf 25
+________________
+補足：監査担当者からの実装アドバイス
+理論上の設計は完成しましたが、現場での運用を定着させるためには「開発者（およびAI）への強制力」が必要です。特に VerifyGateの実装 (verify_repo.ps1) は、ドキュメントを書くよりも先に着手すべきです。このスクリプトが動かない限り、SSOTはただのテキストファイルに過ぎません。
+また、GitHub Rulesetsの設定は、初期段階では「Enforcement status: Evaluate（評価モード）」で導入し、誤検知による開発停止を防ぎつつ、ログを確認してから「Active」に切り替えることを強く推奨します。
+以上。
+引用文献
+   1. Authorization · Cloudflare Agents docs, 1月 12, 2026にアクセス、 https://developers.cloudflare.com/agents/model-context-protocol/authorization/
+   2. Model Context Protocol (MCP) Spec Updates from June 2025 - Auth0, 1月 12, 2026にアクセス、 https://auth0.com/blog/mcp-specs-update-all-about-auth/
+   3. Understanding consent in the Model Context Protocol (MCP) - Carlisia Campos, 1月 12, 2026にアクセス、 https://grokkingtech.io/ai/mcp/mcp-consent
+   4. About rulesets - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+   5. Enterprise Server 3.14 release notes - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/enterprise-server@3.14/admin/release-notes
+   6. Rulesets Best Practices - GitHub Well-Architected, 1月 12, 2026にアクセス、 https://wellarchitected.github.com/library/governance/recommendations/managing-repositories-at-scale/rulesets-best-practices/
+   7. Specification - Model Context Protocol, 1月 12, 2026にアクセス、 https://modelcontextprotocol.io/specification/2025-11-25
+   8. Managing a branch protection rule - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+   9. About protected branches - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+   10. Available rules for rulesets - GitHub Enterprise Cloud Docs, 1月 12, 2026にアクセス、 https://docs.github.com/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+   11. About large files on GitHub - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github
+   12. Configuring the retention period for GitHub Actions artifacts and logs in your organization, 1月 12, 2026にアクセス、 https://docs.github.com/en/enterprise-server@3.18/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization
+   13. VCG_VIBE_設計調査レポート_Part1.txt
+   14. Pro Git - Kennesaw State University, 1月 12, 2026にアクセス、 https://www.kennesaw.edu/ccse/first-year-experience/cse1321_python/book/pro_git.pdf
+   15. GitHub a branch protection requirement was overridden by a repository administrator, 1月 12, 2026にアクセス、 https://docs.datadoghq.com/security/default_rules/def-000-aoc/
+   16. Audit log events for your organization - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/organizations/keeping-your-organization-secure/managing-security-settings-for-your-organization/audit-log-events-for-your-organization
+   17. Why Github expects a status check to Require branches to be up to date before merging?, 1月 12, 2026にアクセス、 https://stackoverflow.com/questions/65342699/why-github-expects-a-status-check-to-require-branches-to-be-up-to-date-before-me
+   18. Security log retention: Best practices and compliance guide - AuditBoard, 1月 12, 2026にアクセス、 https://auditboard.com/blog/security-log-retention-best-practices-guide
+   19. Repository limits - GitHub Docs, 1月 12, 2026にアクセス、 https://docs.github.com/en/repositories/creating-and-managing-repositories/repository-limits
+   20. Caching for Turborepo · Actions · GitHub Marketplace, 1月 12, 2026にアクセス、 https://github.com/marketplace/actions/caching-for-turborepo
+   21. What are the advantages of keeping linear history in Git? - Stack Overflow, 1月 12, 2026にアクセス、 https://stackoverflow.com/questions/20348629/what-are-the-advantages-of-keeping-linear-history-in-git
+   22. Security Best Practices - Model Context Protocol, 1月 12, 2026にアクセス、 https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices
+   23. Authorization - Model Context Protocol, 1月 12, 2026にアクセス、 https://modelcontextprotocol.io/specification/draft/basic/authorization
+   24. SP 800-53 Rev. 5, Security and Privacy Controls for Information Systems and Organizations | CSRC - National Institute of Standards and Technology, 1月 12, 2026にアクセス、 https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final
+   25. NIST SP 800-92r1 initial public draft, Cybersecurity Log Management Planning Guide, 1月 12, 2026にアクセス、 https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-92r1.ipd.pdf
