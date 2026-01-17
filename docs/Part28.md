@@ -54,7 +54,8 @@
    - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
    - [RFC 7591: Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html)
 5. **vibe-mcp-flex-router-node が配置されている**
-   - 親ディレクトリまたは兄弟ディレクトリに配置（`../vibe-mcp-flex-router-node/` 推奨）
+   - 実体は別リポジトリ（例: `<REPO_ROOT>\vibe-mcp-flex-router-node`）
+   - SSOT側は「配置/起動/更新/障害時/証跡」の運用を定義し、実装は外部管理とする
    - MCPツール `llm_chat` / `llm_health` / `llm_cache_clear` を提供
 
 ---
@@ -306,16 +307,20 @@ vibe-mcp-flex-router-node は **MCPのLLMルーティング用途**に限定し�
 - **配置推奨**:
   - vibe-spec-ssot の親ディレクトリまたは兄弟ディレクトリに配置
   - 推奨パス: `../vibe-mcp-flex-router-node/` または `../../vibe-mcp-flex-router-node/`
+  - 実体パス例: `<REPO_ROOT>\vibe-mcp-flex-router-node`（SSOT外の別リポジトリ）
+  - 本Partの作業場所: `<REPO_ROOT>\.worktrees\part28`
   - 絶対パスは使用せず、環境依存しない相対パスで記述
   - vibe-spec-ssot 側からは `.MCP.json` または `.claude/mcp_settings.json` で相対パスを指定
 - **起動**: `Start_VIBE_MCP_Inspector.cmd` または `run-inspector-safe.cmd` を推奨し、STDIO単体時は `npm run start`
-- **更新**: 更新前に `git status` で作業差分を確認し、`git pull --ff-only` → `npm install` → `npm run verify:stdio` を必須
+- **更新**: 差分確認 → 依存更新 → `npm run verify:stdio` を実施し、Evidenceに反映
 - **障害時切替**: `llm_health` が失敗した場合は、MCPクライアント側を直結設定（Gemini/Z.ai のOpenAI互換エンドポイント）へ切替し、Evidenceに記録する
 - **用途限定**: `llm_chat` / `llm_health` / `llm_cache_clear` 以外の用途に拡張しない
 - **STDIO専用**: MCP transport は stdio のみ（HTTPサーバーとして公開しない）
 - **秘密情報保護**: `.env` の内容は表示・共有しない（鍵の有無は `llm_health` で判定）
 - **ログ運用**: 監査用のログはEvidenceに保存し、APIキーは記録しない
 - **フォールバック**: ルーティング失敗時は `gemini` / `zai` の順序で自動フォールバック
+- **運用境界**: SSOTは運用手順のみを規定し、実装変更は別リポジトリで実施する
+- **障害時/証跡**: 手順Eの復旧・切替に従い、必ずEvidenceへ記録する
 
 ---
 
@@ -323,7 +328,8 @@ vibe-mcp-flex-router-node は **MCPのLLMルーティング用途**に限定し�
 
 外部調査から設計反映までの事故防止フローを固定する。
 
-1. **外部調査**: 公式仕様・公式Repo・一次情報を優先して収集する
+1. **外部調査**: 公式仕様・公式RepoをPrimaryとして収集し、Secondaryは例外扱いにする
+   - フロー表記: 収集（Primary/Secondary）→ evidence → 設計反映 → verify → 証跡
 2. **根拠保存**: `evidence/research_import/` に Evidence を作成し、URL/更新日/参照日/種別/要点を記録する
 3. **設計書反映**: 該当Partへ反映し、Evidenceのファイル名と結びつける
 4. **Verify**: `checks/verify_repo.ps1`（Fast）で合格を確認する
@@ -358,7 +364,7 @@ Proof（ADRで決定事項を記録）
 - 2026-01-17
 
 ## 種別
-- Primary / Secondary
+- Primary / Secondary（Primaryを優先、Secondaryは例外理由を明記）
 
 ## 設計へ落とすべき要点
 - 箇条書き
@@ -426,19 +432,17 @@ Proof（ADRで決定事項を記録）
 3. `llm_chat` を短文で実行し、`provider` と `cached` の返りを確認
 
 #### 更新（Update）
-1. 変更確認: `git status` で作業差分なしを確認
-2. 更新取得: `git pull --ff-only`
+1. 変更確認: 作業差分がないことを確認
+2. 更新取得: 外部リポジトリの通常更新手順に従う
 3. 依存更新: `npm install`
 4. 再検証: `npm run verify:stdio` → `llm_health` を確認
 5. 証跡: 更新日と検証結果をEvidenceに記録
 
 #### ロールバック（Rollback）
-1. バージョン確認: `git log --oneline -5` で戻すべきコミットを確認
-2. ロールバック実行: `git reset --hard <commit-hash>`
-3. 依存復元: `npm install`
-4. 再検証: `npm run verify:stdio` → `llm_health` を確認
-5. 証跡: ロールバック理由とコミットハッシュをEvidenceに記録
-6. ADR作成: ロールバードした原因と対策を記録
+1. 影響範囲を確認し、HumanGateで判断する
+2. 安全な復旧手順に従い、バージョンを戻す
+3. 再検証: `npm run verify:stdio` → `llm_health` を確認
+4. 証跡: ロールバック理由と復旧内容をEvidenceに記録
 
 #### 障害復旧（Recovery）
 1. Inspector接続不可: ブラウザ再起動 → Inspector再起動 → `llm_health` 再確認
