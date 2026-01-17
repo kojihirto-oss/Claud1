@@ -54,7 +54,7 @@ Fast検証でPASSした証跡のみを採用する。
 1. 発見：Release対象と必須成果物（manifest/sha256/SBOM）を確認する。
 2. 記録：対象ファイル、参照根拠、保存先を記録する。
 3. 修正：最小差分でRelease情報を整備し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
 5. 監査：Releaseの不変性・参照パス・証跡一覧・DoDを点検する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -103,13 +103,13 @@ Fast検証でPASSした証跡のみを採用する。
 **内容**: Fast検証のPASSログ  
 **保存先**: evidence/verify_reports/
 
-### E-1303: 証跡4点（最小セット）
-**内容**: link_check / parts_check / forbidden_check / sources_integrity  
+### 9.3 証跡4点（最小セット）
+**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity  
 **保存先**: evidence/verify_reports/
 
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
+- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] Releaseの不変性と参照パスが記録されている

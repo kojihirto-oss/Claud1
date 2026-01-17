@@ -3,7 +3,7 @@
 ## Start Here（読む順）
 1. [docs/README.md](README.md) — このリポの導線
 2. [Part00](Part00.md) — 前提・目的
-3. Part01 → Part20 — 順に読む（運用仕様の本体）
+3. Part01 → Part30 — 順に読む（運用仕様の本体）
 4. [FACTS_LEDGER](FACTS_LEDGER.md) — 事実・根拠の台帳（更新ログの根）
 
 ---
@@ -30,6 +30,16 @@
 - [Part18](Part18.md)
 - [Part19](Part19.md)
 - [Part20](Part20.md)
+- [Part21](Part21.md) — 工程別AI割当設計
+- [Part22](Part22.md) — 制限耐性設計
+- [Part23](Part23.md) — 回帰防止設計
+- [Part24](Part24.md) — 可観測性設計
+- [Part25](Part25.md) — 統合ツール構成
+- [Part26](Part26.md) — プロンプトエンジニアリング標準
+- [Part27](Part27.md) — セキュリティガバナンス
+- [Part28](Part28.md) — MCP連携設計
+- [Part29](Part29.md) — IDE統合設計
+- [Part30](Part30.md) — エージェント協調モデル
 
 ---
 

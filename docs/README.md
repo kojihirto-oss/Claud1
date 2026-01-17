@@ -6,7 +6,7 @@
 ## 読む順番（推奨）
 1. 00_INDEX.md（全体導線）
 2. Part00.md（前提・目的）
-3. Part01.md → Part20.md（順に）
+3. Part01.md → Part30.md（順に）
 
 ## このリポ内の役割分担
 - SSOT（仕様/運用）: docs/

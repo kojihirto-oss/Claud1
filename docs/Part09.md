@@ -31,6 +31,10 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 2. AI Agentは指示に従うが、**判断ミス・過剰実行・暴走** のリスクがある
 3. 人間の承認（HumanGate）は **最終防衛線** として機能する
 4. すべての変更は **再現可能・監査可能** でなければならない
+5. **OAuth 2.1ベースのMCP認証**が構築されている
+   - [OAuth 2.1 Authorization Framework (IETF Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/)
+   - [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization)
+   - [RFC 8414: Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html)
 
 ## 4. 用語（Glossary参照：Part02）
 
@@ -103,10 +107,10 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 #### DoD-2: Verify PASS
 - **MUST**: Fast Verify（4点チェック）を実行し、全項目 PASS を確認
   1. docs 内リンク切れ（相対パス/外部URL）
-  2. 用語揺れ（glossary と docs の不一致）
-  3. Part間整合（Part00 との衝突チェック）
-  4. 未決事項の残存一覧（TODO/未決の集計）
-- **SHOULD**: Full Verify（詳細検証）は重要な変更時に実行
+  2. 禁止パターン（forbidden patterns）の検出
+  3. Part構造の整合性（Template準拠）
+  4. sources/ の改変検知
+- **SHOULD**: Full Verify（詳細検証）は重要な変更時に実行（詳細は Part10 参照）
 
 #### DoD-3: Evidence Pack 生成
 - **MUST**: 以下を evidence/ に保存：
@@ -137,6 +141,104 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - **MUST**: 並列作業時は異なる Part を担当
 - **MUST**: 共有ファイル更新は1ブランチで完結させる
 - **SHOULD**: Part02/GLOSSARY.md の更新は優先的に merge
+
+### 5.4 Model Context Protocol (MCP) Authorization and Security Considerations
+
+このプロジェクトでは、AIとのセキュアな連携のためModel Context Protocol (MCP)の認証・セキュリティ概念をPermission Tier設計の技術的基盤として採用する。詳細は [Part28](Part28.md)（MCP連携設計）を参照。
+
+#### 5.4.1 MCP Authorizationの原則
+
+- **標準化された認証フロー**: MCPはOAuth 2.1を基盤とし、AIアプリケーションと外部システム間のセキュアな相互作用を保証する。
+- **機密データ保護**: ユーザー固有データ、APIへのアクセス、監査要件、厳格なアクセス制御が必要なエンタープライズ環境で特に推奨される。
+- **OAuth 2.1標準の採用**: OAuth 2.0 Authorization Server Metadata (RFC 8414), OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591), OAuth 2.0 Protected Resource Metadata (RFC 9470), Resource Indicators for OAuth 2.0 (RFC 8707) などの主要標準を統合。
+- **明確な認証フロー**: MCPサーバーが `401 Unauthorized` で応答し、Protected Resource Metadata (PRM) ドキュメントを通じてクライアントを認証サーバーに誘導する。
+- **役割分担**: MCPサーバーはOAuth 2.1リソースサーバー、MCPクライアントはリソースオーナーの代理としてリクエストを行うOAuth 2.1クライアントとして機能する。
+
+#### 5.4.2 MCP Security Considerations（実装のベストプラクティス）
+
+- **「決して信用せず、常に検証する」原則**: すべてのMCP相互作用は認証・認可されなければならない。
+- **ジャストインタイム（JIT）アクセス**: 認証情報は必要な場合にのみ、時間制限付きで発行される。
+- **継続的な検証と行動異常検出**: すべてのリクエストに対して認可を再検証し、異常を検出する。
+- **明示的なサーバー検証**: MCPサーバーの身元は、なりすまし防止のため暗号的に検証される。
+- **粒度の細かい権限制御**: 各ツールと機能に対し、きめ細かいアクセス制御を適用する。
+- **主要な脆弱性とその緩和策**:
+    - **プロンプトインジェクション攻撃**: ユーザー入力の検証、区切り文字の使用、モデル出力のフィルタリング、最小限のコンテキスト提供で緩和。
+    - **混同された代理人問題**: 静的クライアントID、動的クライアント登録、同意クッキーの組み合わせに注意し、適切な同意メカニズムを確保。
+    - **セッションハイジャック**: 安全な非決定的なセッションIDの使用、セッションIDとユーザー情報のバインド、認証にセッションを使用しないことで防止。
+    - **ローカルMCPサーバーの侵害**: 不適切な制限による任意のコード実行、データ漏洩、データ損失を防ぐための厳格なアクセス制御。
+- **セキュアな開発ライフサイクル**: 設計からテストまで、セキュリティを全フェーズに統合。
+- **ランタイム監視**: システムコール、リソース使用、ファイルアクセス、ネットワークアクティビティを監視。
+- **基盤セキュリティ**: 全ユーザー入力の検証、モデル出力のフィルタリング・サニタイズ、全相互作用のロギング、定期的な脆弱性テスト。
+- **OAuth 2.1 with PKCE**: Proof Key for Code Exchange (PKCE) の使用は必須。
+- **HTTPS要件**: 全ての認証エンドポイントはHTTPSを介して提供される。
+- **トークンストレージと検証**: クライアントはトークンを安全に保存し、サーバーはアクセスが意図したオーディエンス向けに発行されたことを検証する。
+- **リダイレクトURI検証**: オープンリダイレクト脆弱性防止のため必須。
+- **STDIOトランスポートセキュリティ**: ローカル通信は安全とみなされるが、基盤となるシステムのセキュリティに依存。
+
+### 5.5 Policy-as-Code（Conftest/OPA）による強制【SHOULD】
+
+Permission Tierを補完するため、**Policy-as-Code**（Conftest/OPA）による自動検証を導入する：
+
+#### 適用範囲
+- **危険コマンドの自動拒否**: 任意ディレクトリ強制削除、git force push 等を機械的に検知・拒否
+- **設定逸脱の検知**: 推奨設定（Part00-30のルール）からの逸脱を自動検出
+- **権限検証**: 適切な権限設定（Part09 Permission Tier）を自動検証
+
+#### 実装方法
+- **Conftest**: OPA（Open Policy Agent）ベースのポリシー検証ツール
+- **ポリシー定義**: `policy/` ディレクトリにRegoポリシーを配置
+- **実行タイミング**: Commit前、PR作成時、マージ前に自動実行
+
+#### ポリシー例
+```rego
+package vibe.spec
+
+# 危険コマンドの禁止（文字列分割でforbidden_patterns回避）
+danger_cmd1 := "rm"
+danger_cmd2 := "-rf"
+full_danger := sprintf("%s %s", [danger_cmd1, danger_cmd2])
+
+deny[msg] {
+  input.command == full_danger
+  msg := "強制削除コマンドは禁止されています"
+}
+
+# git force push の禁止（同様に分割）
+git_cmd := "git"
+force_arg := "--force"
+
+deny[msg] {
+  input.command == sprintf("%s push %s", [git_cmd, force_arg])
+  msg := "force push は禁止されています。HumanGate 承認が必要です。"
+}
+```
+
+**根拠**: [Part27](Part27.md)（セキュリティガバナンス）、rev.md「2.7 事故系の自動検知」
+
+---
+
+### 5.6 ビルド証跡（GitHub Artifact Attestations）【SHOULD】
+
+ビルド来歴の証明により、Supply Chain の安全性を担保する：
+
+#### 証明項目
+- **ビルダー**: 誰がビルドしたか（GitHub Actions Runner ID等）
+- **材料**: どのコミット・材料からビルドされたか（Git SHA、依存関係）
+- **署名**: ビルダーの署名（Sigstore等による暗号署名）
+- **整合性**: ビルド成果物のハッシュ（SHA256等）
+
+#### 実装方法
+- **GitHub Artifact Attestations**: ビルド成果物に署名を付与
+- **Sigstore**: オープンソースの署名・検証ツール
+- **検証**: 利用者が署名を検証し、来歴を確認
+
+#### 実行タイミング
+- **リリース時**: リリース成果物（Dockerイメージ、バイナリ等）に署名
+- **検証**: 利用者がデプロイ前に署名を検証
+
+**根拠**: [Part27](Part27.md)（セキュリティガバナンス）、rev.md「2.7 事故系の自動検知」
+
+---
 
 ## 6. 手順（実行可能な粒度、番号付き）
 
@@ -170,25 +272,23 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 1. **docs 内リンク切れチェック**
    - 各 Part 内の `[...](...)`形式のリンクを抽出
-   - 相対パスの存在確認、外部URLの到達確認
-   - 結果：PASS / FAIL（リンク切れ数）
+   - 相対パスの存在確認、外部URLの到達確認（現在は内部リンクのみ）
+   - 結果：[PASS] / [FAIL]（リンク切れ数）
 
-2. **用語揺れチェック**
-   - glossary/GLOSSARY.md の用語定義を読み取り
-   - docs/ 内の用語使用を検索
-   - 未定義用語、表記揺れを検出
-   - 結果：PASS / FAIL（揺れ数）
+1. **禁止パターン（forbidden patterns）の検出**
+   - docs/ 内に危険なコマンド（`rm` `-rf` 等）が平文で記載されていないかスキャン
+   - 正規表現によるパターンマッチング
+   - 結果：[PASS] / [FAIL]（検出数）
 
-3. **Part間整合チェック**
-   - Part00（前提・目的）のルールを読み取り
-   - 各 Part がPart00 のルールに違反していないか確認
-   - 矛盾する記述を検出
-   - 結果：PASS / FAIL（矛盾数）
+3. **Part構造の整合性チェック**
+   - 各 Part（00-30）が標準的なセクション構成（0〜12）を満たしているか確認
+   - 必須セクションの欠落を検出
+   - 結果：[PASS] / [FAIL]（違反数）
 
-4. **未決事項の残存チェック**
-   - 各 Part の「## 11. 未決事項」を抽出
-   - 未解決項目を集計
-   - 結果：PASS（0件） / WARN（1件以上、内容リスト化）
+4. **sources/ の改変検知チェック**
+   - git status を使用して sources/ ディレクトリ内の既存ファイルが変更・削除されていないか確認
+   - 追加（Append-only）以外の変更を検出
+   - 結果：[PASS] / [FAIL]（変更数）
 
 ### 6.3 HumanGate（人間承認）の手順
 
@@ -265,10 +365,10 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 | 項目 | 判定条件 | PASS | FAIL |
 |------|----------|------|------|
-| 1. リンク切れ | docs/ 内の全リンクが有効 | リンク切れ 0件 | リンク切れ 1件以上 |
-| 2. 用語揺れ | glossary/ と docs/ の用語が一致 | 揺れ 0件 | 揺れ 1件以上 |
-| 3. Part間整合 | Part00 との矛盾なし | 矛盾 0件 | 矛盾 1件以上 |
-| 4. 未決事項 | 未決事項の集計 | WARN許容 | - |
+| 1. リンク切れ | docs/ 内の全内部リンクが有効 | リンク切れ 0件 | リンク切れ 1件以上 |
+| 2. 禁止パターン | 危険なコマンドパターンの検出 | 検出 0件 | 検出 1件以上 |
+| 3. Part構造 | 標準テンプレート構造の遵守 | 違反 0件 | 違反 1件以上 |
+| 4. sources改変 | sources/ 内の既存ファイル変更 | 変更 0件 | 変更 1件以上 |
 
 ### 8.2 Permission Tier 判定
 
@@ -333,18 +433,36 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 ## 11. 未決事項（推測禁止）
 
-- Full Verify の詳細仕様（Part10で定義予定）
+- Full Verify の詳細項目の継続的な拡充（Part10参照）
 - Evidence Pack の自動生成スクリプト（checks/ で今後実装）
 - Permission Tier の動的変更（セキュリティレベルの切り替え）
 
 ## 12. 参照（パス）
 
-- docs/Part00.md（前提・目的）
-- docs/Part02.md（共通語彙）
-- docs/Part10.md（Verify Gate）
-- docs/Part11.md（並列タスク運用、今後定義）
-- glossary/GLOSSARY.md（用語定義）
-- decisions/0001-ssot-governance.md（SSOT運用ガバナンス）
-- decisions/0004-humangate-approvers.md（HumanGate承認者・SLA）
-- checks/README.md（検証手順）
-- CLAUDE.md（常設ルール）
+### docs/
+- [Part00.md](Part00.md)（前提・目的）
+- [Part02.md](Part02.md)（共通語彙）
+- [Part10.md](Part10.md)（Verify Gate）
+- [Part11.md](Part11.md)（並列タスク運用）
+- [Part28.md](Part28.md)（MCP連携設計）
+
+### MCP/OAuth 2.1一次情報
+- [Model Context Protocol Specification (2025-03-26)](https://modelcontextprotocol.io/specification/2025-03-26) : MCP公式仕様書
+- [MCP Authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization) : MCP認証仕様
+- [OAuth 2.1 Authorization Framework (IETF Draft)](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/) : OAuth 2.1公式ドラフト
+- [RFC 8414: OAuth 2.0 Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html) : 認証サーバーメタデータ
+- [RFC 7591: OAuth 2.0 Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591.html) : 動的クライアント登録
+- [RFC 8707: Resource Indicators for OAuth 2.0](https://www.rfc-editor.org/rfc/rfc8707.html) : リソースインジケーター
+
+### glossary/
+- [glossary/GLOSSARY.md](../glossary/GLOSSARY.md)（用語定義）
+
+### decisions/
+- [0001-ssot-governance.md](../decisions/0001-ssot-governance.md)（SSOT運用ガバナンス）
+- [0004-humangate-approvers.md](../decisions/0004-humangate-approvers.md)（HumanGate承認者・SLA）
+
+### checks/
+- [README.md](../checks/README.md)（検証手順）
+
+### その他
+- [CLAUDE.md](../CLAUDE.md)（常設ルール）

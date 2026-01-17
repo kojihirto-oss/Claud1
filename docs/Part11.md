@@ -43,6 +43,9 @@ VCG/VIBE 2026 では「Verify失敗 → 修正 → 再検証」のループ（**
 3. **HumanGate承認フロー**: Part09 で定義された HumanGate へのエスカレーション手順が確立
 4. **失敗ログの形式**: Verifyツール（pytest/jest/lint）が構造化ログ（JSON/XML）を出力可能
 5. **AI Role分離**: ChatGPT（Spec担当）、Claude Code（実装担当）、Z.ai（ログ要約）の役割が明確（Part03参照）
+6. **エージェント暴走防止フレームワーク**が構築されている
+   - [Agentic AI Security: Threats, Risks & Best Practices](https://www.rippling.com/blog/agentic-ai-security) : エージェンティブAIセキュリティ
+   - [Safety & Guardrails for Agentic AI Systems (2025)](https://skywork.ai/blog/agentic-ai-safety-best-practices-2025-enterprise/) : 安全性とガードレール
 
 **根拠**: [F-0057](../docs/FACTS_LEDGER.md#F-0057), [Part09](./Part09.md), [Part10](./Part10.md)
 
@@ -934,7 +937,14 @@ grep "ApprovalTime:" evidence/humangate_escalations/*.md
 - [Part10](./Part10.md) : Verify Gate（Fast/Full、VRループ開始点）
 - [Part12](./Part12.md) : Evidence管理（ログ保存形式・フォルダ構造）
 - [Part16](./Part16.md) : Metrics（収束性指標・ダッシュボード）
+- [Part30](./Part30.md) : エージェント協調モデル（HITL・フォールバック）
 - [FACTS_LEDGER.md](./FACTS_LEDGER.md) : F-0002, F-0023, F-0057
+
+### エージェント暴走防止一次情報
+- [Agentic AI Security: A Guide to Threats, Risks & Best Practices](https://www.rippling.com/blog/agentic-ai-security) : エージェンティブAIセキュリティ包括ガイド
+- [Safety & Guardrails for Agentic AI Systems (2025)](https://skywork.ai/blog/agentic-ai-safety-best-practices-2025-enterprise/) : エージェンティブAIシステムの安全性とガードレール
+- [10 Best Practices for Building Reliable AI Agents in 2025](https://www.uipath.com/blog/ai/agent-builder-best-practices) : 信頼できるAIエージェント構築のベストプラクティス
+- [Human-in-the-Loop for AI Agents: Best Practices](https://www.permit.io/blog/human-in-the-loop-for-ai-agents-best-practices-frameworks-use-cases-and-demo) : HITLベストプラクティス
 
 ### sources/
 - （なし: 本Partは主にF-0057を根拠とする）

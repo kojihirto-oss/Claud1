@@ -164,7 +164,7 @@
 ### R-0007: Part番号・ファイル名の変更禁止【MUST NOT】
 **Part00〜Part20 のファイル名は変更禁止**。
 
-**理由**: docs/00_INDEX.md、FACTS_LEDGER.md、他Part からの参照が全壊する。
+**理由**: Part番号は `docs/00_INDEX.md`, `FACTS_LEDGER.md`, `decisions/*.md` 等、リポジトリの広範囲から参照される不変の識別子であるため。ファイル名を変更すると、これらの参照がすべてリンク切れとなり、仕様の追跡可能性が失われる。
 **根拠**: [CLAUDE.md](../CLAUDE.md)
 
 **例外**: 新規Part追加（Part21以降）は可。ただし 00_INDEX.md への追記が必須。
@@ -301,7 +301,7 @@
 **判定条件**: `docs/Part00.md` 〜 `docs/Part20.md` が全て存在するか
 **合否**: 1つでも欠けていたら Fail
 **実行方法**: `checks/verify_repo.ps1` の `Test-PartsExist` 関数
-**ログ**: `evidence/verify_reports/YYYYMMDD_HHMMSS_parts_check.md`
+**ログ**: `evidence/verify_reports/YYYYMMDD_HHMMSS_parts_integrity.md`
 
 ---
 
@@ -426,6 +426,11 @@
 - [docs/Part09.md](Part09.md) : Permission Tier（AI権限管理）
 - [docs/Part10.md](Part10.md) : Verify Gate（検証手順）
 - [docs/Part14.md](Part14.md) : 変更管理（ADR/RFC/PATCHSET）
+
+### SSOT・設計管理一次情報
+- [Single Source of Truth (SSOT) Pattern](https://martinfowler.com/bliki/SingleSourceOfTruth.html) : SSOTパターン（Martin Fowler）
+- [Documentation as Code](https://www.writethedocs.org/blog/docs-as-code/) : ドキュメント_as_Code
+- [Architectural Decision Records](https://adr.github.io/) : ADR公式ガイドライン
 
 ### sources/
 - [sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md](../sources/生データ/VCG_VIBE_2026_MASTER_FINAL_20260109.md) : 原文（43,822行）

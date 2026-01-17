@@ -15,3 +15,7 @@ export/
 
 .DS_Store
 Thumbs.db
+# local / heavy artifacts (do not commit)
+out/
+sources/research_inbox/
+evidence/research_import/
