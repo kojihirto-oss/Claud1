@@ -7,8 +7,11 @@ on:
       - main
 
 jobs:
+  # Required verification gate - MUST PASS for PR approval
+  # This job runs on Windows and executes the Fast mode verification
+  # Failure of this job will block PR merge (configure in branch protection rules)
   verify-repo-fast:
-    name: verify_repo_fast
+    name: verify_repo_fast (REQUIRED)
     runs-on: windows-latest
     steps:
       - name: Checkout
