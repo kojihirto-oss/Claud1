@@ -7,15 +7,15 @@ on:
       - main
 
 jobs:
-  verify-gate-windows:
-    name: verify-gate-windows
+  verify-repo-fast:
+    name: verify_repo_fast
     runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Run Verify Gate (Fast)
+      - name: Run Verify Repo (Fast)
         shell: pwsh
         run: pwsh -File checks/verify_repo.ps1 Fast
       - name: Upload verify reports
@@ -24,3 +24,35 @@ jobs:
         with:
           name: verify_reports
           path: evidence/verify_reports
+
+  security-scan:
+    name: security_scan_warn
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Prepare evidence directory
+        run: mkdir -p evidence/security
+      - name: Gitleaks (warn threshold)
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          args: --redact --report-format sarif --report-path evidence/security/gitleaks.sarif --exit-code 1
+      - name: Trivy (warn threshold)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: evidence/security/trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security_reports
+          path: evidence/security
