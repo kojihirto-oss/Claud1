@@ -50,7 +50,7 @@ sources/ は改変しない（追加のみ許可）。対象外のファイル�
 Fast検証でPASSするまでコミットしない。PASS証跡のみ採用する。
 
 ### R-1607: 証跡4点の最小セット【MUST】
-link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小セットとして保存する。
+link/parts/forbidden/sources の4点を最小セットとして保存する。
 
 ### R-1608: RAG更新プロトコル【MUST】
 - **トリガ**: docs/ の更新、glossary/ の更新、decisions/ の更新時
@@ -58,24 +58,11 @@ link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小
 - **保存先**: `evidence/rag_updates/` に更新ログと参照パスを保存
 - **禁止**: sources/ 由来の原本を直接加工してRAGへ投入
 
-### R-1609: MCP/RAG役割分離【MUST】
-**根拠**: [F-0075](../docs/FACTS_LEDGER.md#F-0075)
-
-- **MCP Resources**: 仕様書・ログ・設定など「正確なローカル引用」が必要な場合はMCP (`resources/read`) を使用する。
-- **RAG**: 大量の文書からの「意味検索」や関連情報探索にはRAGを使用する。
-- **混在時の明示**: 両者を使用する場合は、出力において取得経路を明示する。
-
-### R-1610: RAG対象パス明確化【MUST】
-- **対象**: docs/・glossary/・decisions/ をRAG対象とする。
-- **禁止**: sources/ 内のファイルは改変・削除しない（R-0003準拠）。
-- **入力生成**: sources/ 由来の素材は `sources/research_inbox/.../10_raw/` を保持し、`sources/research_inbox/.../20_curated/` へはコピーのみ行う。20_curated の先頭にコピー元（10_raw のパス）をメタデータとして記録する。
-
 ## 6. 手順（実行可能な粒度、番号付き）
-0. 経路選択：情報の性質（正確性vs網羅性）に応じて、MCP（ローカル引用）かRAG（意味検索）かを選択する [F-0075]。
 1. 発見：不整合や不足点を特定し、影響範囲と参照根拠を確認する。
 2. 記録：発見内容、根拠、対象ファイル、作業メモの保存先を記録する。
 3. 修正：最小差分で更新し、sources/ 無改変を維持したまま変更理由を短く記録する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、汚染や差分過多がないか確認する。
 
 ### 6.2 RAG更新の詳細手順
@@ -99,9 +86,7 @@ RAGを初めて構築する際の手順を以下に示す（根拠: [ADR-0007](.
 #### 手順1: 収集（対象範囲の固定）
 1. RAG化対象を決定する（docs/, glossary/, decisions/ の初期状態）
 2. sources/ は **RAG化禁止**（MCP Read-only取得のみ、ADR-0007 D-0007-2）
-3. 対象ファイル一覧を生成する
-   - Bash/WSL: `find docs/ glossary/ decisions/ -name "*.md"`
-   - PowerShell: `Get-ChildItem docs/, glossary/, decisions/ -Recurse -Filter "*.md" | Select-Object FullName`
+3. 対象ファイル一覧を生成する（`find docs/ glossary/ decisions/ -name "*.md"`）
 4. ファイル総数・総行数・総文字数を記録する
 5. 収集日時とコミットハッシュを記録する
 
@@ -114,13 +99,13 @@ RAGを初めて構築する際の手順を以下に示す（根拠: [ADR-0007](.
 
 #### 手順3: 索引（インデックス生成）
 1. 参照索引（ファイル一覧/リンク/用語）を生成する
-2. Part00～Part20 の依存関係グラフを作成する
+2. Part00〜Part20 の依存関係グラフを作成する
 3. glossary/ の用語索引を作成する
 4. ADR の決定一覧を作成する
 5. 索引をJSON/YAML形式で保存する
 
 #### 手順4: 埋め込み（ベクトル化）
-1. 正規化テキストをチャンク分割する（サイズ: 1000～2000トークン、オーバーラップ: 200トークン）
+1. 正規化テキストをチャンク分割する（サイズ: 1000〜2000トークン、オーバーラップ: 200トークン）
 2. 埋め込みモデルを選択する（推奨: text-embedding-004, OpenAI ada-002）
 3. チャンクごとに埋め込みベクトルを生成する
 4. 埋め込み結果をベクトルDBに保存する（推奨: Chroma, FAISS, Pinecone）
@@ -177,17 +162,17 @@ RAGを初めて構築する際の手順を以下に示す（根拠: [ADR-0007](.
 **判定条件**:
 1. 発見・修正・検証・監査の記録がある
 2. PASS証跡のみ採用されている
-3. 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+3. 証跡4点（link/parts/forbidden/sources）が揃っている
 
 **合否**:
-- **PASS**: 1～3を満たす
+- **PASS**: 1〜3を満たす
 - **FAIL**: 記録欠落、FAIL証跡の混在、証跡4点の欠落
 
 **ログ**: evidence/verify_reports/
 
 ### V-1602: Part00 Verify要件との整合
 **判定条件**:
-1. V-0001～V-0004のログが存在する
+1. V-0001〜V-0004のログが存在する
 2. sources/ の改変がない
 
 **合否**:
@@ -206,8 +191,9 @@ RAGを初めて構築する際の手順を以下に示す（根拠: [ADR-0007](.
 **保存先**: evidence/verify_reports/
 
 ### E-1603: 証跡4点（最小セット）
-**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity
+**内容**: link_check / parts_check / forbidden_check / sources_integrity  
 **保存先**: evidence/verify_reports/
+
 ### E-1604: RAG更新ログ
 **内容**: 更新対象、差分サマリ、インデックス/埋め込み更新ログ、検索テスト結果  
 **保存先**: evidence/rag_updates/
@@ -216,7 +202,7 @@ RAGを初めて構築する際の手順を以下に示す（根拠: [ADR-0007](.
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
 - [ ] PASS証跡のみを採用している
 - [ ] 参照パスが更新されている
-- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 

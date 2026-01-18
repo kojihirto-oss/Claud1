@@ -50,13 +50,13 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 Fast検証でPASSした証跡のみを採用する。
 
 ### R-1707: 証跡4点の最小セット【MUST】
-link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小セットとして保存する。
+link/parts/forbidden/sources の4点を最小セットとして保存する。
 
 ## 6. 手順（実行可能な粒度、番号付き）
 1. 発見：対象の不整合や運用課題を特定し、影響範囲を確認する。
 2. 記録：発見内容、根拠、対象ボタン、保存先を記録する。
 3. 修正：最小差分で手順を更新し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
 5. 監査：実行ログ、証跡一覧、DoDを点検し、順序違反がないか確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -77,7 +77,7 @@ link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小
 **判定条件**:
 1. PASS証跡が evidence/verify_reports/ に存在する
 2. Verify→Evidence→Releaseの実行ログがある
-3. 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+3. 証跡4点（link/parts/forbidden/sources）が揃っている
 
 **合否**:
 - **PASS**: 1〜3を満たす
@@ -106,13 +106,14 @@ link_check/parts_integrity/forbidden_patterns/sources_integrity の4点を最小
 **保存先**: evidence/verify_reports/
 
 ### E-1703: 証跡4点（最小セット）
-**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity
+**内容**: link_check / parts_check / forbidden_check / sources_integrity  
 **保存先**: evidence/verify_reports/
+
 ## 10. チェックリスト
 - [ ] 発見→記録→修正→検証→監査の順序で実施した
 - [ ] PASS証跡が evidence/verify_reports/ に揃っている
 - [ ] Verify→Evidence→Releaseの順序が守られている
-- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 

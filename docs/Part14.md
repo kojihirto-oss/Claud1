@@ -251,7 +251,7 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
 以下の手順で最小差分の変更を作成する。
 
 1. **ブランチ作成**
-   ```powershell
+   ```bash
    git checkout -b feature/fix-part14-typo
    ```
 
@@ -260,8 +260,8 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
    - 禁止: 誤字修正 + 用語統一 を混ぜる
 
 3. **Fast Verify実行**（Part10参照）
-   ```powershell
-   pwsh .\checks\verify_repo.ps1 -Mode Fast
+   ```bash
+   bash checks/verify_repo.sh
    ```
 
 4. **失敗時は即座修正**（3ループ以内、Part10参照）
@@ -278,7 +278,7 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
    ```
 
 6. **コミット**
-   ```powershell
+   ```bash
    git add docs/Part14.md CHANGELOG.md
    git commit -m "Fix: Part14 誤字修正（PATCHSET表記統一）"
    ```
@@ -294,7 +294,7 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
 仕様・運用を変更する場合、以下の手順で ADR を先行追加する。
 
 1. **decisions/ADR_TEMPLATE.md をコピー**
-   ```powershell
+   ```bash
    cp decisions/ADR_TEMPLATE.md decisions/0002-change-patchset-format.md
    ```
 
@@ -313,12 +313,12 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
    - CHANGELOGに記録
 
 5. **Verify実行**
-   ```powershell
-   pwsh .\checks\verify_repo.ps1 -Mode Fast
+   ```bash
+   bash checks/verify_repo.sh
    ```
 
 6. **コミット & PR**
-   ```powershell
+   ```bash
    git add decisions/0002-*.md docs/Part*.md CHANGELOG.md
    git commit -m "Add: ADR-0002（PATCHSET形式変更）& Part14更新"
    ```
@@ -339,32 +339,32 @@ VCG/VIBE 2026 設計書SSOTを運用するには、**誰が・何を・どの順
    - 承認されるまで実施禁止
 
 3. **Dry-run（テスト環境）**
-   ```powershell
+   ```bash
    # 例: docs/ → documentation/ へ変更
    git checkout -b test/rename-docs
    git mv docs documentation
-   # 全リンク更新スクリプト実行（適宜 PowerShell 版を作成または使用）
-   # pwsh .\scripts\update_links.ps1 docs documentation
+   # 全リンク更新スクリプト実行
+   bash scripts/update_links.sh docs documentation
    # Verify実行
-   pwsh .\checks\verify_repo.ps1 -Mode Fast
+   bash checks/verify_repo.sh
    ```
 
 4. **Dry-run成功を確認**
-   - VERIFYが全て [PASS]
+   - VERIFYが全てPASS
    - リンク切れゼロ
 
 5. **本番実施**
-   ```powershell
+   ```bash
    git checkout -b feature/rename-docs
    git mv docs documentation
-   # pwsh .\scripts\update_links.ps1 docs documentation
+   bash scripts/update_links.sh docs documentation
    git add .
    git commit -m "Breaking: docs/ → documentation/ へ変更（ADR-0003）"
    ```
 
-6. **Full Verify実行**（Part10参照）
-   ```powershell
-   pwsh .\checks\verify_repo.ps1 -Mode Full
+6. **Full Verify実行**（Part10参照、<30分）
+   ```bash
+   bash checks/verify_repo.sh --full
    ```
 
 7. **ロールバック計画確認**
@@ -443,7 +443,7 @@ Specが完成したら、以下の手順で凍結を宣言する。
 1. **HumanGate承認**（Part09参照）
    - 障害内容、影響範囲、修正方針を提出
 2. **Hotfixブランチ作成**
-   ```powershell
+   ```bash
    git checkout -b hotfix/critical-bug-20260110
    ```
 3. **最小限の修正**（追加機能を混ぜない）
@@ -612,12 +612,14 @@ git log --oneline --grep="Impl:" | grep Part14
 - **FAIL**: 形式が不正（例: `RELEASE_v1.2.3`）
 
 **判定方法**:
-```powershell
+```bash
 # RELEASE/配下のフォルダ名を確認
 ls -d RELEASE/RELEASE_* | grep -E "RELEASE_[0-9]{8}_[0-9]{6}"
 ```
 
-**ログ**: evidence/verify_reports/YYYYMMDD_HHMMSS_sources_integrity.md（フォルダ名整合性として）
+**ログ**: evidence/verify_reports/V-1406_YYYYMMDD.md
+
+**例外**: セマンティックバージョニング採用の場合はADRで明記
 
 ---
 
@@ -628,15 +630,15 @@ ls -d RELEASE/RELEASE_* | grep -E "RELEASE_[0-9]{8}_[0-9]{6}"
 
 **合否**:
 - **PASS**: 3回以内で解決
-- **FAIL**: 3回超えても [PASS] しない → HumanGateへエスカレーション
+- **FAIL**: 3回超えてもPASSしない → HumanGateへエスカレーション
 
 **判定方法**:
-```powershell
-# evidence/ のレポート数を確認
-ls evidence/verify_reports/ | Measure-Object
+```bash
+# evidence/ のVRループログを確認
+grep "VRループ" evidence/verify_reports/V-1407_*.md | wc -l
 ```
 
-**ログ**: evidence/verify_reports/YYYYMMDD_HHMMSS_*.md（複数回実行の証跡）
+**ログ**: evidence/verify_reports/V-1407_YYYYMMDD.md
 
 ---
 
@@ -650,11 +652,11 @@ ls evidence/verify_reports/ | Measure-Object
 - **FAIL**: 7日経過してもADR未追加
 
 **判定方法**:
-```powershell
+```bash
 # hotfix/ ブランチのマージ日を確認
 git log --merges --oneline --grep="hotfix/"
 # 7日以内のADR追加を確認
-Get-ChildItem decisions/ -Filter "*.md" | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-7) }
+find decisions/ -name "*.md" -mtime -7
 ```
 
 **ログ**: evidence/verify_reports/V-1408_YYYYMMDD.md
@@ -671,11 +673,11 @@ Get-ChildItem decisions/ -Filter "*.md" | Where-Object { $_.LastWriteTime -gt (G
 - **FAIL**: revert実行後、ADR未更新
 
 **判定方法**:
-```powershell
+```bash
 # git revert のコミットを検出
 git log --oneline --grep="Revert"
 # ADRに「ロールバック」セクションがあるか確認
-Select-String "ロールバック" decisions/*.md
+grep "ロールバック" decisions/*.md
 ```
 
 **ログ**: evidence/verify_reports/V-1409_YYYYMMDD.md
@@ -690,11 +692,11 @@ Select-String "ロールバック" decisions/*.md
 
 **合否**:
 - **PASS**: 1,2を満たす
-- **FAIL**: CI結果未付与、または [FAIL]
+- **FAIL**: CI結果未付与、またはFAIL
 
 **判定方法**:
 - GitHub Branch Protection / Rulesets で Required checks を確認
-- PRのChecksタブで `verify-gate-windows` の [PASS] を確認
+- PRのChecksタブで `verify-gate-windows` のPASSを確認
 - 参照URLを evidence/verify_reports/V-1410_YYYYMMDD.md に記録
 
 **ログ**: evidence/verify_reports/V-1410_YYYYMMDD.md

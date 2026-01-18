@@ -50,7 +50,7 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 1. 発見：必要な参照Partと運用ルールを確認する。
 2. 記録：参照根拠、対象ファイル、保存先を記録する。
 3. 修正：最小差分で初期手順を整備し、sources/ 無改変を維持する。
-4. 検証：Fast検証でPASSを確認し、証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）を保存する。
+4. 検証：Fast検証でPASSを確認し、証跡4点（link/parts/forbidden/sources）を保存する。
 5. 監査：変更概要・参照パス・証跡一覧・DoDを点検し、導入手順の妥当性を確認する。
 
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
@@ -71,7 +71,7 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 **判定条件**:
 1. 発見・記録・修正・検証・監査の記録がある
 2. PASS証跡のみ採用されている
-3. 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+3. 証跡4点（link/parts/forbidden/sources）が揃っている
 
 **合否**:
 - **PASS**: 1〜3を満たす
@@ -100,11 +100,12 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 **保存先**: evidence/verify_reports/
 
 ### E-2003: 証跡4点（最小セット）
-**内容**: link_check / parts_integrity / forbidden_patterns / sources_integrity
+**内容**: link_check / parts_check / forbidden_check / sources_integrity  
 **保存先**: evidence/verify_reports/
+
 ## 10. チェックリスト
 - [ ] 発見・記録・修正・検証・監査の順序が揃っている
-- [ ] 証跡4点（link_check/parts_integrity/forbidden_patterns/sources_integrity）が揃っている
+- [ ] 証跡4点（link/parts/forbidden/sources）が揃っている
 - [ ] 最小差分であり、sources/ 無改変である
 - [ ] Fast検証がPASSしている
 - [ ] 導入手順と参照根拠が記録されている
@@ -128,9 +129,3 @@ sources/ の改変は禁止（追加のみ許可）。検出時は作業を停�
 - [Part15](./Part15.md) : 運用ループ
 - [00_INDEX](./00_INDEX.md) : 全体索引
 - [FACTS_LEDGER](./FACTS_LEDGER.md) : 事実台帳
-
-### AI開発・教育一次情報
-- [Anthropic's Claude Courses](https://anthropic.skilljar.com/) : Anthropic公式トレーニングコース
-- [Introduction to Model Context Protocol](https://anthropic.skilljar.com/introduction-to-model-context-protocol) : MCP入門コース
-- [OpenAI Documentation](https://platform.openai.com/docs) : OpenAI公式ドキュメント
-- [Google AI Documentation](https://ai.google.dev/docs) : Google AI公式ドキュメント
