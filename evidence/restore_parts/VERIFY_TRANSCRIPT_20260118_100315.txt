@@ -1,0 +1,99 @@
+**********************
+PowerShell transcript start
+Start time: 20260118100316
+Username: KATO\koji2
+RunAs User: KATO\koji2
+Configuration Name: 
+Machine: KATO (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -Command [Console]::OutputEncoding=[System.Text.Encoding]::UTF8;
+$ErrorActionPreference = "Stop"
+$repo = "C:\Users\koji2\Desktop\vibe-spec-ssot"
+$evidenceDir = Join-Path $repo "evidence\restore_parts"
+$latestInvestigation = Get-ChildItem $evidenceDir -Filter "INVESTIGATION_*.md" | Sort-Object LastWriteTime -Desc | Select-Object -First 1
+$latestRestore = Get-ChildItem $evidenceDir -Filter "RESTORE_LOG_*.md" | Sort-Object LastWriteTime -Desc | Select-Object -First 1
+
+function Write-Log {
+  param([string]$Path, [string]$Text)
+  Add-Content -LiteralPath $Path -Value $Text
+}
+
+Write-Log $latestRestore.FullName "## Commands Executed"
+Write-Log $latestRestore.FullName "Command: git -C \"$repo\" show e4059a^:docs/PartXX.md (for Part21-30)"
+Write-Log $latestRestore.FullName "Command: .\\scripts\\export_design_master_full.ps1"
+Write-Log $latestRestore.FullName "Command: .\\checks\\verify_repo.ps1 Fast"
+Write-Log $latestRestore.FullName ""
+
+$ts = Get-Date -Format "yyyyMMdd_HHmmss"
+$verifyTranscript = Join-Path $evidenceDir ("VERIFY_TRANSCRIPT_" + $ts + ".txt")
+Start-Transcript -Path $verifyTranscript | Out-Null
+& "$repo\checks\verify_repo.ps1" Fast
+Stop-Transcript | Out-Null
+
+$verifyText = (Get-Content -LiteralPath $verifyTranscript | Out-String).TrimEnd()
+if ([string]::IsNullOrWhiteSpace($verifyText)) { $verifyText = "(no output)" }
+Write-Log $latestRestore.FullName "## Verify Output (Transcript)"
+Write-Log $latestRestore.FullName ("Transcript: " + $verifyTranscript)
+Write-Log $latestRestore.FullName $verifyText
+Write-Log $latestRestore.FullName ""
+
+Write-Log $latestInvestigation.FullName "## Summary"
+Write-Log $latestInvestigation.FullName "Cause: docs/Part21-30 were deleted in commit e4059a22726fba92b8108bf768e2704bdbc2139f."
+Write-Log $latestInvestigation.FullName "Found: Part21-29 existed in worktrees (part22/23/24/28); Part30 not found on Desktop outside git history."
+Write-Log $latestInvestigation.FullName "Restore plan: use git history at e4059a^ to restore Part21-30, then re-export and verify."
+Write-Log $latestInvestigation.FullName ""
+
+Process ID: 37168
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+============================================
+  SSOT Repository Verification - Fast Mode
+============================================
+Timestamp: 2026-01-18 10:03:16
+Report location: evidence/verify_reports/
+
+[1/4] Checking link integrity in docs/...
+  ✓ PASS - All links valid
+
+[2/4] Checking Part structure integrity...
+  ✓ PASS - Part structure valid
+
+[3/4] Checking for forbidden patterns in docs/...
+  ✓ PASS - No forbidden patterns
+
+[4/4] Checking sources/ modification status...
+  ✓ PASS - sources/ unmodified
+
+============================================
+  Verification Summary
+============================================
+  forbidden_patterns   : PASS ✓
+  link_check           : PASS ✓
+  parts_integrity      : PASS ✓
+  sources_integrity    : PASS ✓
+
+  Overall Result:
+PASS ✓
+
+All checks passed. You may proceed to commit.
+Next steps:
+  1. git add evidence/verify_reports/*
+  2. git add docs/Part10.md  # (or your modified files)
+  3. git commit -m 'Part10: ... (Fast verify PASS 2026-01-18)'
+
+Reports generated:
+  - 20260118_100316_forbidden_patterns.md
+  - 20260118_100316_link_check.md
+  - 20260118_100316_parts_integrity.md
+  - 20260118_100316_sources_integrity.md
+**********************
+PowerShell transcript end
+End time: 20260118100316
+**********************
