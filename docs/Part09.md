@@ -97,7 +97,7 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - **MUST**: 承認結果は evidence/ に記録
 
 ##### HumanGate 承認者・SLA・承認チャネル
-**根拠**: [ADR-U0001](../decisions/ADR-U0001-approval-flow.md)
+**根拠**: [ADR-0008](../decisions/0008-approval-flow.md)
 - **承認者**: 主要/代理/緊急の3系統（`decisions/0004-humangate-approvers.md` 参照）
 - **SLA**: 通常24h / 重要48h / 緊急2h（期限超過時は代理承認へ自動エスカレーション）
 - **チャネル**: PR Review または Issue/Chatの明示承認（LGTM + 確認ログ）

@@ -11,7 +11,7 @@
 ### Step 1: 準備 (Prepare)
 - [ ] **作業ブランチ作成**: `git switch -c feature/<client>_<description>`
 - [ ] **worktree隔離**: `git worktree add ../worktree_<id> feature/<id>` (推奨)
-- [ ] **TICKET作成**: `VIBEKANBAN/100_SPEC/` に TICKET-XXX.md を作成
+- [ ] **TICKET作成**: `ops/vibekanban/lanes/100_SPEC/` に TICKET-XXX.md を作成
   - 必須項目: Goal, Acceptance, Plan, Verify, Evidence
 
 ### Step 2: 設計・仕様 (Spec/Design)
@@ -32,7 +32,7 @@
 
 ### Step 5: 承認・マージ (Review/Merge)
 - [ ] **PR作成**: Mainブランチへ Pull Request
-- [ ] **CI実行**: `verify-fast` (必須), `verify-full` (条件付き) が PASS
+- [ ] **CI実行**: `verify-gate-windows` (必須) が PASS
 - [ ] **承認**: Owner/Role の Review (LGTM)
 - [ ] **Merge**: Main に統合
 
@@ -44,7 +44,7 @@
 
 ### 手順
 1. **承認**: 緊急承認者（Emergency Role）の承認を得る (Chat/Oral OK)
-2. **実行**: `ALLOW_BREAK_GLASS=true` で禁止操作を実行
+2. **実行**: 運用の強制力を解除して実行（システム的なバイパス手段がない場合は手動対応）
 3. **事後対応** (24時間以内):
    - ADRを作成（事後承認）
    - Full Verify を実行
@@ -57,6 +57,7 @@
 ### PR作成前（Self Check）
 - [ ] `pwsh checks/verify_repo.ps1 Fast` が PASS している
 - [ ] `docs/` の変更が TICKET の範囲内である
+- [ ] `out/` ディレクトリ（統合テキスト等）はコミット対象外である
 - [ ] 未決事項（U-XXXX）を増やしていない（増やした場合はIssue化）
 
 ### マージ前（Reviewer Check）

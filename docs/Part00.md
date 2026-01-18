@@ -399,7 +399,7 @@
 
 ### U-0001: ADR承認フロー
 **Status**: Resolved
-**Resolution**: [ADR-U0001](../decisions/ADR-U0001-approval-flow.md) にて決定済み。
+**Resolution**: [ADR-0008](../decisions/0008-approval-flow.md) にて決定済み。
 - 承認者は Owner / Security / Release の役割ベース
 - SLAは 24h/48h/2h
 - Break-glass 手順固定
@@ -422,7 +422,7 @@
 
 ### U-0004: Verify の自動実行タイミング
 **Status**: Resolved
-**Resolution**: [ADR-U0004](../decisions/ADR-U0004-verify-trigger.md) にて決定済み。
+**Resolution**: [ADR-0009](../decisions/0009-verify-trigger.md) にて決定済み。
 - CI必須 (Fast/Full)
 - ローカル推奨 (Fast)
 

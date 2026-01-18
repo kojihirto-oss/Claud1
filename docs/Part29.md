@@ -162,7 +162,7 @@ VRループカウンターは以下の機能を提供する：
 - Fast失敗: 修正→再Fast（最大3回）
 - Full失敗: TICKET=BLOCKED→HumanGate（条件満たすまで進行禁止）
 
-**根拠**: [ADR-U0004](../decisions/ADR-U0004-verify-trigger.md)
+**根拠**: [ADR-0009](../decisions/0009-verify-trigger.md)
 
 ---
 

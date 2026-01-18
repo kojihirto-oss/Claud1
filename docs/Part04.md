@@ -380,8 +380,10 @@ adr:
 - TICKET 全文（Goal/Non-Goals/Acceptance/Plan/Verify/Evidence/Rollback）
 - 参照元（SSOT/ADR/FACTS_LEDGER）
 
-**参照パス**: `VIBEKANBAN/100_SPEC/TICKET-XXX.md`
-**保存場所**: `VIBEKANBAN/100_SPEC/`
+- **パス**: `ops/vibekanban/lanes/100_SPEC/`, `200_BUILD/` ...
+- **構成**:
+  - `ops/vibekanban/lanes/` : カンバンレーン（状態）
+  - `ops/vibekanban/templates/` : タスクテンプレート
 
 ---
 
