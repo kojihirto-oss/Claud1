@@ -172,6 +172,27 @@ pwsh .\checks\verify_repo.ps1 -Mode Full
   # evidence/verify_reports/ のファイル名に PASS/FAIL が含まれているか確認
   ```
 
+### 6.4 CI/Branch Protection設定手順【MUST】
+
+SSOTの堅牢性を担保するため、以下の設定をGitHubリポジトリに適用する。
+
+#### A) GitHub Actions 設定
+`.github/workflows/verify.yml` を作成し、以下を定義：
+- トリガー: `pull_request` (target: main), `push` (branches: main)
+- ジョブ: `verify-fast` (必須), `verify-full` (推奨)
+- ステップ: checkout, pwsh実行, 結果判定
+
+#### B) Branch Protection Rules
+GitHub Settings > Branches > Add rule (Pattern: `main`) で以下を有効化：
+1. **Require a pull request before merging**
+   - Require approvals: 1
+2. **Require status checks to pass before merging**
+   - Status check: `verify-fast` (必須)
+3. **Do not allow bypassing the above settings**
+   - 上記設定を管理者権限でもバイパス不可にする（HumanGateエスケープハッチを除く）
+
+**運用**: この設定により、Verify FAIL状態でのマージがシステム的に阻止される。
+
 ## 7. 例外処理（失敗分岐・復旧・エスカレーション）
 
 ### 7.1 Verify FAIL時の対処

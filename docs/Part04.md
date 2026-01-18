@@ -211,6 +211,43 @@ VIBEKANBAN は「人間の計画 → AI の実行 → 人間の承認」の型�
 
 ---
 
+### R-0408: 必須項目のスキーマ定義【MUST】
+
+TICKET および ADR は以下の YAML スキーマに準拠する（機械検証用）。
+
+**TICKET Schema**:
+```yaml
+ticket:
+  required:
+    - ticket_id: string (TICKET-NNN)
+    - goal: string (1文)
+    - scope_in: array
+    - scope_out: array
+    - success_criteria: array (DoDに接続)
+    - risks: array (Failure Mode含む)
+    - verify_plan: string (V-XXXX参照)
+    - evidence_plan: string (E-XXXX参照、保存先)
+    - permission_tier: enum [ReadOnly, PatchOnly, ExecLimited, HumanGate]
+    - human_gate: boolean
+```
+
+**ADR Schema**:
+```yaml
+adr:
+  required:
+    - decision_id: string (ADR-XXXX)
+    - context: string
+    - options: array (A/B/C)
+    - decision: string
+    - enforcement: array [CI, Verify, Git]
+    - evidence: object (保存先と必須項目)
+    - rollback: string
+```
+
+**根拠**: [FACTS_LEDGER F-0040](FACTS_LEDGER.md)
+
+---
+
 ## 6. 手順（実行可能な粒度、番号付き）
 
 ### 手順A: TICKET の作成

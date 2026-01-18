@@ -151,6 +151,21 @@ VRループカウンターは以下の機能を提供する：
 
 ---
 
+### R-2906: Watcher/Context Builderトリガ規定【MUST】
+
+**トリガタイミング**:
+- 保存時: Fast Verify（軽量）
+- commit/push前: 変更種別でFast/Full自動選択
+- TICKET状態遷移時: Context Pack再生成
+
+**失敗時挙動**:
+- Fast失敗: 修正→再Fast（最大3回）
+- Full失敗: TICKET=BLOCKED→HumanGate（条件満たすまで進行禁止）
+
+**根拠**: [ADR-U0004](../decisions/ADR-U0004-verify-trigger.md)
+
+---
+
 ## 6. 手順（実行可能な粒度、番号付き）
 
 ### 手順A: VS Code拡張機能のインストール

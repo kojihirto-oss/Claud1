@@ -46,6 +46,16 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 
 ### 5.1 Permission Tier の定義
 
+#### Permission Tier 具体表
+| Tier | 対象操作 | 実行可否 | 必須条件 | Evidence |
+|------|---------|---------|---------|----------|
+| **ReadOnly** | sources/読取 | ✓ | なし | なし |
+| **PatchOnly** | docs/Part*.md編集 | ✓ | Read→Edit | Verify PASS |
+| **ExecLimited** | checks/実行, git操作 | ✓ | DoD確認 | Evidence Pack |
+| **HumanGate** | sources/削除, ADR作成 | 承認必須 | ADR+Break-glass | 承認ログ |
+
+詳細定義:
+
 #### Tier 1: ReadOnly（読み取りのみ）
 - **MUST**: AI Agentはファイル読み取り、検索、分析のみ実行可能
 - **MUST NOT**: ファイルの変更・削除・実行は禁止
@@ -87,10 +97,11 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
 - **MUST**: 承認結果は evidence/ に記録
 
 ##### HumanGate 承認者・SLA・承認チャネル
-- **MUST**: 承認者は `decisions/0004-humangate-approvers.md` に記録（主要/代理/緊急の3系統）
-- **MUST**: 承認SLAを明記し、期限超過時は自動エスカレーション（SLA: 通常24h、重要48h、緊急2h）
-- **MUST**: 承認チャネルは「PR Review」または「Issue/Chatの明示承認（LGTM + 確認ログ）」に限定
-- **MUST**: 承認ログは `evidence/humangate_approvals/` に保存し、参照パスを明記
+**根拠**: [ADR-U0001](../decisions/ADR-U0001-approval-flow.md)
+- **承認者**: 主要/代理/緊急の3系統（`decisions/0004-humangate-approvers.md` 参照）
+- **SLA**: 通常24h / 重要48h / 緊急2h（期限超過時は代理承認へ自動エスカレーション）
+- **チャネル**: PR Review または Issue/Chatの明示承認（LGTM + 確認ログ）
+- **Evidence**: `evidence/humangate_approvals/` に保存。詳細は [9.1 必須 Evidence](#91-必須-evidence) を参照。
 
 ### 5.2 DoD（Definition of Done）の基準
 
@@ -308,8 +319,15 @@ SSOT（docs/）を壊さず、安全に更新するための **権限階層（Pe
    - 内容：タイムスタンプ、実行者（AI/人間）、コマンド履歴
 
 4. **HumanGate 承認記録（該当時）**
-   - ファイルパス：`evidence/humangate_approvals/YYYYMMDD_HHMMSS_<task-id>_APPROVED.md`
-   - 内容：承認日時、承認者、操作内容、承認理由、SLA判定
+   - ファイルパス：`evidence/humangate_approvals/YYYYMMDD_HHMMSS_<ticket_id>_APPROVED.md`
+   - **必須項目**:
+     - **Ticket ID**: TICKET-XXXX
+     - **Timestamp**: YYYY-MM-DD HH:MM:SS
+     - **Approver**: @user (Role: Owner/Security/Release)
+     - **Type**: Standard / Delegation / Break-glass
+     - **SLA Status**: Within SLA / Over SLA
+     - **Diff Hash**: sha256:...
+     - **Comment**: 承認理由
 
 ### 9.2 Evidence の保持期間
 

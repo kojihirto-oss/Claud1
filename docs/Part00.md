@@ -66,6 +66,14 @@
 
 ## 5. ルール（MUST / MUST NOT / SHOULD）
 
+### Policy-as-Code 対応表
+| Rule ID | 内容 | Verify | Evidence | CI Job |
+|---------|------|--------|----------|--------|
+| R-0001 | Truth Order | V-0001〜V-0005 | E-0001〜E-0005 | verify-repo |
+| R-0002 | ADR→docs方向固定 | V-0006 | E-0002 | verify-repo |
+| R-0003 | sources/改変禁止 | V-0004 | E-0004 | verify-repo |
+
+
 ### R-0001: 真実の優先順位（Truth Order）【MUST】
 矛盾が発生した場合、以下の順序で裁定する：
 
@@ -76,6 +84,8 @@
 5. **会話・感想・推測** — 最下位（必ずVerify/Evidenceに昇格させる）
 
 **根拠**: [FACTS_LEDGER F-0001](FACTS_LEDGER.md)
+**Priority**: Highest
+**Tag**: #SSOT #TruthOrder
 **違反例**: 「Claude Codeが言ったから正しい」→ 必ずVerifyで検証し、Evidenceに記録する。
 
 ---
@@ -388,9 +398,11 @@
 ## 11. 未決事項（推測禁止）
 
 ### U-0001: ADR承認フロー
-**問題**: ADR を「誰が」「どのタイミングで」承認するか不明。
-**影響Part**: Part09（Permission Tier）、Part14（変更管理）
-**暫定対応**: 初期は commit した時点で承認とみなす。
+**Status**: Resolved
+**Resolution**: [ADR-U0001](../decisions/ADR-U0001-approval-flow.md) にて決定済み。
+- 承認者は Owner / Security / Release の役割ベース
+- SLAは 24h/48h/2h
+- Break-glass 手順固定
 
 ---
 
@@ -409,9 +421,10 @@
 ---
 
 ### U-0004: Verify の自動実行タイミング
-**問題**: Verify を「commit前」「push前」「CI/CD」のいつ実行するか不明。
-**影響Part**: Part10（Verify Gate）
-**暫定対応**: 手動実行（`checks/verify_repo.ps1` を明示的に実行）。
+**Status**: Resolved
+**Resolution**: [ADR-U0004](../decisions/ADR-U0004-verify-trigger.md) にて決定済み。
+- CI必須 (Fast/Full)
+- ローカル推奨 (Fast)
 
 ---
 

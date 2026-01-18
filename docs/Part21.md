@@ -210,6 +210,21 @@ Flash/GLM →（必要時）Sonnet/Pro
 
 **違反例**: Spec未完了でBuild開始 → Part01 R-0104違反。
 
+### R-2106: 単一AI禁止 + クロスチェック最小要件【MUST】
+
+重要成果物（Spec/Hard Design/ADR/Fix）は単一AIの出力を直接SSOTにしない。
+
+**最小要件**:
+- 生成とレビューは異なるAI（または人間）が担当
+- 例：Claude生成→Geminiレビュー、GPT生成→Claude検証
+
+**適用対象**:
+- Spec（要件/仕様固め）
+- Hard Design（ADR/API契約）
+- Fix（パッチ）
+
+**違反例**: Claudeだけで生成してコミット → 副担当（Gemini/Codex）の検証ログが必要。
+
 ---
 
 ## 6. 手順（実行可能な粒度、番号付き）
